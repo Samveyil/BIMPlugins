@@ -1,0 +1,36 @@
+﻿<Window x:Class="BIMPlugins.Parameters.WPF.AddParameterToFormulaWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:BIMPlugins.Parameters.WPF"
+        d:DataContext="{d:DesignInstance local:AddParameterToFormulaViewModel}"
+        mc:Ignorable="d"
+        Title="Параметры" Height="420" Width="280" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" ShowInTaskbar="False">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Padding="3">
+        <StackPanel>
+            <TextBlock Text="Выберите параметр, который будет&#x0a;добавлен в формулу" Margin="0 2 0 2"/>
+            <Border BorderThickness="1" BorderBrush="#f88518" Margin="0 5">
+                <ListBox ItemsSource="{Binding Parameters}" SelectedItem="{Binding SelectedParameter}" SelectionMode="Single" Height="285" Padding="0" DisplayMemberPath="Definition.Name">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
+                            <Setter Property="Padding" Value="3" />
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                </ListBox>
+            </Border>
+
+            <Button Content="ОК" Margin="0 5" Command="{Binding RunCommand}" Style="{StaticResource MaterialDesignPaperButton}" Height="28" Padding="0"/>
+        </StackPanel>
+    </Border>
+</Window>

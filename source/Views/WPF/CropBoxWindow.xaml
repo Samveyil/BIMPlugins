@@ -1,0 +1,70 @@
+﻿<Window x:Class="BIMPlugins.Views.WPF.CropBoxWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:local="clr-namespace:BIMPlugins.Views.WPF"
+        d:DataContext="{d:DesignInstance local:CropBoxViewModel}"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
+        Title="Секущий диапазон на 3D" Height="740" Width="782">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="Lime"/>
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:RevitColorToSolidColorBrushConverter x:Key="RevitColorToBrushConverter" />
+            <materialDesign:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        </ResourceDictionary>
+    </Window.Resources>
+    
+    <StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="5">
+            <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 0"/>
+            <TextBox Text="{Binding Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="300"
+                     materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
+        </StackPanel>
+
+        <Border BorderBrush="#f88518" BorderThickness="1" Margin="5 10">
+            <ListView ItemsSource="{Binding FilteredItems}" ScrollViewer.VerticalScrollBarVisibility="Visible" Height="610" MaxHeight="610">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition MinWidth="600"/>
+                                <ColumnDefinition Width="120"/>
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox IsChecked="{Binding IsSelected}" Content="{Binding ViewName}" Padding="2 0"/>
+
+                            <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                                <Rectangle Fill="{Binding Color, Converter={StaticResource RevitColorToBrushConverter}}" Width="20" Height="20"
+                                           Margin="5 0 7 0" Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0" Margin="5 0"
+                                        Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="Показать диапазон видимости вида" Command="{Binding SelectCommand}" HorizontalAlignment="Center">
+                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/target-32.png"/>
+                                </Button>
+                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0"
+                                        Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        ToolTip="3D подрезка по диапазону видимости вида" Command="{Binding SectionBoxCommand}" HorizontalAlignment="Center">
+                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/sectionBox-32.png"/>
+                                </Button>
+                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0" Margin="7 0 5 0"
+                                        ToolTip="Открыть вид" Command="{Binding OpenViewCommand}" HorizontalAlignment="Center">
+                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/linking-32.png"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </Border>
+
+        <CheckBox Content="Показать секущую плоскость" IsChecked="{Binding ShowSectionPlane}" Margin="5" Padding="2 0"/>
+    </StackPanel>
+</Window>

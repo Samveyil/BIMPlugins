@@ -1,0 +1,131 @@
+﻿<Window x:Class="BIMPlugins.Sheets.WPF.CopyStampWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:classes="clr-namespace:BIMPlugins.Sheets.Classes"
+        xmlns:local="clr-namespace:BIMPlugins.Sheets.WPF"
+        d:DataContext="{d:DesignInstance local:CopyStampViewModel}"
+        mc:Ignorable="d"
+        Title="Копирование штампа" ResizeMode="NoResize" Height="800" Width="1000" WindowStartupLocation="CenterScreen">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="Lime" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:EscapeUnderscoreConverter x:Key="EscapeUnderscoreConverter" />
+        </ResourceDictionary>
+    </Window.Resources>
+    
+    <Border Padding="5">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
+            
+            <GroupBox Margin="0 0 5 0" Padding="0">
+                <GroupBox.Header>
+                    <TextBlock Text="Выберите лист, с которого необходимо скопировать штамп" FontWeight="SemiBold" />
+                </GroupBox.Header>
+                
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 7 5 0"/>
+                        <TextBox Text="{Binding FilterForBaseSheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"
+                                 materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
+                    </StackPanel>
+                    <TreeView ItemsSource="{Binding SheetSectionsForBaseSheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="637"
+                              VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0 10" MaxHeight="637">
+                        <TreeView.Resources>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                                <Setter Property="Padding" Value="2"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="24"/>
+
+                                <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
+                            </Style>
+
+                            <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Padding" Value="2"/>
+                            </Style>
+
+                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Sheets}">
+                                <StackPanel VerticalAlignment="Center">
+                                    <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+
+                            <HierarchicalDataTemplate DataType="{x:Type classes:SheetItem}">
+                                <StackPanel VerticalAlignment="Center">
+                                    <CheckBox Content="{Binding Title, Converter={StaticResource EscapeUnderscoreConverter}}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              VerticalAlignment="Center" Padding="2 0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.Resources>
+                    </TreeView>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Grid.Column="1" Margin="5 0 0 0" Padding="0">
+                <GroupBox.Header>
+                    <TextBlock Text="Выберите листы, в которые необходимо скопировать штамп" FontWeight="SemiBold" />
+                </GroupBox.Header>
+
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 7 5 0"/>
+                        <TextBox Text="{Binding FilterForCopySheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"
+                                 materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
+                    </StackPanel>
+                    <TreeView ItemsSource="{Binding SheetSectionsForCopySheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="637"
+                              VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0 10" MaxHeight="637" >
+                        <TreeView.Resources>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
+                                <Setter Property="Padding" Value="2"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="24"/>
+
+                                <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
+                            </Style>
+
+                            <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Padding" Value="2"/>
+                            </Style>
+
+                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Sheets}">
+                                <StackPanel VerticalAlignment="Center">
+                                    <CheckBox Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              VerticalAlignment="Center" Padding="2 0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+
+                            <HierarchicalDataTemplate DataType="{x:Type classes:SheetItem}">
+                                <StackPanel VerticalAlignment="Center">
+                                    <CheckBox Content="{Binding Title, Converter={StaticResource EscapeUnderscoreConverter}}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              VerticalAlignment="Center" Padding="2 0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.Resources>
+                    </TreeView>
+                </StackPanel>
+            </GroupBox>
+
+            <Button Grid.Column="1" Grid.Row="1" Content="Выполнить" Margin="0 5" HorizontalAlignment="Right" Command="{Binding RunCommand}"
+                    Style="{StaticResource MaterialDesignPaperButton}"/>
+        </Grid>
+    </Border>
+</Window>

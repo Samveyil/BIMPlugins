@@ -1,0 +1,59 @@
+﻿<Window x:Class="BIMPlugins.Parameters.WPF.SetParameterValueWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:BIMPlugins.Parameters.WPF"
+        d:DataContext="{d:DesignInstance local:SetParameterValueViewModel}"
+        mc:Ignorable="d"
+        Title="Заполнить параметры" Height="380" Width="300" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Border Padding="5">
+        <StackPanel>
+            <GroupBox Padding="0">
+                <GroupBox.Header>
+                    <TextBlock Text="Источник данных" FontWeight="SemiBold" />
+                </GroupBox.Header>
+
+                <StackPanel>
+                    <RadioButton Content="Фиксированное значение" Padding="2 0" Margin="5" IsChecked="{Binding UserValue, Mode=TwoWay}"/>
+                    <TextBox Text="{Binding UserValueText}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Padding="5 2" Margin="5 0 5 5" IsEnabled="{Binding UserValue}"
+                             materialDesign:HintAssist.Hint="-" materialDesign:HintAssist.IsFloating="False"/>
+
+                    <RadioButton Content="Из другого параметра" Padding="2 0" Margin="5" IsChecked="{Binding FromParameter, Mode=TwoWay}"/>
+                    <ComboBox ItemsSource="{Binding Parameters}" SelectedItem="{Binding SourceParameter}" DisplayMemberPath="Definition.Name" Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                              Padding="5 2" Margin="5 0 5 5" IsEnabled="{Binding FromParameter}" materialDesign:HintAssist.Hint="Исходный параметр" materialDesign:HintAssist.IsFloating="False"/>
+
+                    <RadioButton Content="По конструктору" Padding="2 0" Margin="5" IsChecked="{Binding UserFormula, Mode=TwoWay}"/>
+                    <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserFormula}">
+                        <TextBox Text="{Binding UserFormulaText}" Style="{StaticResource MaterialDesignOutlinedTextBox}" Padding="5 2" Margin="5 0 0 5" Width="237"
+                                 materialDesign:HintAssist.Hint="[Ширина]x[Высота]" materialDesign:HintAssist.IsFloating="False"/>
+                        <Button Content="{materialDesign:PackIcon DotsHorizontal}" Width="20" Height="20" Padding="0" Command="{Binding AddParameterToFormulaCommand}"
+                                ToolTip="Выбрать параметр" Style="{StaticResource MaterialDesignPaperButton}" Margin="5 0 5 5" />
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <GroupBox Padding="0" Margin="0 10">
+                <GroupBox.Header>
+                    <TextBlock Text="Целевой параметр" FontWeight="SemiBold" />
+                </GroupBox.Header>
+
+                <ComboBox ItemsSource="{Binding TargetParameters}" SelectedItem="{Binding TargetParameter}" DisplayMemberPath="Definition.Name" Style="{StaticResource MaterialDesignOutlinedComboBox}"
+                          Padding="5 2" Margin="5" materialDesign:HintAssist.Hint="Параметр для записи" materialDesign:HintAssist.IsFloating="False"/>
+            </GroupBox>
+
+            <Button Content="Выполнить" Command="{Binding RunCommand}" Style="{StaticResource MaterialDesignPaperButton}" Margin="0 5"/>
+        </StackPanel>
+    </Border>
+    
+</Window>

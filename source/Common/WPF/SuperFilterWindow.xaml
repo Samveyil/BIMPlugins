@@ -1,0 +1,235 @@
+﻿<Window x:Class="BIMPlugins.Common.WPF.SuperFilterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:local="clr-namespace:BIMPlugins.Common.WPF"
+        d:DataContext="{d:DesignInstance local:SuperFilterViewModel}"
+        mc:Ignorable="d"
+        Title="Суперфильтр" Height="650" Width="700" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
+                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <converters:EscapeUnderscoreConverter x:Key="EscapeUnderscoreConverter" />
+            <materialDesign:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" FalseValue="Hidden" />
+            <materialDesign:NotZeroToVisibilityConverter x:Key="NotZeroToVisibilityConverter" />
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="400"/>
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+
+        <StackPanel>
+            <ComboBox ItemsSource="{Binding FilterOptions}" SelectedItem="{Binding SelectedOption}" Margin="5 1 5 5" HorizontalAlignment="Left"
+                      Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="5 3" Width="390"/>
+
+            <StackPanel Orientation="Horizontal">
+                <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 0"/>
+                <TextBox Text="{Binding FilterCategory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="170"
+                         materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск категорий" />
+                <TextBox Text="{Binding FilterParameter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="170" Margin="25 0 5 0"
+                         materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Фильтр параметров" />
+            </StackPanel>
+
+            <Button Panel.ZIndex="1" Width="25" Height="25" Padding="0" Margin="5 0 25 -35" Command="{Binding CollapseCommand}" HorizontalAlignment="Right"
+                    Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
+                <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
+            </Button>
+            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="#f88518">
+                <TreeView Panel.ZIndex="0" ItemsSource="{Binding CategoryItems, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="545" MaxHeight="545"
+                          VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0" Padding="0" 
+                          ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible">
+                    <b:Interaction.Triggers>
+                        <b:EventTrigger EventName="SelectedItemChanged">
+                            <b:InvokeCommandAction Command="{Binding TreeItemClickedCommand}" 
+                                CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=TreeView}}"/>
+                        </b:EventTrigger>
+                    </b:Interaction.Triggers>
+
+                    <TreeView.Resources>
+                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                            <Setter Property="Padding" Value="2"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="MinHeight" Value="24"/>
+
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                        </Style>
+
+                        <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="Padding" Value="2"/>
+                        </Style>
+
+                        <HierarchicalDataTemplate DataType="{x:Type local:CategoryItem}" ItemsSource="{Binding Parameters}">
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="{Binding ElementsCount}" Padding="0" Foreground="Gray"
+                                       Visibility="{Binding ElementsCount, Converter={StaticResource NotZeroToVisibilityConverter}}" />
+                                <Label Content="{Binding Name}" Padding="0" Margin="5 0 0 0"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+
+                        <HierarchicalDataTemplate DataType="{x:Type local:ParameterItem}" ItemsSource="{Binding Values, UpdateSourceTrigger=PropertyChanged}">
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="t" FontWeight="SemiBold" FontSize="12" Padding="0" Margin="0 0 5 0" ToolTip="Параметр типа" 
+                                       Visibility="{Binding IsTypeParameter, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="0"
+                                          Command="{Binding DataContext.ParameterItemCheckedCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                          CommandParameter="{Binding}">
+                                    <CheckBox.Style>
+                                        <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Values.Count}" Value="0">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Values.Count}">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Name}" Value="Все">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </CheckBox.Style>
+                                </CheckBox>
+                                <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" ToolTip="{Binding Name}"
+                                       ToolTipService.Placement="Top" Padding="2 0">
+                                    <Label.Style>
+                                        <Style TargetType="Label" BasedOn="{StaticResource MaterialDesignLabel}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Name}" Value="Все">
+                                                    <Setter Property="FontWeight" Value="DemiBold"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Label.Style>
+                                </Label>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+
+                        <HierarchicalDataTemplate DataType="{x:Type local:ValueItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Margin="10 0 0 0" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="2 0"
+                                          Command="{Binding DataContext.ValueItemCheckedCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                          CommandParameter="{Binding}" Width="350"
+                                          ToolTipService.InitialShowDelay="700" ToolTipService.BetweenShowDelay="5">
+                                    <CheckBox.ToolTip>
+                                        <ToolTip Placement="Top">
+                                            <TextBlock Text="{Binding Value}" MaxWidth="350" TextWrapping="Wrap"/>
+                                        </ToolTip>
+                                    </CheckBox.ToolTip>
+                                    <CheckBox.Content>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Label Content="{Binding Elements.Count}" Padding="0" Foreground="Gray" HorizontalAlignment="Right"
+                                                   Visibility="{Binding Elements.Count, Converter={StaticResource NotZeroToVisibilityConverter}}" />
+                                            <Label Content="{Binding Value, Converter={StaticResource EscapeUnderscoreConverter}}" Padding="0" Margin="5 0 0 0"/>
+                                        </StackPanel>
+                                    </CheckBox.Content>
+                                </CheckBox>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.Resources>
+                </TreeView>
+            </Border>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Margin="5 0">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Условие фильтрации:" Margin="5 1 5 5" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding FilterRules}" SelectedItem="{Binding SelectedRule}" Margin="5 1 5 5"
+                          Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="5 3" Width="105"/>
+
+                <Button Width="25" Height="25" Padding="0" Margin="5 1" Command="{Binding RemoveAllCommand}" HorizontalAlignment="Right"
+                        Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Очистить выбор">
+                    <materialDesign:PackIcon Kind="Broom" Width="25" Height="25" Foreground="#CC000000"/>
+                </Button>
+            </StackPanel>
+
+            <Border Margin="5 0 0 5" Padding="0" BorderThickness="1" BorderBrush="#f88518">
+                <TreeView Panel.ZIndex="0" ItemsSource="{Binding SelectedCategoryItems, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          Height="520" MaxHeight="520"
+                          VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0" Padding="0">
+                    <TreeView.Resources>
+                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                            <Setter Property="Padding" Value="2"/>
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="MinHeight" Value="24"/>
+
+                            <Setter Property="IsExpanded" Value="True"/>
+                        </Style>
+
+                        <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                            <Setter Property="Margin" Value="0"/>
+                            <Setter Property="Padding" Value="2"/>
+                        </Style>
+
+                        <HierarchicalDataTemplate DataType="{x:Type local:CategoryItem}" ItemsSource="{Binding Parameters}">
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="{Binding ElementsCount}" Padding="0" Foreground="Gray"
+                                       Visibility="{Binding ElementsCount, Converter={StaticResource NotZeroToVisibilityConverter}}" />
+                                <Label Content="{Binding Name}" Padding="0" Margin="5 0 0 0"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+
+                        <HierarchicalDataTemplate DataType="{x:Type local:ParameterItem}" ItemsSource="{Binding Values, UpdateSourceTrigger=PropertyChanged}">
+                            <StackPanel Orientation="Horizontal">
+                                <Label Content="t" FontWeight="SemiBold" FontSize="12" Padding="0" Margin="0 0 5 0" ToolTip="Параметр типа" 
+                                       Visibility="{Binding IsTypeParameter, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="0"
+                                          Command="{Binding DataContext.SelectedParameterItemCheckedCommand,
+                                                    RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                          CommandParameter="{Binding}" />
+                                <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" Padding="2 0"/>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+
+                        <HierarchicalDataTemplate DataType="{x:Type local:ValueItem}">
+                            <StackPanel Orientation="Horizontal">
+                                <CheckBox Margin="10 0 0 0" IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="2 0"
+                                          MinWidth="185"
+                                          Command="{Binding DataContext.SelectedValueItemCheckedCommand, RelativeSource={RelativeSource AncestorType=TreeView}}"
+                                          CommandParameter="{Binding}">
+                                    <CheckBox.Content>
+                                        <StackPanel Orientation="Horizontal">
+                                            <Label Content="{Binding Elements.Count}" Padding="0" Foreground="Gray" HorizontalAlignment="Right"
+                                                   Visibility="{Binding Elements.Count, Converter={StaticResource NotZeroToVisibilityConverter}}" />
+                                            <Label Content="{Binding Value, Converter={StaticResource EscapeUnderscoreConverter}}" Padding="0" Margin="5 0 0 0"/>
+                                        </StackPanel>
+                                    </CheckBox.Content>
+                                </CheckBox>
+                            </StackPanel>
+                        </HierarchicalDataTemplate>
+                    </TreeView.Resources>
+                </TreeView>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Margin="0 10">
+                <Button Width="35" Height="35" Padding="0" Margin="5 0 10 0" Command="{Binding RunCommand}" CommandParameter="Выделить"
+                        Style="{StaticResource MaterialDesignPaperButton}" ToolTip="Выбрать отмеченные элементы">
+                    <materialDesign:PackIcon Kind="Selection" Width="25" Height="25" Foreground="#CC000000"/>
+                </Button>
+                <Button Width="35" Height="35" Padding="0" Margin="10 0" Command="{Binding RunCommand}" CommandParameter="Исключить"
+                        Style="{StaticResource MaterialDesignPaperButton}" ToolTip="Исключить отмеченные элементы из текущего выбора">
+                    <materialDesign:PackIcon Kind="SelectionOff" Width="25" Height="25" Foreground="#CC000000"/>
+                </Button>
+                <Button Width="35" Height="35" Padding="0" Margin="10 0" Command="{Binding RunCommand}" CommandParameter="Изолировать"
+                        Style="{StaticResource MaterialDesignPaperButton}" ToolTip="Изолировать отмеченные элементы">
+                    <materialDesign:PackIcon Kind="Glasses" Width="25" Height="25" Foreground="#CC000000"/>
+                </Button>
+                <Button Width="35" Height="35" Padding="0" Margin="10 0" Command="{Binding RunCommand}" CommandParameter="Скрыть"
+                        Style="{StaticResource MaterialDesignPaperButton}" ToolTip="Скрыть отмеченные элементы">
+                    <materialDesign:PackIcon Kind="EyeOffOutline" Width="25" Height="25" Foreground="#CC000000"/>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </Grid>
+</Window>
