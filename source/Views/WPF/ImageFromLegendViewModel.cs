@@ -130,7 +130,7 @@ namespace BIMPlugins.Views.WPF
 
             if (flag)
             {
-                MessageBox.Show("Изображения созданы и добавлены в проект", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Изображения созданы и добавлены в проект", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 

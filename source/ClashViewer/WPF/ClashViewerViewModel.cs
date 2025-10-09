@@ -221,7 +221,7 @@ namespace BIMPlugins.ClashViewer.WPF
                 }
                 catch
                 {
-                    MessageBox.Show("Файл отчета не сформирован полностью! Повторите попытку позже.", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Файл отчета не сформирован полностью! Повторите попытку позже.", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Error);
                     XmlFilePath = null;
                 }
             }
@@ -644,7 +644,7 @@ namespace BIMPlugins.ClashViewer.WPF
                 var linkDoc = link?.GetLinkDocument();
                 if (linkDoc == null)
                 {
-                    MessageBox.Show($"Связь {Path.GetFileNameWithoutExtension(clashObject.DocName)}.rvt не загружена в проект!", "SE Plugins",
+                    MessageBox.Show($"Связь {Path.GetFileNameWithoutExtension(clashObject.DocName)}.rvt не загружена в проект!", "BIMPlugins",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -683,7 +683,7 @@ namespace BIMPlugins.ClashViewer.WPF
                     MessageBox.Show("Невозможно проверить данные элементы на пересечение!\n" +
                         "Это может быть связано с геометрическими неточностями в твердых телах, такими как слегка неровные грани или ребра.\n" +
                         "Также проблема может возникать из-за сложной геометрии одного или обоих тел, например, когда более двух граней сходятся вдоль одного ребра, или присутствуют совпадающие ребра и т. д.",
-                        "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                     
                     return;
                 }

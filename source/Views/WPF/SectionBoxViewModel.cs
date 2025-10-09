@@ -67,7 +67,7 @@ namespace BIMPlugins.Views.WPF
 
                 if (bottomLevel >= topLevel)
                 {
-                    MessageBox.Show("Отметка низа выше отметки верха!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    MessageBox.Show("Отметка низа выше отметки верха!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 

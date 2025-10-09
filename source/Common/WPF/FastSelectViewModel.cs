@@ -65,7 +65,7 @@ namespace BIMPlugins.Common.WPF
             }
             else
             {
-                MessageBox.Show("Выбранный элемент не является семейством!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Выбранный элемент не является семейством!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
         }
 

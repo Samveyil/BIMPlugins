@@ -20,7 +20,7 @@
         </ResourceDictionary>
     </StackPanel.Resources>
 
-    <TextBlock Text="SE Plugins" Margin="10 0 0 0" VerticalAlignment="Center"  />
+    <TextBlock Text="BIMPlugins" Margin="10 0 0 0" VerticalAlignment="Center"  />
     <Border Width="4" BorderThickness="1 0" Background="Gray" Margin="10 0" />
     
     <RadioButton Content="Текущий вид" VerticalAlignment="Center" GroupName="Options" IsChecked="{Binding CurrentView}" Padding="2 0"/>

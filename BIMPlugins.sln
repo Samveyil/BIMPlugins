@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BIMPlugins", "source\BIMPlugins.csproj", "{CA3A2B39-F9A7-4A94-9430-F2885E799A48}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "_build", "build\_build.csproj", "{38283EDA-7A0D-42EF-BF83-C05B50335263}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,18 @@ Global
 		{CA3A2B39-F9A7-4A94-9430-F2885E799A48}.R2023|Any CPU.Build.0 = R2023|Any CPU
 		{CA3A2B39-F9A7-4A94-9430-F2885E799A48}.R2024|Any CPU.ActiveCfg = R2024|Any CPU
 		{CA3A2B39-F9A7-4A94-9430-F2885E799A48}.R2024|Any CPU.Build.0 = R2024|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.Deb R19|Any CPU.ActiveCfg = Release|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.Deb R20|Any CPU.ActiveCfg = Release|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.Deb R21|Any CPU.ActiveCfg = Release|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.Deb R22|Any CPU.ActiveCfg = Release|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.Deb R23|Any CPU.ActiveCfg = Release|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.Deb R24|Any CPU.ActiveCfg = Release|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.R2019|Any CPU.ActiveCfg = Debug|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.R2020|Any CPU.ActiveCfg = Debug|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.R2021|Any CPU.ActiveCfg = Debug|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.R2022|Any CPU.ActiveCfg = Debug|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.R2023|Any CPU.ActiveCfg = Debug|Any CPU
+		{38283EDA-7A0D-42EF-BF83-C05B50335263}.R2024|Any CPU.ActiveCfg = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

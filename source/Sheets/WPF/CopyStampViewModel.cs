@@ -141,7 +141,7 @@ namespace BIMPlugins.Sheets.WPF
 
             if (baseSheet == null)
             {
-                MessageBox.Show("Не выбран лист с которого копируются параметры", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Не выбран лист с которого копируются параметры", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -153,7 +153,7 @@ namespace BIMPlugins.Sheets.WPF
 
             if (sheetsToCopy.Count == 0)
             {
-                MessageBox.Show("Не выбраны листы для копирования параметров", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Не выбраны листы для копирования параметров", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

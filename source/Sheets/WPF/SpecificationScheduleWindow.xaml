@@ -100,7 +100,7 @@
                                 <TextBox Text="{Binding NewSpecificationName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          Width="300" Margin="5 10 5 0" Padding="5"
                                          IsEnabled="{Binding RefreshExistOne, Converter={StaticResource InvertBooleanConverter}}"
-                                         Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:TextFieldAssist.PrefixText="SE Plugins_"
+                                         Style="{StaticResource MaterialDesignOutlinedTextBox}" materialDesign:TextFieldAssist.PrefixText="BIMPlugins_"
                                          materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.FloatingOffset="5 -15"
                                          materialDesign:HintAssist.HintPaddingBrush="White" materialDesign:HintAssist.FloatingScale="0.95"
                                          materialDesign:HintAssist.IsFloating="True" materialDesign:HintAssist.Hint="Имя новой ведомости" />

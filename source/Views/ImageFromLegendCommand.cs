@@ -22,7 +22,7 @@ namespace BIMPlugins.Views
 
             if (legends.Count == 0)
             {
-                MessageBox.Show("Укажите легенды!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Укажите легенды!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return Result.Failed;
             }
             else

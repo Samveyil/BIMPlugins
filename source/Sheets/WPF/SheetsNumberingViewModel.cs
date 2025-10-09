@@ -224,7 +224,7 @@ namespace BIMPlugins.Sheets.WPF
                 t.Commit();
             }
 
-            MessageBox.Show("Листы успешно пронумерованы!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("Листы успешно пронумерованы!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         [RelayCommand]

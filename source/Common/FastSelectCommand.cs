@@ -19,7 +19,7 @@ namespace BIMPlugins.Common
             var element = RevitAPI.UIDocument.ToSelectedElements().FirstOrDefault();
             if (element == null)
             {
-                MessageBox.Show("Выберите элемент!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Выберите элемент!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return Result.Failed;
             }
 

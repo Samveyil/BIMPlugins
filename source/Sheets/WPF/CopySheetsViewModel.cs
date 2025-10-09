@@ -192,7 +192,7 @@ namespace BIMPlugins.Sheets.WPF
 
             if (selectedSheetItems.Count == 0)
             {
-                MessageBox.Show("Не выбраны листы для копирования!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Не выбраны листы для копирования!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 

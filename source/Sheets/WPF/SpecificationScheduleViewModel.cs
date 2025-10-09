@@ -87,7 +87,7 @@ namespace BIMPlugins.Sheets.WPF
                     }
                     else
                     {
-                        MessageBox.Show($"Лист с номером {specItem.SheetNumberFromExcel} не существует в проекте!", "SE Plugins",
+                        MessageBox.Show($"Лист с номером {specItem.SheetNumberFromExcel} не существует в проекте!", "BIMPlugins",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
 
                         continue;
@@ -134,7 +134,7 @@ namespace BIMPlugins.Sheets.WPF
             CreatedSpecifications = new FilteredElementCollector(RevitAPI.Document)
                 .OfClass(typeof(ViewSchedule))
                 .Cast<ViewSchedule>()
-                .Where(sc => sc.Name.Contains("SE Plugins"))
+                .Where(sc => sc.Name.Contains("BIMPlugins"))
                 .ToList();
 
             SheetParameters = _sheets[0].Parameters
@@ -275,9 +275,9 @@ namespace BIMPlugins.Sheets.WPF
         [RelayCommand(CanExecute = nameof(IsEnabled))]
         private void Run()
         {
-            if (!RefreshExistOne && CreatedSpecifications.Select(sc => sc.Name).ToList().Contains("SE Plugins_" + NewSpecificationName))
+            if (!RefreshExistOne && CreatedSpecifications.Select(sc => sc.Name).ToList().Contains("BIMPlugins_" + NewSpecificationName))
             {
-                MessageBox.Show("Введите уникальное имя ведомости!", "SE Plugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Введите уникальное имя ведомости!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -386,7 +386,7 @@ namespace BIMPlugins.Sheets.WPF
             }
             catch
             {
-                MessageBox.Show($"Спецификация с именем {name} уже создана в проекте! Спецификация будет переименована.", "SE Plugins"
+                MessageBox.Show($"Спецификация с именем {name} уже создана в проекте! Спецификация будет переименована.", "BIMPlugins"
                     , MessageBoxButton.OK, MessageBoxImage.Warning);
             }
 
@@ -394,14 +394,14 @@ namespace BIMPlugins.Sheets.WPF
             definition.ShowHeaders = false;
 
             var markField = definition.AddField(ScheduleFieldType.Instance, new ElementId(BuiltInParameter.DOOR_NUMBER));
-            definition.AddFilter(new ScheduleFilter(markField.FieldId, ScheduleFilterType.Equal, "SE Plugins"));
+            definition.AddFilter(new ScheduleFilter(markField.FieldId, ScheduleFilterType.Equal, "BIMPlugins"));
 
             return schedule;
         }
         private ViewSchedule CreateNewSpecification()
         {
             var schedule = ViewSchedule.CreateSchedule(RevitAPI.Document, ElementId.InvalidElementId);
-            schedule.Name = "SE Plugins_" + NewSpecificationName;
+            schedule.Name = "BIMPlugins_" + NewSpecificationName;
 
             var textNoteType = schedule.TitleTextTypeId;
 
@@ -409,7 +409,7 @@ namespace BIMPlugins.Sheets.WPF
             definition.ShowHeaders = false;
 
             var markField = definition.AddField(ScheduleFieldType.Instance, new ElementId(BuiltInParameter.DOOR_NUMBER));
-            definition.AddFilter(new ScheduleFilter(markField.FieldId, ScheduleFilterType.Equal, "SE Plugins"));
+            definition.AddFilter(new ScheduleFilter(markField.FieldId, ScheduleFilterType.Equal, "BIMPlugins"));
 
             var tableData = schedule.GetTableData();
             var bodySectionData = tableData.GetSectionData(SectionType.Body);
