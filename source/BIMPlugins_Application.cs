@@ -177,7 +177,7 @@ namespace BIMPlugins
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "setParameterValue.tiff"))
                 .SetToolTip("Позволяет заполнить параметр у выбранных элементов по выбранной логике работы")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Заполнятор.pdf");
-            parametersPanel.CreatePushButton<CopyPropertiesCommand, NotAvailableInFamilyEditor>("Копирование свойств").SetShowText(true)
+            parametersPanel.CreatePushButton<CopyPropertiesCommand, NotAvailableInFamilyEditor>("Копирование\nсвойств").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "copyProperties.tiff"))
                 .SetToolTip("Позволяет скопировать свойства с одного элемента на другой")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Копирование свойств.pdf");
