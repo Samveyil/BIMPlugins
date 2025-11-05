@@ -7,12 +7,11 @@ using BIMPlugins.Bars;
 using System.Windows;
 using System.Linq;
 
-
 namespace BIMPlugins.Common.WPF
 {
     public partial class FastSelectViewModel : ObservableObject
     {
-        [ObservableProperty] private bool _currentView = true;
+        [ObservableProperty] private bool _currentView = false;
 
         private Element _selectedElement {  get; set; }
 

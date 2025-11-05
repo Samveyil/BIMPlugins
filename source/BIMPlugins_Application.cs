@@ -142,6 +142,9 @@ namespace BIMPlugins
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "cropBox-32.png"))
                 .SetToolTip("Показ секущего диапазона видов в цвете на 3D")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Секущий диапазон.pdf");
+            viewsPanel.CreatePushButton<ActivateByIdCommand, NotAvailableInFamilyEditor>("Перейти\nпо Id").SetShowText(true)
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "cropBox-32.png"))
+                .SetToolTip("Позволяет открыть вид по его Id из буфера обмена");
 
             //Листы
             RibbonPanel sheetsPanel = application.CreateRibbonPanel(tabName, "Листы");
