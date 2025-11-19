@@ -61,6 +61,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\view-32.png" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Aspose.Cells" Version="25.3.0" />
 		<PackageReference Include="BIMPlugins.Bars" Version="*" />
 		<PackageReference Include="BIMPlugins.ExtStorage" Version="$(RevitVersion).*" />
@@ -108,6 +112,7 @@
 		<Resource Include="Resources\specification.tiff" />
 		<Resource Include="Resources\superFilter.tiff" />
 		<Resource Include="Resources\support-32.png" />
+		<Resource Include="Resources\view-32.png" />
 		<Resource Include="Resources\whereIsView-32.png" />
 	</ItemGroup>
 </Project>
