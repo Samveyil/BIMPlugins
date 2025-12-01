@@ -51,6 +51,7 @@
 		<OutputPath>bin\Debug\</OutputPath>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
+		<AssemblyName>Dbg_$(AssemblyName)</AssemblyName>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="!$(Configuration.Contains('Debug'))">
@@ -59,10 +60,6 @@
 		<NoWarn>MSB3052</NoWarn>
 		<DebugType>none</DebugType>
 	</PropertyGroup>
-
-	<ItemGroup>
-	  <None Remove="Resources\view-32.png" />
-	</ItemGroup>
 
 	<ItemGroup>
 		<PackageReference Include="Aspose.Cells" Version="25.3.0" />
