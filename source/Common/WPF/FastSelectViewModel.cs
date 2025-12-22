@@ -11,7 +11,7 @@ namespace BIMPlugins.Common.WPF
 {
     public partial class FastSelectViewModel : ObservableObject
     {
-        [ObservableProperty] private bool _currentView = false;
+        [ObservableProperty] private bool _wholeModel = true;
 
         private Element _selectedElement {  get; set; }
 
@@ -26,9 +26,9 @@ namespace BIMPlugins.Common.WPF
         {
             var category = _selectedElement.GetBuiltInCategory();
 
-            var collector = CurrentView
-                ? new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id)
-                : new FilteredElementCollector(RevitAPI.Document);
+            var collector = WholeModel
+                ? new FilteredElementCollector(RevitAPI.Document)
+                : new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id);
 
             var elementIds = collector
                 .OfCategory(category)
@@ -47,9 +47,9 @@ namespace BIMPlugins.Common.WPF
             {
                 var familyName = familyInstance.Symbol.FamilyName;
 
-                var collector = CurrentView
-                    ? new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id)
-                    : new FilteredElementCollector(RevitAPI.Document);
+                var collector = WholeModel
+                    ? new FilteredElementCollector(RevitAPI.Document)
+                    : new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id);
 
                 var elementIds = collector
                     .OfClass(typeof(FamilyInstance))

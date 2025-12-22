@@ -23,8 +23,8 @@
     <TextBlock Text="BIMPlugins" Margin="10 0 0 0" VerticalAlignment="Center"  />
     <Border Width="4" BorderThickness="1 0" Background="Gray" Margin="10 0" />
     
-    <RadioButton Content="Текущий вид" VerticalAlignment="Center" GroupName="Options" IsChecked="{Binding CurrentView}" Padding="2 0"/>
-    <RadioButton Content="Вся модель" VerticalAlignment="Center" GroupName="Options" Margin="10 0 0 0" Padding="2 0"/>
+    <RadioButton Content="Текущий вид" VerticalAlignment="Center" GroupName="Options" Padding="2 0"/>
+    <RadioButton Content="Вся модель" VerticalAlignment="Center" GroupName="Options" Margin="10 0 0 0" IsChecked="{Binding WholeModel}" Padding="2 0"/>
     <Border Width="4" BorderThickness="1 0" Background="Gray" Margin="10 0" />
 
     <Button Padding="10 2" Margin="10 0 0 0" VerticalAlignment="Center" Style="{StaticResource MaterialDesignPaperButton}" Height="22"
