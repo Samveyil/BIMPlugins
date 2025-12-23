@@ -17,6 +17,7 @@ using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
 using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Linq;
+using BIMPlugins.Docs;
 
 namespace BIMPlugins
 {
@@ -143,8 +144,8 @@ namespace BIMPlugins
                 .SetToolTip("Показ секущего диапазона видов в цвете на 3D")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Секущий диапазон.pdf");
             viewsPanel.CreatePushButton<ActivateByIdCommand, NotAvailableInFamilyEditor>("Перейти\nпо Id").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "view-32.png"))
-                .SetToolTip("Позволяет открыть вид по его Id из буфера обмена");
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "getSheetById.tiff"))
+                .SetToolTip("Позволяет открыть вид по его Id или по Id элемента, привязанному к этому виду, из буфера обмена");
 
             //Листы
             RibbonPanel sheetsPanel = application.CreateRibbonPanel(tabName, "Листы");
@@ -199,6 +200,12 @@ namespace BIMPlugins
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "setNewLevel.tiff"))
                 .SetToolTip("Позволяет изменить привязку элемента к уровню")
                 .SetContextualHelp(@"X:\03_BIM отдел\02_Инструкции\Инструкции к BIMPlugins\Инструкция Назначить уровень.pdf");
+
+            //Документы
+            RibbonPanel docsPanel = application.CreateRibbonPanel(tabName, "Документы");
+            docsPanel.CreatePushButton<CloseDocsCommand, AlwaysAvailability>("Закрыть\nдокументы").SetShowText(true)
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "closeDocks.tiff"))
+                .SetToolTip("При ошибке плагинов фоновые документы не закрываются и хранятся в памяти");
 
             return Result.Succeeded;
         }

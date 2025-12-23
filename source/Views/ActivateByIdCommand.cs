@@ -15,19 +15,28 @@ namespace BIMPlugins.Views
         {
             if (int.TryParse(Clipboard.GetText(), out int id))
             {
-                if (new ElementId(id).ToElement() is View view)
+                var element = new ElementId(id).ToElement();
+                if (element is View view)
                 {
                     RevitAPI.UIDocument.ActiveView = view;
                 }
                 else
                 {
-                    message = "Элемент не является видом";
-                    return Result.Failed;
+                    if (element.OwnerViewId != null)
+                    {
+                        RevitAPI.UIDocument.ActiveView = element.OwnerViewId.ToElement<View>();
+                        RevitAPI.UIDocument.Selection.SetElementIds([element.Id]);
+                    }
+                    else
+                    {
+                        message = "Невозможно определить вид!";
+                        return Result.Failed;
+                    }
                 }
             }
             else
             {
-                message = "В буфере обмена не содержится Id вида";
+                message = "В буфере обмена не содержится Id";
                 return Result.Failed;
             }
 

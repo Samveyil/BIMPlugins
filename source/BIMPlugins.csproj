@@ -86,12 +86,14 @@
 		<Resource Include="Resources\calculator-32.png" />
 		<Resource Include="Resources\changes-32.png" />
 		<Resource Include="Resources\clashManager.tiff" />
+		<Resource Include="Resources\closeDocks.tiff" />
 		<Resource Include="Resources\colorFilter.tiff" />
 		<Resource Include="Resources\copyProperties.tiff" />
 		<Resource Include="Resources\copySheets-32.png" />
 		<Resource Include="Resources\copyStamp-32.png" />
 		<Resource Include="Resources\cropBox-32.png" />
 		<Resource Include="Resources\fastSelect-32.png" />
+		<Resource Include="Resources\getSheetById.tiff" />
 		<Resource Include="Resources\imageFromLegend-32.png" />
 		<Resource Include="Resources\mirror-32.png" />
 		<Resource Include="Resources\moveLevel.tiff" />
@@ -109,7 +111,6 @@
 		<Resource Include="Resources\specification.tiff" />
 		<Resource Include="Resources\superFilter.tiff" />
 		<Resource Include="Resources\support-32.png" />
-		<Resource Include="Resources\view-32.png" />
 		<Resource Include="Resources\whereIsView-32.png" />
 	</ItemGroup>
 </Project>
