@@ -203,7 +203,7 @@ namespace BIMPlugins
 
             //Документы
             RibbonPanel docsPanel = application.CreateRibbonPanel(tabName, "Документы");
-            docsPanel.CreatePushButton<CloseDocsCommand, AlwaysAvailable>("Закрыть\nдокументы").SetShowText(true)
+            docsPanel.CreatePushButton<CloseDocsCommand, AlwaysAvailable>("Закрыть").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "closeDocks.tiff"))
                 .SetToolTip("При ошибке плагинов фоновые документы не закрываются и хранятся в памяти");
 
