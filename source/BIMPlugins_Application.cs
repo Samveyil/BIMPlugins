@@ -1,5 +1,4 @@
-﻿using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
+﻿using Autodesk.Revit.UI;
 using Autodesk.Windows;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
@@ -18,6 +17,7 @@ using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Linq;
 using BIMPlugins.Docs;
+using BIMPlugins.ExtStorage.Interfaces;
 
 namespace BIMPlugins
 {
@@ -120,7 +120,7 @@ namespace BIMPlugins
 
             //Коллизии
             RibbonPanel nwcPanel = application.CreateRibbonPanel(tabName, "Коллизии");
-            nwcPanel.CreatePushButton<ClashViewerCommand, AlwaysAvailability>("Просмотр").SetShowText(true)
+            nwcPanel.CreatePushButton<ClashViewerCommand, AlwaysAvailable>("Просмотр").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "clashManager.tiff"))
                 .SetToolTip("Позволяет просматривать коллизии из отчета Navisworks")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Просмотр коллизий_Новый.pdf");
@@ -203,7 +203,7 @@ namespace BIMPlugins
 
             //Документы
             RibbonPanel docsPanel = application.CreateRibbonPanel(tabName, "Документы");
-            docsPanel.CreatePushButton<CloseDocsCommand, AlwaysAvailability>("Закрыть\nдокументы").SetShowText(true)
+            docsPanel.CreatePushButton<CloseDocsCommand, AlwaysAvailable>("Закрыть\nдокументы").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "closeDocks.tiff"))
                 .SetToolTip("При ошибке плагинов фоновые документы не закрываются и хранятся в памяти");
 
@@ -223,29 +223,6 @@ namespace BIMPlugins
                 _modifyPanel.IsVisible = false;
                 _whoDidButton.IsVisible = false;
                 _fastSelectButton.IsVisible = false;
-            }
-        }
-
-        private class AlwaysAvailability : IExternalCommandAvailability
-        {
-            public bool IsCommandAvailable(UIApplication applicationData, CategorySet selectedCategories)
-            {
-                if (applicationData != null)
-                {
-                    return true;
-                }
-                else { return false; }
-            }
-        }
-        private class NotAvailableInFamilyEditor : IExternalCommandAvailability
-        {
-            public bool IsCommandAvailable(UIApplication applicationData, CategorySet selectedCategories)
-            {
-                if (applicationData.ActiveUIDocument != null)
-                {
-                    return !applicationData.ActiveUIDocument.Document.IsFamilyDocument;
-                }
-                else { return false; }
             }
         }
     }
