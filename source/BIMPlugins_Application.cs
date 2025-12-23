@@ -1,23 +1,23 @@
-﻿using Autodesk.Revit.UI;
+﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 using Autodesk.Windows;
-using BIMPlugins.ExtStorage;
-using BIMPlugins.ExtStorage.Extensions;
-using ricaun.Revit.UI;
 using BIMPlugins.ClashViewer;
 using BIMPlugins.Common;
 using BIMPlugins.Common.WPF;
+using BIMPlugins.Docs;
+using BIMPlugins.ExtStorage;
+using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Methods;
 using BIMPlugins.Levels;
 using BIMPlugins.Parameters;
 using BIMPlugins.Sheets;
 using BIMPlugins.Views;
+using ricaun.Revit.UI;
+using System;
 using System.Collections.Specialized;
+using System.Linq;
 using System.Windows;
 using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
-using BIMPlugins.ExtStorage.Methods;
-using System;
-using System.Linq;
-using BIMPlugins.Docs;
-using BIMPlugins.ExtStorage.Interfaces;
 
 namespace BIMPlugins
 {
@@ -207,6 +207,12 @@ namespace BIMPlugins
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "closeDocks.tiff"))
                 .SetToolTip("При ошибке плагинов фоновые документы не закрываются и хранятся в памяти");
 
+            //Семейства
+            RibbonPanel familyPanel = application.CreateRibbonPanel(tabName, "Семейства");
+            familyPanel.CreatePushButton<CloseDocsCommand, AvailableInFamilyEditor>("Сохранить").SetShowText(true)
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "saveFamily.tiff"))
+                .SetToolTip("Позволяет пересохранить семейство без увеличения размера файла");
+
             return Result.Succeeded;
         }
 
@@ -224,6 +230,27 @@ namespace BIMPlugins
                 _whoDidButton.IsVisible = false;
                 _fastSelectButton.IsVisible = false;
             }
+        }
+    }
+
+    public class AlwaysAvailable : IExternalCommandAvailability
+    {
+        public bool IsCommandAvailable(UIApplication applicationData, CategorySet selectedCategories) => applicationData != null;
+    }
+    public class AvailableInFamilyEditor : IExternalCommandAvailability
+    {
+        public bool IsCommandAvailable(UIApplication applicationData, CategorySet selectedCategories)
+        {
+            var doc = applicationData.ActiveUIDocument?.Document;
+            return doc != null && doc.IsFamilyDocument;
+        }
+    }
+    public class NotAvailableInFamilyEditor : IExternalCommandAvailability
+    {
+        public bool IsCommandAvailable(UIApplication applicationData, CategorySet selectedCategories)
+        {
+            var doc = applicationData.ActiveUIDocument?.Document;
+            return doc != null && !doc.IsFamilyDocument;
         }
     }
 }
