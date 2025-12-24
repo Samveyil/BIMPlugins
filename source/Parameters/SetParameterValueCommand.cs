@@ -5,6 +5,7 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.MessageBoxes;
 using BIMPlugins.Parameters.WPF;
+using System.Linq;
 
 namespace BIMPlugins.Parameters
 {
@@ -14,7 +15,7 @@ namespace BIMPlugins.Parameters
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var elems = RevitAPI.UIDocument.ToSelectedElements();
+            var elems = RevitAPI.UIDocument.ToSelectedElements().ToList();
             if (elems.Count == 0)
             {
                 MessageWindow.ShowMessage("Выберите элементы!", System.Windows.MessageBoxImage.Warning);

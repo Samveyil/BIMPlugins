@@ -7,6 +7,7 @@ using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage.Methods;
 using System.Collections.Generic;
 using System.Linq;
+using BIMPlugins.ExtStorage.Extensions;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -29,7 +30,7 @@ namespace BIMPlugins.Common.WPF
             );
             ExEvent = ExternalEvent.Create(handler);
 
-            var element = SelectionMethods.PickObject("Выберите элемент");
+            var element = RevitAPI.UIDocument.PickObject("Выберите элемент");
             if (element == null) return;
 
             Parameters = element.Parameters
@@ -57,7 +58,7 @@ namespace BIMPlugins.Common.WPF
 
                         try
                         {
-                            var element = SelectionMethods.PickObject($"Выберите {Number} элемент. Нажмите Esc для завершения нумерации!");
+                            var element = RevitAPI.UIDocument.PickObject($"Выберите {Number} элемент. Нажмите Esc для завершения нумерации!");
                             if (element == null) break;
 
                             var parameter = element.LookupParameter(SelectedParameter.Definition.Name);

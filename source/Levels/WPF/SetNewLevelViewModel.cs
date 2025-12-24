@@ -5,7 +5,6 @@ using CommunityToolkit.Mvvm.Input;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Bars;
-using BIMPlugins.ExtStorage.Methods;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -40,11 +39,11 @@ namespace BIMPlugins.Levels.WPF
             RevitOptionsBar.Hide(true);
             try
             {
-                var selectedElems = RevitAPI.UIDocument.ToSelectedElements();
+                var selectedElems = RevitAPI.UIDocument.ToSelectedElements().ToList();
 
                 _elements = selectedElems.Count != 0
                     ? selectedElems
-                    : SelectionMethods.PickObjects("Выберите элементы");
+                    : RevitAPI.UIDocument.PickObjects("Выберите элементы").ToList();
                 
                 Count = _elements.Count;
             }

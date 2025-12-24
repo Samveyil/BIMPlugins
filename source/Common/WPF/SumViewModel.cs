@@ -5,7 +5,6 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Bars;
 using System.Collections.ObjectModel;
-using BIMPlugins.ExtStorage.Methods;
 using System.Collections.Generic;
 using System.Linq;
 using System;
@@ -24,7 +23,7 @@ namespace BIMPlugins.Common.WPF
 
         public SumViewModel()
         {
-            _elements = RevitAPI.UIDocument.ToSelectedElements();
+            _elements = RevitAPI.UIDocument.ToSelectedElements().ToList();
             Count = _elements.Count;
 
             if (Count != 0)
@@ -52,11 +51,11 @@ namespace BIMPlugins.Common.WPF
             RevitOptionsBar.Hide(true);
             try
             {
-                var selectedElems = RevitAPI.UIDocument.ToSelectedElements();
+                var selectedElems = RevitAPI.UIDocument.ToSelectedElements().ToList();
 
                 var elements = selectedElems.Count != 0
                     ? selectedElems
-                    : SelectionMethods.PickObjects("Выберите элементы");
+                    : RevitAPI.UIDocument.PickObjects("Выберите элементы").ToList();
                 Count = elements.Count;
 
                 _elements = elements;

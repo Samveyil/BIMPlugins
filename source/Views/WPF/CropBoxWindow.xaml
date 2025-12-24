@@ -30,8 +30,8 @@
         </StackPanel>
 
         <Border BorderBrush="#f88518" BorderThickness="1" Margin="5 10">
-            <ListView ItemsSource="{Binding FilteredItems}" ScrollViewer.VerticalScrollBarVisibility="Visible" Height="610" MaxHeight="610">
-                <ListView.ItemTemplate>
+            <ListBox ItemsSource="{Binding FilteredItems}" ScrollViewer.VerticalScrollBarVisibility="Visible" Height="610" MaxHeight="610">
+                <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -61,8 +61,8 @@
                             </StackPanel>
                         </Grid>
                     </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Border>
 
         <CheckBox Content="Показать секущую плоскость" IsChecked="{Binding ShowSectionPlane}" Margin="5" Padding="2 0"/>

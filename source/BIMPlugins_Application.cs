@@ -8,6 +8,7 @@ using BIMPlugins.Docs;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Methods;
+using BIMPlugins.Families;
 using BIMPlugins.Levels;
 using BIMPlugins.Parameters;
 using BIMPlugins.Sheets;
@@ -212,19 +213,22 @@ namespace BIMPlugins
             familyPanel.CreatePushButton<CloseDocsCommand, AvailableInFamilyEditor>("Сохранить").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "saveFamily.tiff"))
                 .SetToolTip("Позволяет пересохранить семейство без увеличения размера файла");
+            familyPanel.CreatePushButton<BindParametersCommand, AvailableInFamilyEditor>("Связать\nпараметры").SetShowText(true)
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "bindFamilies.tiff"))
+                .SetToolTip("Позволяет связать параметры между родительским и вложенным семействами");
 
             return Result.Succeeded;
         }
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.NewItems != null && RevitAPI.UIDocument?.ToSelectedElements().Count == 1)
+            if (e.NewItems != null && RevitAPI.UIDocument?.ToSelectedElements().Count() == 1)
             {
                 _modifyPanel.IsVisible = true;
                 _fastSelectButton.IsVisible = true;
                 _whoDidButton.IsVisible = RevitAPI.Document.IsWorkshared;
             }
-            if (e.OldItems != null || RevitAPI.UIDocument?.ToSelectedElements().Count != 1)
+            if (e.OldItems != null || RevitAPI.UIDocument?.ToSelectedElements().Count() != 1)
             {
                 _modifyPanel.IsVisible = false;
                 _whoDidButton.IsVisible = false;

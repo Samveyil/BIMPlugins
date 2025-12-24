@@ -46,7 +46,7 @@ namespace BIMPlugins.Common.WPF
 
         public SuperFilterViewModel()
         {
-            if (RevitAPI.UIDocument.ToSelectedElements().Count != 0)
+            if (RevitAPI.UIDocument.ToSelectedElements().Count() != 0)
                 SelectedOption = "Выборка по выделенным элементам";
 
             GetCategoriesItems();
