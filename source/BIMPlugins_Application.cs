@@ -210,7 +210,7 @@ namespace BIMPlugins
 
             //Семейства
             RibbonPanel familyPanel = application.CreateRibbonPanel(tabName, "Семейства");
-            familyPanel.CreatePushButton<CloseDocsCommand, AvailableInFamilyEditor>("Сохранить").SetShowText(true)
+            familyPanel.CreatePushButton<SaveFamilyCommand, AvailableInFamilyEditor>("Сохранить").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "saveFamily.tiff"))
                 .SetToolTip("Позволяет пересохранить семейство без увеличения размера файла");
             familyPanel.CreatePushButton<BindParametersCommand, AvailableInFamilyEditor>("Связать\nпараметры").SetShowText(true)

@@ -1,13 +1,11 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.FailuresProcessing;
-using BIMPlugins.ExtStorage.Interfaces;
 using BIMPlugins.ExtStorage.Methods;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace BIMPlugins.Tests
@@ -18,20 +16,138 @@ namespace BIMPlugins.Tests
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            using (Transaction t = new Transaction(RevitAPI.Document, "test"))
+            var doc = RevitAPI.Document;
+
+            var directShapes = doc.ToElements<DirectShape>().ToList();
+
+            var columns = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_StructuralColumns).Where(c => c.Location is LocationCurve);
+
+            var floors = doc.ToElements<Floor>(BuiltInCategory.OST_Floors).Where(f => f.FloorType.Name.EndsWith("мм"));
+            var floorsTopFace = floors
+                .Select(f => f.ToSolid()?.Faces.OfType<PlanarFace>().FirstOrDefault(f => f.FaceNormal.IsAlmostEqualTo(new XYZ(0, 0, 1))))
+                .Where(face => face != null);
+            var floorsTopFaceZCoord = floorsTopFace
+                .Select(f => f.Origin.Z)
+                .OrderBy(f => f)
+                .ToList();
+
+            var worksetId = new FilteredWorksetCollector(doc).OfKind(WorksetKind.UserWorkset).FirstOrDefault(w => w.Name == "02_Опалубка").Id;
+
+            using (TransactionGroup tGroup = new TransactionGroup(doc, "Создать/Обновить точки"))
             {
-                t.Start();
+                tGroup.Start();
 
-                //foreach (var rebar in RevitAPI.Document.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
-                //    .Where(r => r.get_Parameter(new Guid("b220b6e8-254f-479f-95b8-62fc7123b098")) != null && !r.get_Parameter(new Guid("b220b6e8-254f-479f-95b8-62fc7123b098")).IsReadOnly))
-                //{
-                //    rebar.get_Parameter(new Guid("b220b6e8-254f-479f-95b8-62fc7123b098")).Set(1);
-                //}
+                using (Transaction t = new Transaction(RevitAPI.Document, "Удаление/Обновление отметок DS"))
+                {
+                    t.Start();
 
-                ExMethods.CreateDirectShape([Point.Create(new XYZ())]);
+                    foreach (var ds in directShapes.ToList())
+                    {
+                        int.TryParse(ds.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).AsString(), out var columnId);
 
+                        if (new ElementId(columnId).ToElement() == null)
+                        {
+                            doc.Delete(ds.Id);
+                            directShapes.Remove(ds);
+                        }
+                        else
+                        {
+                            var dsLocation = ds.get_BoundingBox(null).Max;
+                            var dsLocationZ = dsLocation.Z;
+                            if (!floorsTopFaceZCoord.Select(f => f.Round()).Contains(dsLocationZ.Round()))
+                            {
+                                double closest = 0;
+                                double minDiff = 1000000;
+                                foreach (var faceLocation in floorsTopFaceZCoord)
+                                {
+                                    var diff = Math.Abs(dsLocationZ - faceLocation);
+                                    if (diff < minDiff)
+                                    {
+                                        minDiff = diff;
+                                        closest = faceLocation;
+                                    }
+                                }
 
-                t.Commit();
+                                ElementTransformUtils.MoveElement(doc, ds.Id, new XYZ(dsLocation.X, dsLocation.Y, closest) - dsLocation);
+                            }
+                        }
+                    }
+
+                    t.Commit();
+                }
+
+                using (var revitProgressBar = new RevitProgressBar(true))
+                {
+                    revitProgressBar.Run("Генерация точек...", columns, (column) =>
+                    {
+                        var columnDS = directShapes
+                            .Where(d => d.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).AsString() == column.Id.ToString())
+                            .ToList();
+                        
+                        var columnCurve = (column.Location as LocationCurve).Curve;
+
+                        foreach (var floorTopFace in floorsTopFace)
+                        {
+                            floorTopFace.Intersect(columnCurve, out var result);
+                            if (result == null)
+                                continue;
+
+                            var intPoint = result.Cast<IntersectionResult>().FirstOrDefault()?.XYZPoint;
+                            if (intPoint == null)
+                                continue;
+
+                            using (Transaction t = new Transaction(RevitAPI.Document, "Генерация DS"))
+                            {
+                                t.Start();
+
+                                var ds = columnDS.FirstOrDefault(d => d.get_BoundingBox(null).Max.Z.Round() == floorTopFace.Origin.Z.Round());
+                                if (ds == null)
+                                {
+                                    ds = ExMethods.CreateDirectShape([Point.Create(intPoint)], BuiltInCategory.OST_BridgeCables);
+                                    columnDS.Add(ds);
+                                }
+                                else
+                                {
+                                    ElementTransformUtils.MoveElement(doc, ds.Id, intPoint - ds.get_BoundingBox(null).Max);
+                                }
+
+                                ds.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(column.Id.ToString());
+                                ds.get_Parameter(BuiltInParameter.ELEM_PARTITION_PARAM).Set(worksetId.IntegerValue);
+
+                                t.Commit();
+                            }
+                        }
+
+                        using (Transaction t = new Transaction(RevitAPI.Document, "Удаление старых DS колонны"))
+                        {
+                            t.Start();
+
+                            foreach (var ds in columnDS)
+                            {
+                                var dsLoc = ds.get_BoundingBox(null).Max;
+
+                                XYZ projectedPoint = columnCurve.Project(dsLoc).XYZPoint;
+
+                                double distance = dsLoc.DistanceTo(projectedPoint);
+                                if (distance.Round() != 0)
+                                {
+                                    doc.Delete(ds.Id);
+                                    directShapes.Remove(ds);
+                                }
+                            }
+
+                            t.Commit();
+                        }  
+                    });
+
+                    if (revitProgressBar.IsCancelling())
+                    {
+                        tGroup.RollBack();
+                        return Result.Cancelled;
+                    }
+                }
+
+                tGroup.Assimilate();
             }
 
             return Result.Succeeded;
