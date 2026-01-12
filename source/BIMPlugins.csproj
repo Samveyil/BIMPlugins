@@ -62,28 +62,17 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="Resources\bindFamilies.tiff" />
-	  <None Remove="Resources\saveFamily.tiff" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="Aspose.Cells" Version="25.3.0" />
 		<PackageReference Include="BIMPlugins.Bars" Version="*" />
 		<PackageReference Include="BIMPlugins.ExtStorage" Version="$(RevitVersion).*" />
+		<PackageReference Include="BIMPlugins.Windows" Version="*" />
 		<PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="$(RevitVersion).*" IncludeAssets="build; compile" PrivateAssets="All" />
+		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="$(RevitVersion).*" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" IncludeAssets="build; compile" />
 		<PackageReference Include="ricaun.Revit.UI" Version="*" />
 	</ItemGroup>
 
-	<Target Name="TakeAction" AfterTargets="Build">
-		<ItemGroup>
-			<NuGetDll Include="$(NuGetPackageRoot)communitytoolkit.mvvm\**\netstandard2.0\CommunityToolkit.Mvvm.dll" />
-		</ItemGroup>
-		<Copy SourceFiles="@(NuGetDll)" DestinationFolder="$(OutputPath)" />
-	</Target>
-	
 	<ItemGroup>
 		<Resource Include="Resources\angry-32.png" />
 		<Resource Include="Resources\areaSum-32.png" />

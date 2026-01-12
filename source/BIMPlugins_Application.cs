@@ -13,11 +13,14 @@ using BIMPlugins.Levels;
 using BIMPlugins.Parameters;
 using BIMPlugins.Sheets;
 using BIMPlugins.Views;
+using MaterialDesignColors;
+using MaterialDesignThemes.Wpf;
 using ricaun.Revit.UI;
 using System;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
+using System.Windows.Media;
 using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
 
 namespace BIMPlugins
@@ -41,7 +44,7 @@ namespace BIMPlugins
             _uiControlApp = application;
 
             UIMethods.FindTab(_uiControlApp, tabName);
-            RevitAPI.InitializeMaterialDesign();
+            InitializeMaterialDesign();
             try
             {
                 var viewModel = new ViewSettingsViewModel();
@@ -234,6 +237,12 @@ namespace BIMPlugins
                 _whoDidButton.IsVisible = false;
                 _fastSelectButton.IsVisible = false;
             }
+        }
+
+        private void InitializeMaterialDesign()
+        {
+            var card = new Card();
+            var hue = new Hue("Dammy", Colors.Black, Colors.White);
         }
     }
 
