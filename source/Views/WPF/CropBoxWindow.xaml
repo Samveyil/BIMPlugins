@@ -43,23 +43,23 @@
 
                             <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
                                 <Rectangle Fill="{Binding Color, Converter={StaticResource RevitColorToBrushConverter}}" Width="20" Height="20"
-                                           Margin="5 0 7 0" Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                
-                                <Button Width="20" Height="20" Margin="5 0" Style="{StaticResource MaterialDesignFlatButton}"
+                                           Margin="5 0 0 0" Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+
+                                <Button Width="25" Height="25" Margin="5 0" Style="{StaticResource MaterialDesignFlatButton}" Padding="0"
                                         Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="Показать диапазон видимости вида" Command="{Binding SelectCommand}" HorizontalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="Target" Width="20" Height="20" Foreground="#99000000"/>
+                                        ToolTip="Показать диапазон видимости вида" Command="{Binding SelectCommand}">
+                                    <materialDesign:PackIcon Kind="Target" Width="25" Height="25" Foreground="#99000000"/>
                                 </Button>
 
-                                <Button Width="20" Height="20" Style="{StaticResource MaterialDesignFlatButton}"
+                                <Button Width="22" Height="22" Style="{StaticResource MaterialDesignFlatButton}" Padding="0"
                                         Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                        ToolTip="3D подрезка по диапазону видимости вида" Command="{Binding SectionBoxCommand}" HorizontalAlignment="Center">
-                                    <Image Source="/BIMPlugins.Windows;component/Resources/sectionBox-32.png" Width="20" Height="20"/>
+                                        ToolTip="3D подрезка по диапазону видимости вида" Command="{Binding SectionBoxCommand}">
+                                    <Image Source="/BIMPlugins.Windows;component/Resources/sectionBox-32.png" Width="22" Height="22"/>
                                 </Button>
 
-                                <Button Width="20" Height="20" Style="{StaticResource MaterialDesignFlatButton}" Margin="7 0 5 0"
-                                        ToolTip="Открыть вид" Command="{Binding OpenViewCommand}" HorizontalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="OpenInNew" Width="20" Height="20" Foreground="#99000000"/>
+                                <Button Width="25" Height="25" Style="{StaticResource MaterialDesignFlatButton}" Padding="0" Margin="5 0 0 0"
+                                        ToolTip="Открыть вид" Command="{Binding OpenViewCommand}">
+                                    <materialDesign:PackIcon Kind="OpenInNew" Width="25" Height="25" Foreground="#99000000"/>
                                 </Button>
                             </StackPanel>
                         </Grid>

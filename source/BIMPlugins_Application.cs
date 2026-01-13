@@ -13,6 +13,7 @@ using BIMPlugins.Levels;
 using BIMPlugins.Parameters;
 using BIMPlugins.Sheets;
 using BIMPlugins.Views;
+using BIMPlugins.Windows.ViewModels;
 using MaterialDesignColors;
 using MaterialDesignThemes.Wpf;
 using ricaun.Revit.UI;
@@ -44,7 +45,8 @@ namespace BIMPlugins
             _uiControlApp = application;
 
             UIMethods.FindTab(_uiControlApp, tabName);
-            InitializeMaterialDesign();
+            InitializeDlls();
+            
             try
             {
                 var viewModel = new ViewSettingsViewModel();
@@ -239,10 +241,12 @@ namespace BIMPlugins
             }
         }
 
-        private void InitializeMaterialDesign()
+        private void InitializeDlls()
         {
             var card = new Card();
             var hue = new Hue("Dammy", Colors.Black, Colors.White);
+
+            var vm = new MessageViewModel("1", MessageBoxImage.None, true);
         }
     }
 

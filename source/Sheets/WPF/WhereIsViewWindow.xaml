@@ -27,9 +27,9 @@
                     <DataGridTemplateColumn>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Width="20" Height="20" Padding="0" Margin="5 0" Command="{Binding OpenSheetCommand}"
+                                <Button Width="25" Height="25" Padding="0" Margin="5 0" Command="{Binding OpenSheetCommand}"
                                         Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Перейти на лист">
-                                    <materialDesign:PackIcon Kind="OpenInNew" Width="20" Height="20" Foreground="#CC000000"/>
+                                    <materialDesign:PackIcon Kind="OpenInNew" Width="25" Height="25" Foreground="#CC000000"/>
                                 </Button>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
