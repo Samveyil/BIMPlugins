@@ -5,7 +5,7 @@
         xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:classes="clr-namespace:BIMPlugins.Sheets.Classes"
         xmlns:local="clr-namespace:BIMPlugins.Sheets.WPF"
         d:DataContext="{d:DesignInstance local:SpecificationScheduleViewModel}"
@@ -36,7 +36,7 @@
 
             <StackPanel>
                 <StackPanel Orientation="Horizontal">
-                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 7 5 0"/>
+                    <Image Source="/BIMPlugins.Windows;component/Resources/search-32.png" Height="20" Width="20" Margin="5 7 5 0"/>
                     <TextBox Text="{Binding Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="300"
                              materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
                 </StackPanel>

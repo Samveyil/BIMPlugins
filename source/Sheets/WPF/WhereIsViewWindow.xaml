@@ -27,9 +27,9 @@
                     <DataGridTemplateColumn>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate>
-                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0"
-                                        ToolTip="Перейти на лист" Command="{Binding OpenSheetCommand}">
-                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/find-32.png"/>
+                                <Button Width="20" Height="20" Padding="0" Margin="5 0" Command="{Binding OpenSheetCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Перейти на лист">
+                                    <materialDesign:PackIcon Kind="OpenInNew" Width="20" Height="20" Foreground="#CC000000"/>
                                 </Button>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>

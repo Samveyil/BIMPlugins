@@ -140,7 +140,7 @@ namespace BIMPlugins
                 .SetToolTip("Позволяет сохранить в проекте изображения из легенд")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Изображения из легенд.pdf");
             viewsPanel.CreatePushButton<SectionBoxCommand, NotAvailableInFamilyEditor>("Обрезка\nпо уровням").SetShowText(true)
-                .SetLargeImage(@"/BIMPlugins.ExtStorage;component/Resources/sectionBox-32.png")
+                .SetLargeImage(@"/BIMPlugins.Windows;component/Resources/sectionBox-32.png")
                 .SetToolTip("Обрезка 3D-вида по выбранным уровням")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Обрезка по уровням.pdf");
             viewsPanel.CreatePushButton<CropBoxOn3DCommand, NotAvailableInFamilyEditor>("Секущий\nдиапазон").SetShowText(true)

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
-        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:classes="clr-namespace:BIMPlugins.Sheets.Classes"
         xmlns:local="clr-namespace:BIMPlugins.Sheets.WPF"
         d:DataContext="{d:DesignInstance local:SheetsNumberingViewModel}"

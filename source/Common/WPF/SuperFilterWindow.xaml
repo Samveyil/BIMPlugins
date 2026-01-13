@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:b="http://schemas.microsoft.com/xaml/behaviors"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:local="clr-namespace:BIMPlugins.Common.WPF"
         d:DataContext="{d:DesignInstance local:SuperFilterViewModel}"
         mc:Ignorable="d"
@@ -34,7 +34,7 @@
                       Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="5 3" Width="390"/>
 
             <StackPanel Orientation="Horizontal">
-                <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 0"/>
+                <Image Source="/BIMPlugins.Windows;component/Resources/search-32.png" Height="20" Width="20" Margin="5 0"/>
                 <TextBox Text="{Binding FilterCategory, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="170"
                          materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск категорий" />
                 <TextBox Text="{Binding FilterParameter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="170" Margin="25 0 5 0"

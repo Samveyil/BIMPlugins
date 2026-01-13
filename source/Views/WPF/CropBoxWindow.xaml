@@ -4,7 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-        xmlns:converters="clr-namespace:BIMPlugins.ExtStorage.Converters;assembly=BIMPlugins.ExtStorage"
+        xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:local="clr-namespace:BIMPlugins.Views.WPF"
         d:DataContext="{d:DesignInstance local:CropBoxViewModel}"
         mc:Ignorable="d"
@@ -24,7 +24,7 @@
     
     <StackPanel>
         <StackPanel Orientation="Horizontal" Margin="5">
-            <Image Source="/BIMPlugins.ExtStorage;component/Resources/search-32.png" Height="20" Width="20" Margin="5 0"/>
+            <Image Source="/BIMPlugins.Windows;component/Resources/search-32.png" Height="20" Width="20" Margin="5 0"/>
             <TextBox Text="{Binding Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="300"
                      materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
         </StackPanel>
@@ -44,19 +44,22 @@
                             <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
                                 <Rectangle Fill="{Binding Color, Converter={StaticResource RevitColorToBrushConverter}}" Width="20" Height="20"
                                            Margin="5 0 7 0" Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0" Margin="5 0"
+                                
+                                <Button Width="20" Height="20" Margin="5 0" Style="{StaticResource MaterialDesignFlatButton}"
                                         Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="Показать диапазон видимости вида" Command="{Binding SelectCommand}" HorizontalAlignment="Center">
-                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/target-32.png"/>
+                                    <materialDesign:PackIcon Kind="Target" Width="20" Height="20" Foreground="#99000000"/>
                                 </Button>
-                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0"
+
+                                <Button Width="20" Height="20" Style="{StaticResource MaterialDesignFlatButton}"
                                         Visibility="{Binding IsSelected, Converter={StaticResource BooleanToVisibilityConverter}}"
                                         ToolTip="3D подрезка по диапазону видимости вида" Command="{Binding SectionBoxCommand}" HorizontalAlignment="Center">
-                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/sectionBox-32.png"/>
+                                    <Image Source="/BIMPlugins.Windows;component/Resources/sectionBox-32.png" Width="20" Height="20"/>
                                 </Button>
-                                <Button Width="20" Height="20" Background="{x:Null}" BorderBrush="{x:Null}" Foreground="{x:Null}" Padding="0" Margin="7 0 5 0"
+
+                                <Button Width="20" Height="20" Style="{StaticResource MaterialDesignFlatButton}" Margin="7 0 5 0"
                                         ToolTip="Открыть вид" Command="{Binding OpenViewCommand}" HorizontalAlignment="Center">
-                                    <Image Source="/BIMPlugins.ExtStorage;component/Resources/linking-32.png"/>
+                                    <materialDesign:PackIcon Kind="OpenInNew" Width="20" Height="20" Foreground="#99000000"/>
                                 </Button>
                             </StackPanel>
                         </Grid>
