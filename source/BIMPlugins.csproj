@@ -62,6 +62,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Remove="Resources\serverCreate.tiff" />
+	  <None Remove="Resources\serverInfo.tiff" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Aspose.Cells" Version="25.3.0" />
 		<PackageReference Include="BIMPlugins.Bars" Version="*" />
 		<PackageReference Include="BIMPlugins.ExtStorage" Version="$(RevitVersion).*" />
@@ -99,6 +104,8 @@
 		<Resource Include="Resources\revitLink-32.png" />
 		<Resource Include="Resources\rotate-32.png" />
 		<Resource Include="Resources\saveFamily.tiff" />
+		<Resource Include="Resources\serverCreate.tiff" />
+		<Resource Include="Resources\serverInfo.tiff" />
 		<Resource Include="Resources\serverManager.tiff" />
 		<Resource Include="Resources\setFloor.tiff" />
 		<Resource Include="Resources\setNewLevel.tiff" />

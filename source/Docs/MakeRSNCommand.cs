@@ -12,7 +12,7 @@ namespace BIMPlugins.Docs
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
-    public class MakeRevitServerCommand : IExternalCommand
+    public class MakeRSNCommand : IExternalCommand
     {
         private Dictionary<string, List<string>> serverIPDict = new Dictionary<string, List<string>>()
         {
@@ -49,7 +49,8 @@ namespace BIMPlugins.Docs
                     "srv2",
                     "srv4",
                     "extrevit2",
-                    "extrevit10"
+                    "extrevit10",
+                    "extrevit11"
                 }
             },
             {"RSN2023", new List<string>()

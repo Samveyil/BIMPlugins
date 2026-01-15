@@ -209,6 +209,14 @@ namespace BIMPlugins
 
             //Документы
             RibbonPanel docsPanel = application.CreateRibbonPanel(tabName, "Документы");
+            var serverSplitBtn = docsPanel.CreateSplitButton("RevitServer");
+            serverSplitBtn.CreatePushButton<RSNInfoCommand, AlwaysAvailable>("Найти\nпроект").SetShowText(true)
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "serverInfo.tiff"))
+                .SetToolTip("Позволяет найти и открыть файл с Revit Server");
+            serverSplitBtn.CreatePushButton<MakeRSNCommand, AlwaysAvailable>("Создать\nструктуру").SetShowText(true)
+                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "serverCreate.tiff"))
+                .SetToolTip("Позволяет создать структуру RSN для использования в других плагинах");
+
             docsPanel.CreatePushButton<CloseDocsCommand, AlwaysAvailable>("Закрыть").SetShowText(true)
                 .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "closeDocks.tiff"))
                 .SetToolTip("При ошибке плагинов фоновые документы не закрываются и хранятся в памяти");
