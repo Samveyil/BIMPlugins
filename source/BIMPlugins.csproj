@@ -62,11 +62,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <None Remove="Resources\serverCreate.tiff" />
-	  <None Remove="Resources\serverInfo.tiff" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<PackageReference Include="Aspose.Cells" Version="25.3.0" />
 		<PackageReference Include="BIMPlugins.Bars" Version="*" />
 		<PackageReference Include="BIMPlugins.ExtStorage" Version="$(RevitVersion).*" />
@@ -100,6 +95,7 @@
 		<Resource Include="Resources\navisworks-32.png" />
 		<Resource Include="Resources\numerate.tiff" />
 		<Resource Include="Resources\printSchedules-32.png" />
+		<Resource Include="Resources\relinquish.tiff" />
 		<Resource Include="Resources\renumberSheets-32.png" />
 		<Resource Include="Resources\revitLink-32.png" />
 		<Resource Include="Resources\rotate-32.png" />
@@ -116,4 +112,8 @@
 		<Resource Include="Resources\support-32.png" />
 		<Resource Include="Resources\whereIsView-32.png" />
 	</ItemGroup>
+
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+	  <Exec Command="set SIGNTOOL_PATH=&quot;$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), $(MSBuildProjectName).sln))\cert\signtool.exe&quot;&#xD;&#xA;set CERT_PATH=&quot;$([MSBuild]::GetDirectoryNameOfFileAbove($(MSBuildProjectDirectory), $(MSBuildProjectName).sln))\cert\BIMPluginsCert.pfx&quot;&#xD;&#xA;set CERT_PASSWORD=BIM&#xD;&#xA;&#xD;&#xA;echo &quot;$(Configuration)&quot; | findstr /i &quot;Debug&quot; &gt;nul&#xD;&#xA;if %25errorlevel%25 equ 0 (&#xD;&#xA;    echo Skipping sign because this is a Debug build&#xD;&#xA;) else (&#xD;&#xA;    %25SIGNTOOL_PATH%25 sign /fd SHA256 /f %25CERT_PATH%25 /p %25CERT_PASSWORD%25 &quot;$(MSBuildProjectDirectory)\$(OutputPath)\$(AssemblyName).dll&quot;&#xD;&#xA;)" />
+	</Target>
 </Project>

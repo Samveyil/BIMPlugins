@@ -6,7 +6,7 @@ public class Build : BIMPluginsBuild
 {
     protected override int MajorVersion => 3;
     protected override int MinorVersion => 0;
-    protected override int MaintenanceVersion => 6;
+    protected override int MaintenanceVersion => 7;
 
 
     [Solution("BIMPlugins.sln")]
