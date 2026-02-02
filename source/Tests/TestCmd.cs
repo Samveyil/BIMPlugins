@@ -25,41 +25,70 @@ namespace BIMPlugins.Tests
         {
             var doc = RevitAPI.Document;
 
-            Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
-            Guid _typeGuid = new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa");                  // OLP_Зона расположения
-            Guid _stepGuid = new Guid("5d7cb726-ac59-4f05-a902-8fdffa796d15");                  // ADSK_Шаг элементов
-            Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
+            //Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
+            //Guid _typeGuid = new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa");                  // OLP_Зона расположения
+            //Guid _stepGuid = new Guid("5d7cb726-ac59-4f05-a902-8fdffa796d15");                  // ADSK_Шаг элементов
+            //Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
 
-            var shParams = doc.ToElements<SharedParameterElement>();
+            //var shParams = doc.ToElements<SharedParameterElement>();
 
-            var idParamId = shParams.FirstOrDefault(p => p.GuidValue == _idGuid).Id;
-            var typeParamId = shParams.FirstOrDefault(p => p.GuidValue == _typeGuid).Id;
-            var useScheduleParamId = shParams.FirstOrDefault(p => p.GuidValue == _useScheduleGuid).Id;
+            //var idParamId = shParams.FirstOrDefault(p => p.GuidValue == _idGuid).Id;
+            //var typeParamId = shParams.FirstOrDefault(p => p.GuidValue == _typeGuid).Id;
+            //var useScheduleParamId = shParams.FirstOrDefault(p => p.GuidValue == _useScheduleGuid).Id;
 
-            //using (Transaction t = new Transaction(doc, "test"))
-            //{
-            //    t.Start();
+            using (Transaction t = new Transaction(doc, "test"))
+            {
+                t.Start();
 
-            //    //var rebar = new ElementId(25770217).ToElement();
+                //var rebar = new ElementId(25759661).ToElement();
 
-            //    //var idParam = rebar.get_Parameter(_idGuid).AsString();
-            //    //var typeParam = rebar.get_Parameter(_typeGuid).AsString();
+                //var idParam = rebar.get_Parameter(_idGuid).AsString();
+                ////var typeParam = rebar.get_Parameter(_typeGuid).AsString();
 
-            //    ////typeParam = typeParam.Split('_')[0];
+                //////typeParam = typeParam.Split('_')[0];
 
-            //    //var idParamFilter = idParamId.CreateEqualsFilter("25749139");
-            //    ////var typeParamFilter = typeParamId.CreateContainsFilter(typeParam);
+                ////var idParamFilter = idParamId.CreateEqualsFilter("25749139");
+                //////var typeParamFilter = typeParamId.CreateContainsFilter(typeParam);
 
-            //    //var rebars = doc.ToElements(idParamFilter);
-            //    //foreach (var r in rebars)
-            //    //{
-            //    //    r.get_Parameter(_idGuid).Set("25782650");
-            //    //}
+                ////var rebars = doc.ToElements(idParamFilter);
+                ////foreach (var r in rebars)
+                ////{
+                ////    r.get_Parameter(_idGuid).Set("25782650");
+                ////}
 
-            //    doc.ActiveView.get_Parameter(_idGuid).Set("25782650");
+                //double length = 0;
+                //foreach (var id in idParam.Split(';'))
+                //{
+                //    var palka = new ElementId(int.Parse(id)).ToElement(doc);
+                //    var palkaOffset = palka.LookupParameter("ГорАрм_ОтступОтТорца").AsDouble();
+                //    var palkaLength = palka.LookupParameter("Длина").AsDouble();
 
-            //    t.Commit();
-            //}
+                //    length += palkaLength - 2 * palkaOffset;
+                //}
+
+                //var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
+                //    .Where(r => r.Symbol.FamilyName == "E-SHP-70 - Дуга_x021");
+
+                //var newSymbol = new ElementId(31820257).ToElement<FamilySymbol>();
+
+                //foreach (var rebar in rebars)
+                //{
+                //    var p1 = rebar.LookupParameter("Прямой участок1").AsDouble();
+                //    if (p1 == 0)
+                //        continue;
+
+                //    var p2 = rebar.LookupParameter("Радиус").AsDouble();
+                //    var p3 = rebar.LookupParameter("Угол").AsDouble();
+
+                //    rebar.Symbol = newSymbol;
+
+                //    rebar.LookupParameter("Прямой участок1").Set(p1);
+                //    rebar.LookupParameter("Радиус").Set(p2);
+                //    rebar.LookupParameter("Угол").Set(p3);
+                //}
+
+                t.Commit();
+            }
 
             var classFilter = new ElementClassFilter(typeof(FamilyInstance));
             var bicFilter = new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents);
@@ -80,7 +109,7 @@ namespace BIMPlugins.Tests
                 ]
             );
 
-            UnRegisterUpdaters(new RebarWallUpdater(), doc);
+            //UnRegisterUpdaters(new RebarWallUpdater(), doc);
 
             return Result.Succeeded;
         }

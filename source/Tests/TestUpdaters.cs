@@ -44,6 +44,7 @@ namespace BIMPlugins.Tests
         private Guid _typeGuid = new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa");                  // OLP_Зона расположения
         private Guid _stepGuid = new Guid("5d7cb726-ac59-4f05-a902-8fdffa796d15");                  // ADSK_Шаг элементов
         private Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
+        private Guid _pointLengthGuid = new Guid("b10d2260-5080-470d-be69-e136df3b45f6");           // OLP_Арм_Аdef
 
         private static bool _isExecuting = false;
 
@@ -67,11 +68,11 @@ namespace BIMPlugins.Tests
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
             }
 
-            if (_isExecuting)
-            {
-                _isExecuting = false;
-                return;
-            }
+            //if (_isExecuting)
+            //{
+            //    _isExecuting = false;
+            //    return;
+            //}
 
             foreach (var rebarId in data.GetModifiedElementIds())
             {
@@ -86,12 +87,22 @@ namespace BIMPlugins.Tests
                 typeParam = typeParam.Split('_')[0];
 
                 var idParamFilter = idParamId.CreateEqualsFilter(idParam);
-                var typeParamFilter = typeParamId.CreateEndsWithFilter(typeParam);
+                var typeParamFilter = typeParamId.CreateContainsFilter(typeParam);
+
+                LogicalAndFilter andFilter;
+                if (typeParam == "ВертАрм")
+                {
+                    var typeParamNotContainsFilter = typeParamId.CreateNotContainsFilter("ВертАрмТорца");
+                    andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter, typeParamNotContainsFilter]);
+                }
+                else
+                    andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter]);
+
+                var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter);
 
                 if (data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(typeParamId)))
                 {
-                    var sourceRebar = doc.ToElements(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]))
-                        .FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
+                    var sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
                     if (sourceRebar == null)
                         return;
 
@@ -115,32 +126,29 @@ namespace BIMPlugins.Tests
                         }
                     }
 
-                    typeParam = rebar.get_Parameter((BuiltInParameter)typeParamId.IntegerValue).AsString();
-                    typeParamFilter = typeParamId.CreateEqualsFilter(typeParam);
+                    if (typeParam == "ГорАрм" || typeParam == "Шпилька")
+                    {
+                        typeParam = rebar.get_Parameter((BuiltInParameter)typeParamId.IntegerValue).AsString();
+                        typeParamFilter = typeParamId.CreateEqualsFilter(typeParam);
 
-                    sourceRebar = doc.ToElements(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]))
-                        .FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
+                        sourceRebar = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]))
+                            .FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
 
-                    if (sourceRebar == null)
-                        return;
+                        if (sourceRebar == null)
+                            return;
+                    }
 
                     rebar.get_Parameter(_stepGuid).SetValue(sourceRebar.get_Parameter(_stepGuid).GetValue());
                 }
                 else
                 {
-                    var palka = new ElementId(int.Parse(idParam)).ToElement(doc);
-                    var palkaOffset = palka.LookupParameter("ГорАрм_ОтступОтТорца").AsDouble();
-                    var palkaLength = palka.LookupParameter("Длина").AsDouble();
-
                     var sourceParameters = rebar
                         .GetOrderedParameters()
                         .Where(p => p.HasValue && (
-                            (p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid }.Contains(p.GUID)) ||
-                            p.Definition.ParameterGroup == BuiltInParameterGroup.PG_STRUCTURAL ||
-                            p.Definition.ParameterGroup == BuiltInParameterGroup.PG_GEOMETRY
+                            (p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid, _pointLengthGuid }.Contains(p.GUID)) ||
+                            (!p.IsShared && new[] { BuiltInParameterGroup.PG_GEOMETRY, BuiltInParameterGroup.PG_STRUCTURAL }.Contains(p.Definition.ParameterGroup))
                         ));
 
-                    var rebars = doc.ToElements(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]));
                     foreach (var r in rebars)
                     {
                         foreach (var sourceParam in sourceParameters)
@@ -156,53 +164,76 @@ namespace BIMPlugins.Tests
                         }
                     }
 
-                    typeParam = rebar.get_Parameter((BuiltInParameter)typeParamId.IntegerValue).AsString();
-                    typeParamFilter = typeParamId.CreateEqualsFilter(typeParam);
-
-                    foreach (var r in doc.ToElements(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter])))
-                        r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
-
-                    var pointRebars = rebars.Where(r => (r as FamilyInstance).Symbol.FamilyName.Contains("Точка"));
-                    if (typeParam.Contains("ГорАрм") && rebar.get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
+                    if (typeParam == "ГорАрм" || typeParam == "Шпилька")
                     {
-                        var length = palkaLength - 2 * palkaOffset;
-                        foreach (var pointRebar in pointRebars)
-                        {
-                            var lengthParam = pointRebar.get_Parameter(new Guid("d8841d49-a483-406a-b7c9-c8d3ceaf81b4"))        //OLP_Арм_L     
-                                ?? pointRebar.get_Parameter(new Guid("b10d2260-5080-470d-be69-e136df3b45f6"));                  //OLP_Арм_Аdef
+                        typeParam = rebar.get_Parameter((BuiltInParameter)typeParamId.IntegerValue).AsString();
+                        typeParamFilter = typeParamId.CreateEqualsFilter(typeParam);
 
-                            if (lengthParam != null && !lengthParam.IsReadOnly)
-                                lengthParam.Set(length);
-                        }
+                        foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter])))
+                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
                     }
                     else
-                    {
-                        var lengthRebar = rebars.FirstOrDefault(r => (r as FamilyInstance).Symbol.FamilyName.Contains("Стержень"));
-                        if (lengthRebar != null)
-                        {
-                            var lengthParam = lengthRebar.get_Parameter(new Guid("d8841d49-a483-406a-b7c9-c8d3ceaf81b4"))        //OLP_Арм_L     
-                                ?? lengthRebar.get_Parameter(new Guid("b10d2260-5080-470d-be69-e136df3b45f6"));                  //OLP_Арм_Аdef
-                            
-                            if (lengthParam != null)
-                            {
-                                foreach (var pointRebar in pointRebars)
-                                {
-                                    var targetParam = pointRebar.get_Parameter(lengthParam.GUID);
-                                    if (targetParam != null && !targetParam.IsReadOnly)
-                                        targetParam.Set(lengthParam.AsDouble());
-                                }
-                            }
-                        }
-                    }
+                        foreach (var r in rebars)
+                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
 
+                    SetLengthToPointRebars(doc, rebar, idParamId, typeParamId);
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
                 }
             }
-
-            if (data.GetModifiedElementIds().Count != 0)
-                _isExecuting = true;
         }
 
+        private void SetLengthToPointRebars(Document doc, FamilyInstance rebar, ElementId idParamId, ElementId typeParamId)
+        {
+            var idParam = rebar.get_Parameter(_idGuid).AsString();
+            var typeParam = rebar.get_Parameter(_typeGuid).AsString().Split('_')[0];
+
+            var idParamFilter = idParamId.CreateEqualsFilter(idParam);
+            var typeParamFilter = typeParam.Contains("ВертАрм")
+                ? typeParamId.CreateContainsFilter("ВертАрм")
+                : typeParamId.CreateContainsFilter(typeParam);
+            
+            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]));
+            var pointRebars = rebars.Where(r => r.Symbol.FamilyName.Contains("Точка"));
+
+            if (typeParam.Contains("ГорАрм") && rebar.get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
+            {
+                double length = 0;
+                foreach (var id in idParam.Split(';'))
+                {
+                    var palka = new ElementId(int.Parse(id)).ToElement(doc);
+                    var palkaOffset = palka.LookupParameter("ГорАрм_ОтступОтТорца").AsDouble();
+                    var palkaLength = palka.LookupParameter("Длина").AsDouble();
+
+                    length += palkaLength - 2 * palkaOffset;
+                }
+
+                foreach (var pointRebar in pointRebars)
+                {
+                    var lengthParam = pointRebar.get_Parameter(_pointLengthGuid);
+
+                    if (lengthParam != null && !lengthParam.IsReadOnly && lengthParam.AsDouble().Round() != length.Round())
+                        lengthParam.Set(length);
+                }
+            }
+            else
+            {
+                var lengthRebar = rebars.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Стержень"));
+                if (lengthRebar != null)
+                {
+                    var lengthParam = lengthRebar.get_Parameter(_pointLengthGuid);
+
+                    if (lengthParam != null)
+                    {
+                        foreach (var pointRebar in pointRebars)
+                        {
+                            var targetParam = pointRebar.get_Parameter(lengthParam.GUID);
+                            if (targetParam != null && !targetParam.IsReadOnly && targetParam.AsDouble().Round() != lengthParam.AsDouble().Round())
+                                targetParam.Set(lengthParam.AsDouble());
+                        }
+                    }
+                }
+            }
+        }
         private void SetScheduleParameter(Document doc, FamilyInstance rebar, ElementId idParamId, ElementId typeParamId)
         {
             var idParam = rebar.get_Parameter(_idGuid).AsString();
@@ -214,9 +245,18 @@ namespace BIMPlugins.Tests
             typeParam = typeParam.Split('_')[0];
 
             var idParamFilter = idParamId.CreateEqualsFilter(idParam);
-            var typeParamFilter = typeParamId.CreateEndsWithFilter(typeParam);
+            var typeParamFilter = typeParamId.CreateContainsFilter(typeParam);
 
-            var rebars = doc.ToElements(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]));
+            LogicalAndFilter andFilter;
+            if (typeParam == "ВертАрм")
+            {
+                var typeParamNotContainsFilter = typeParamId.CreateNotContainsFilter("ВертАрмТорца");
+                andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter, typeParamNotContainsFilter]);
+            }
+            else
+                andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter]);
+
+            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter);
 
             var elementsWithTrue = rebars
                 .Where(element =>
@@ -230,7 +270,7 @@ namespace BIMPlugins.Tests
             {
                 if (elementsWithTrue.Count > 1)
                 {
-                    var pointRebar = elementsWithTrue.FirstOrDefault(r => (r as FamilyInstance).Symbol.FamilyName.Contains("Точка"));
+                    var pointRebar = elementsWithTrue.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Точка"));
                     if (pointRebar != null)
                         elementsWithTrue.Remove(pointRebar);
 
@@ -244,7 +284,7 @@ namespace BIMPlugins.Tests
 
                 if (elementsWithTrue.Count == 0)
                 {
-                    var r = rebars.FirstOrDefault(r => (r as FamilyInstance).Symbol.FamilyName.Contains("Точка"))
+                    var r = rebars.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Точка"))
                         ?? rebars.First();
 
                     var p = r.get_Parameter(_useScheduleGuid) ?? r.LookupParameter("Учет в спецификации");

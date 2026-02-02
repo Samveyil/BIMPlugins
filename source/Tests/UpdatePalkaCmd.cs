@@ -41,79 +41,102 @@ namespace BIMPlugins.Tests
 
             var idParamId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == _idGuid).Id;
 
-            var palkaId = doc.ActiveView.get_Parameter(_idGuid).AsString();
-            if (palkaId.IsNullOrEmpty())
+            var ids = doc.ActiveView.get_Parameter(_idGuid).AsString();
+            if (ids.IsNullOrEmpty())
                 return Result.Cancelled;
 
-            var palka = new ElementId(int.Parse(palkaId)).ToElement<FamilyInstance>();
-
-            var idParamFilter = idParamId.CreateEqualsFilter(palkaId);
+            var idParamFilter = idParamId.CreateEqualsFilter(ids);
 
             var rebars = doc.ToElements(BuiltInCategory.OST_DetailComponents, idParamFilter)
                 .GroupBy(r => r.get_Parameter(_typeGuid).AsString())
                 .Select(g => g.First())
                 .Where(r => !r.get_Parameter(_typeGuid).AsString().IsNullOrEmpty());
 
-            var diametrDict = new Dictionary<string, double>();
+            var types = rebars.Select(r => r.get_Parameter(_typeGuid).AsString());
+            var hasTopRebar = types.Any(t => t == "ГорАрм_ДопШагСверху");
+            var hasBottomRebar = types.Any(t => t == "ГорАрм_ДопШагСнизу");
 
+            var countDict = new Dictionary<string, double>();
+
+            Element palka = null;
             using (Transaction t = new Transaction(doc, "test"))
             {
                 t.Start();
 
-                foreach (var visibleParam in palka.Parameters.Cast<Parameter>().Where(p => p.Definition.Name.EndsWith(".Вкл") && !p.IsReadOnly))
-                    visibleParam.Set(0);
-
-                doc.Regenerate();
-
-                var types = rebars.Select(r => r.get_Parameter(_typeGuid).AsString());
-                var hasTopRebar = types.Any(t => t == "ГорАрм_ДопШагСверху");
-                var hasBottomRebar = types.Any(t => t == "ГорАрм_ДопШагСнизу");
-    
-                palka.LookupParameter("ГорАрм_ДопШагСверху.Вкл").Set(hasTopRebar ? 1 : 0);
-                palka.LookupParameter("ГорАрм_ДопШагСнизу.Вкл").Set(hasBottomRebar ? 1 : 0);
-
-                foreach (var r in rebars)
+                foreach (var id in ids.Split(';'))
                 {
-                    var rType = r.get_Parameter(_typeGuid).AsString();
+                    palka = new ElementId(int.Parse(id)).ToElement<FamilyInstance>();
 
-                    var visParam = palka.LookupParameter($"{rType}.Вкл");
-                    if (visParam != null)
-                        visParam.Set(1);
+                    foreach (var visibleParam in palka.Parameters.Cast<Parameter>().Where(p => p.Definition.Name.EndsWith(".Вкл") && !p.IsReadOnly))
+                        visibleParam.Set(0);
 
-                    if (rType == "ГорАрм_ДопШагСнизу" || rType == "ГорАрм_ДопШагСверху")
+                    doc.Regenerate();
+
+                    palka.LookupParameter("ГорАрм_ДопШагСверху.Вкл").Set(hasTopRebar ? 1 : 0);
+                    palka.LookupParameter("ГорАрм_ДопШагСнизу.Вкл").Set(hasBottomRebar ? 1 : 0);
+
+                    foreach (var r in rebars)
                     {
-                        palka.LookupParameter(rType).Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble());
+                        var rType = r.get_Parameter(_typeGuid).AsString();
 
-                        var countArray = r.LookupParameter("Колво.Расч");
-                        if (countArray == null)
-                            continue;
-                        
-                        if (rType == "ГорАрм_ДопШагСнизу")
+                        var visParam = palka.LookupParameter($"{rType}.Вкл");
+                        if (visParam != null)
+                            visParam.Set(1);
+
+                        if (rType == "ГорАрм_ДопШагСнизу" || rType == "ГорАрм_ДопШагСверху")
                         {
-                            palka.LookupParameter($"OLP_ГорАрм_Нижняя зона учащения")
-                                .Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
+                            palka.LookupParameter(rType).Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble());
+
+                            var countArray = r.LookupParameter("Колво.Расч");
+                            if (countArray == null)
+                                continue;
+
+                            if (rType == "ГорАрм_ДопШагСнизу")
+                            {
+                                palka.LookupParameter($"OLP_ГорАрм_Нижняя зона учащения")
+                                    .Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
+                            }
+                            else
+                            {
+                                palka.LookupParameter($"OLP_ГорАрм_Верхняя зона учащения")
+                                    .Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
+                            }
                         }
-                        else
+
+                        if (!rType.Contains("ГорАрм"))
+                            rType = rType.Split('_')[0];
+
+                        foreach (var kvp in palkaTypeDic.Skip(1))
                         {
-                            palka.LookupParameter($"OLP_ГорАрм_Верхняя зона учащения")
-                                .Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
+                            var palkaParam = palka.Parameters.Cast<Parameter>()
+                                .FirstOrDefault(p => p.Definition.Name == $"{rType}{kvp.Key}" || p.Definition.Name == $"OLP_{rType}{kvp.Key}");
+                            if (palkaParam == null)
+                                continue;
+
+                            palkaParam.SetValue(r.get_Parameter(kvp.Value).GetValue());
                         }
                     }
 
-                    rType = rType.Split('_')[0];
+                    doc.Regenerate();
 
-                    foreach (var kvp in palkaTypeDic.Skip(1))
+                    foreach (var r in rebars.GroupBy(r => r.get_Parameter(_typeGuid).AsString().Split('_')[0]).Select(g => g.First()))
                     {
+                        var rType = r.get_Parameter(_typeGuid).AsString().Split('_')[0];
+
                         var palkaParam = palka.Parameters.Cast<Parameter>()
-                            .FirstOrDefault(p => p.Definition.Name == $"{rType}{kvp.Key}" || p.Definition.Name == $"OLP_{rType}{kvp.Key}");
+                            .FirstOrDefault(p => p.Definition.Name == $"{rType}_Количество");
                         if (palkaParam == null)
                             continue;
 
-                        palkaParam.SetValue(r.get_Parameter(kvp.Value).GetValue());
+                        if (!countDict.ContainsKey(rType))
+                            countDict[rType] = 0;
+
+                        if (rType == "ГорАрм" && r.get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
+                            countDict[rType] = palkaParam.AsDouble();
+                        else
+                            countDict[rType] += palkaParam.AsDouble();
                     }
                 }
-
-                doc.Regenerate();
 
                 rebars = doc.ToElements(BuiltInCategory.OST_DetailComponents, idParamFilter);
                 foreach (var r in rebars)
@@ -124,24 +147,22 @@ namespace BIMPlugins.Tests
                     else
                         rType = rType.Split('_')[0];
 
-                    var palkaParam = palka.Parameters.Cast<Parameter>()
-                        .FirstOrDefault(p => p.Definition.Name == $"{rType}_Количество");
-                    if (palkaParam == null)
+                    if (!countDict.ContainsKey(rType))
                         continue;
 
                     var targetParam = r.get_Parameter(palkaTypeDic["_Количество"]);
                     if (targetParam == null || targetParam.IsReadOnly)
                     {
                         if (r.LookupParameter("Количество_Вручную") != null)
-                            r.LookupParameter("Количество_Вручную").Set(palkaParam.AsDouble());
+                            r.LookupParameter("Количество_Вручную").Set(countDict[rType]);
                         else
                         {
                             r.LookupParameter("Задать количество").Set(1);
-                            r.LookupParameter("Количество").Set(palkaParam.AsDouble());
+                            r.LookupParameter("Количество").Set(countDict[rType]);
                         }
                     }
                     else if (!targetParam.IsReadOnly)
-                        targetParam.Set(palkaParam.AsDouble());
+                        targetParam.Set(countDict[rType]);
 
                     foreach (var guid in palkaParamGuids)
                     {
