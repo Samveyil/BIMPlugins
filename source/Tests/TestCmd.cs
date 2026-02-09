@@ -6,6 +6,7 @@ using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Methods;
+using BIMPlugins.Test2dRebar;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -90,17 +91,22 @@ namespace BIMPlugins.Tests
                 t.Commit();
             }
 
-            var classFilter = new ElementClassFilter(typeof(FamilyInstance));
-            var bicFilter = new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents);
-
             var typeParameter = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa"));
-            var useScheduleParameter = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("b220b6e8-254f-479f-95b8-62fc7123b098"));
+            var idParameter = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d"));
 
-            RegisterUpdater(new ViewUpdater(), doc, new LogicalAndFilter(new List<ElementFilter> { classFilter, bicFilter }), [Element.GetChangeTypeElementAddition()]);
+            UnRegisterUpdaters(new RebarWallUpdater(), doc);
+            UnRegisterUpdaters(new ViewUpdater(), doc);  
+            
+            RegisterUpdater(
+                new ViewUpdater(),
+                doc,
+                new LogicalOrFilter([new ElementClassFilter(typeof(ViewPlan)), new ElementClassFilter(typeof(ViewSection))]),
+                [Element.GetChangeTypeParameter(idParameter.Id)]
+            );
             RegisterUpdater(
                 new RebarWallUpdater(),
                 doc,
-                new LogicalAndFilter(new List<ElementFilter> { classFilter, bicFilter }),
+                new LogicalAndFilter([new ElementClassFilter(typeof(FamilyInstance)), new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents)]),
                 [
                     Element.GetChangeTypeParameter(typeParameter.Id),
                     Element.GetChangeTypeElementAddition(),
@@ -108,8 +114,6 @@ namespace BIMPlugins.Tests
                     Element.GetChangeTypeAny()
                 ]
             );
-
-            //UnRegisterUpdaters(new RebarWallUpdater(), doc);
 
             return Result.Succeeded;
         }

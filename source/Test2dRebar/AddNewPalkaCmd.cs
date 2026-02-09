@@ -6,7 +6,7 @@ using BIMPlugins.ExtStorage.Extensions;
 using System;
 using System.Linq;
 
-namespace BIMPlugins.Tests
+namespace BIMPlugins.Test2dRebar
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]

@@ -5,30 +5,25 @@ using BIMPlugins.ExtStorage.Extensions;
 using System;
 using System.Linq;
 
-namespace BIMPlugins.Tests
+namespace BIMPlugins.Test2dRebar
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
     public class ViewUpdater : IUpdater
     {
+        private Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
+
         public void Execute(UpdaterData data)
         {
             var doc = data.GetDocument();
 
-            foreach (var rebarId in data.GetAddedElementIds())
+            foreach (var viewId in data.GetModifiedElementIds())
             {
-                var rebar = rebarId.ToElement<FamilyInstance>(doc);
+                var view = viewId.ToElement<View>(doc);
                 
-                var ownerViewId = rebar.OwnerViewId;
-                if (ownerViewId == ElementId.InvalidElementId)
-                    continue;
-
-                var view = ownerViewId.ToElement<View>(doc);
-                var idParamValue = view.get_Parameter(new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d")).AsString();
-                if (!idParamValue.IsNullOrEmpty() && int.TryParse(idParamValue, out int id) && new ElementId(id).ToElement<FamilyInstance>() != null)
-                {
-                    rebar.get_Parameter(new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d")).Set(idParamValue);
-                }
+                var idParam = view.get_Parameter(_idGuid).AsString();
+                foreach (var r in doc.ToElements<FamilyInstance>(view.Id, BuiltInCategory.OST_DetailComponents))
+                    r.get_Parameter(_idGuid).Set(idParam);
             }
         }
 
@@ -46,33 +41,60 @@ namespace BIMPlugins.Tests
         private Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
         private Guid _pointLengthGuid = new Guid("b10d2260-5080-470d-be69-e136df3b45f6");           // OLP_Арм_Аdef
 
-        private static bool _isExecuting = false;
-
         public void Execute(UpdaterData data)
         {
             var doc = data.GetDocument();
 
-            var shParams = doc.ToElements<SharedParameterElement>();
+            var shParams = doc.ToElements<SharedParameterElement>().ToList();
 
             var idParamId = shParams.FirstOrDefault(p => p.GuidValue == _idGuid).Id;
             var typeParamId = shParams.FirstOrDefault(p => p.GuidValue == _typeGuid).Id;
             var useScheduleParamId = shParams.FirstOrDefault(p => p.GuidValue == _useScheduleGuid).Id;
 
             foreach (var rebarId in data.GetAddedElementIds())
-                SetScheduleParameter(doc, rebarId.ToElement<FamilyInstance>(doc), idParamId, typeParamId);
+            {
+                var rebar = rebarId.ToElement<FamilyInstance>(doc);
+
+                var ownerViewId = rebar.OwnerViewId;
+                if (ownerViewId == ElementId.InvalidElementId)
+                    continue;
+
+                var view = ownerViewId.ToElement<View>(doc);
+                var idParamValue = view.get_Parameter(_idGuid).AsString();
+                if (!idParamValue.IsNullOrEmpty() && int.TryParse(idParamValue, out int id) && new ElementId(id).ToElement<FamilyInstance>() != null)
+                {
+                    rebar.get_Parameter(_idGuid).Set(idParamValue);
+                }
+
+                SetScheduleParameter(doc, rebar, idParamId, typeParamId);
+            }   
 
             if (data.GetDeletedElementIds().Count != 0)
             {
                 var rebars = doc.ToElements<FamilyInstance>(doc.ActiveView.Id, BuiltInCategory.OST_DetailComponents);
                 foreach (var rebar in rebars)
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
-            }
 
-            //if (_isExecuting)
-            //{
-            //    _isExecuting = false;
-            //    return;
-            //}
+                var groupedRebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
+                    .Where(r => !r.get_Parameter(_idGuid).AsString().IsNullOrEmpty())
+                    .GroupBy(r => r.get_Parameter(_idGuid).AsString())
+                    .Select(g => g.First());
+
+                foreach (var rebar in groupedRebars)
+                {
+                    var param = rebar.get_Parameter(_idGuid);
+
+                    var value = param.AsString().Split(';');
+                    var result = string.Join(";",
+                        value.Where(id =>
+                            new ElementId(int.Parse(id)).ToElement(doc) != null
+                        )
+                    );
+
+                    foreach (var view in doc.ToElements<View>(idParamId.CreateEqualsFilter(param.AsString())))
+                        view.get_Parameter(_idGuid).Set(result);
+                }
+            }
 
             foreach (var rebarId in data.GetModifiedElementIds())
             {
@@ -98,7 +120,7 @@ namespace BIMPlugins.Tests
                 else
                     andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter]);
 
-                var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter);
+                var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter).ToList();
 
                 if (data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(typeParamId)))
                 {
@@ -109,7 +131,7 @@ namespace BIMPlugins.Tests
                     var sourceParams = sourceRebar
                         .GetOrderedParameters()
                         .Where(p => p.HasValue && (
-                            (p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid }.Contains(p.GUID)) ||
+                            p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid }.Contains(p.GUID) ||
                             p.Definition.ParameterGroup == BuiltInParameterGroup.PG_STRUCTURAL ||
                             p.Definition.ParameterGroup == BuiltInParameterGroup.PG_GEOMETRY
                         ));
@@ -145,8 +167,8 @@ namespace BIMPlugins.Tests
                     var sourceParameters = rebar
                         .GetOrderedParameters()
                         .Where(p => p.HasValue && (
-                            (p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid, _pointLengthGuid }.Contains(p.GUID)) ||
-                            (!p.IsShared && new[] { BuiltInParameterGroup.PG_GEOMETRY, BuiltInParameterGroup.PG_STRUCTURAL }.Contains(p.Definition.ParameterGroup))
+                            p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid, _pointLengthGuid }.Contains(p.GUID) ||
+                            !p.IsShared && new[] { BuiltInParameterGroup.PG_GEOMETRY, BuiltInParameterGroup.PG_STRUCTURAL }.Contains(p.Definition.ParameterGroup)
                         ));
 
                     foreach (var r in rebars)
