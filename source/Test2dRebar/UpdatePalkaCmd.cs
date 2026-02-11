@@ -70,6 +70,9 @@ namespace BIMPlugins.Test2dRebar
                     foreach (var visibleParam in palka.Parameters.Cast<Parameter>().Where(p => p.Definition.Name.EndsWith(".Вкл") && !p.IsReadOnly))
                         visibleParam.Set(0);
 
+                    foreach (var diamParam in palka.Parameters.Cast<Parameter>().Where(p => p.Definition.Name.EndsWith("_Диаметр") && !p.IsReadOnly))
+                        diamParam.Set(0);
+
                     doc.Regenerate();
 
                     palka.LookupParameter("ГорАрм_ДопШагСверху.Вкл").Set(hasTopRebar ? 1 : 0);
@@ -103,13 +106,13 @@ namespace BIMPlugins.Test2dRebar
                             }
                         }
 
-                        if (!rType.Contains("ГорАрм"))
+                        if (!rType.Contains("ГорАрм") && (!rType.Contains("ВертАрм") || rType.Contains("ВертАрмТорца")))
                             rType = rType.Split('_')[0];
 
                         foreach (var kvp in palkaTypeDic.Skip(1))
                         {
                             var palkaParam = palka.Parameters.Cast<Parameter>()
-                                .FirstOrDefault(p => p.Definition.Name == $"{rType}{kvp.Key}" || p.Definition.Name == $"OLP_{rType}{kvp.Key}");
+                                .FirstOrDefault(p => p.Definition.Name == $"{rType}{kvp.Key}");
                             if (palkaParam == null)
                                 continue;
 
@@ -119,9 +122,9 @@ namespace BIMPlugins.Test2dRebar
 
                     doc.Regenerate();
 
-                    foreach (var r in rebars.GroupBy(r => r.get_Parameter(_typeGuid).AsString().Split('_')[0]).Select(g => g.First()))
+                    foreach (var group in rebars.GroupBy(r => r.get_Parameter(_typeGuid).AsString().Split('_')[0]))
                     {
-                        var rType = r.get_Parameter(_typeGuid).AsString().Split('_')[0];
+                        var rType = group.Key;
 
                         var palkaParam = palka.Parameters.Cast<Parameter>()
                             .FirstOrDefault(p => p.Definition.Name == $"{rType}_Количество");
@@ -131,11 +134,16 @@ namespace BIMPlugins.Test2dRebar
                         if (!countDict.ContainsKey(rType))
                             countDict[rType] = 0;
 
-                        if (rType == "ГорАрм" && r.get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
+                        if (rType == "ГорАрм" && group.First().get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
                             countDict[rType] = palkaParam.AsDouble();
                         else
                             countDict[rType] += palkaParam.AsDouble();
                     }
+                }
+
+                if (rebars.FirstOrDefault(r => r.get_Parameter(_typeGuid).AsString() == "ВертАрм_2ряд") != null)
+                {
+                    countDict["ВертАрм"] = (countDict["ВертАрм"] / 2).Round(0);
                 }
 
                 rebars = doc.ToElements(BuiltInCategory.OST_DetailComponents, idParamFilter);

@@ -101,7 +101,7 @@ namespace BIMPlugins.Tests
                 new ViewUpdater(),
                 doc,
                 new LogicalOrFilter([new ElementClassFilter(typeof(ViewPlan)), new ElementClassFilter(typeof(ViewSection))]),
-                [Element.GetChangeTypeParameter(idParameter.Id)]
+                [Element.GetChangeTypeParameter(idParameter.Id), Element.GetChangeTypeElementAddition()]
             );
             RegisterUpdater(
                 new RebarWallUpdater(),
