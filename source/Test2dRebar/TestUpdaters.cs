@@ -118,7 +118,7 @@ namespace BIMPlugins.Test2dRebar
                 var splitTypeParam = typeParam.Split('_')[0];
 
                 var idParamFilter = idParamId.CreateEqualsFilter(idParam);
-                var typeParamFilter = splitTypeParam == "ВертАрм" ? typeParamId.CreateEqualsFilter(typeParam) : typeParamId.CreateContainsFilter(splitTypeParam);
+                var typeParamFilter = splitTypeParam.Contains("ВертАрм") ? typeParamId.CreateEqualsFilter(typeParam) : typeParamId.CreateContainsFilter(splitTypeParam);
                 var andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter]);
                 
                 var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter).ToList();
@@ -159,7 +159,7 @@ namespace BIMPlugins.Test2dRebar
                         if (sourceRebar == null)
                             return;
                     }
-                    else if (splitTypeParam == "ВертАрм")
+                    else if (splitTypeParam.Contains("ВертАрм"))
                     {
                         typeParamFilter = typeParamId.CreateEqualsFilter(splitTypeParam);
 
@@ -211,6 +211,13 @@ namespace BIMPlugins.Test2dRebar
                         foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter, typeParamNotContainsFilter])))
                             r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
                     }
+                    else if (splitTypeParam == "ВертАрмТорца")
+                    {
+                        typeParamFilter = typeParamId.CreateContainsFilter(splitTypeParam);
+
+                        foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter])))
+                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
+                    }
                     else
                         foreach (var r in rebars)
                             r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
@@ -224,17 +231,42 @@ namespace BIMPlugins.Test2dRebar
         private void SetLengthToPointRebars(Document doc, FamilyInstance rebar, ElementId idParamId, ElementId typeParamId)
         {
             var idParam = rebar.get_Parameter(_idGuid).AsString();
-            var typeParam = rebar.get_Parameter(_typeGuid).AsString().Split('_')[0];
+            var typeParam = rebar.get_Parameter(_typeGuid).AsString();
+
+            var splitTypeParam = typeParam.Split('_')[0];
 
             var idParamFilter = idParamId.CreateEqualsFilter(idParam);
-            var typeParamFilter = typeParam.Contains("ВертАрм")
+            var typeParamFilter = splitTypeParam.Contains("ВертАрм")
                 ? typeParamId.CreateContainsFilter("ВертАрм")
-                : typeParamId.CreateContainsFilter(typeParam);
-            
-            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]));
-            var pointRebars = rebars.Where(r => r.Symbol.FamilyName.Contains("Точка"));
+                : typeParamId.CreateContainsFilter(splitTypeParam);
 
-            if (typeParam.Contains("ГорАрм") && rebar.get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
+            var row2Filter = typeParam.Contains("Доп")
+                ? typeParamId.CreateContainsFilter("Доп")
+                : typeParamId.CreateNotContainsFilter("Доп");
+
+            var rebarFormParam = rebar.Symbol.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"));
+            rebarFormParam ??= rebar.GetSubComponentIds()
+                .FirstOrDefault()?
+                .ToElement<FamilyInstance>()
+                .Symbol.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"));
+
+            if (rebarFormParam == null)
+                return;
+
+            var rebarForm = rebarFormParam.AsInteger();
+
+            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter, row2Filter]));
+            var pointRebars = rebars.Where(r =>
+            {
+                var rebarFormParam = r.Symbol.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"));
+                rebarFormParam ??= r.GetSubComponentIds().FirstOrDefault()?.ToElement<FamilyInstance>().Symbol.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"));
+                if (rebarFormParam == null)
+                    return false;
+
+                return r.Symbol.FamilyName.Contains("Точка") && rebarFormParam.AsInteger() == rebarForm;
+            });
+
+            if (splitTypeParam.Contains("ГорАрм") && rebar.get_Parameter(new Guid("844a01e2-19fc-4dc5-baa0-a4bda30ef1f6")).AsInteger() == 1)
             {
                 double length = 0;
                 foreach (var id in idParam.Split(';'))
@@ -256,7 +288,8 @@ namespace BIMPlugins.Test2dRebar
             }
             else
             {
-                var lengthRebar = rebars.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Стержень"));
+                var lengthRebar = rebars.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Стержень") && r.Symbol.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d")) != null &&
+                                                             r.Symbol.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d")).AsInteger() == rebarForm);
                 if (lengthRebar != null)
                 {
                     var lengthParam = lengthRebar.get_Parameter(_pointLengthGuid);
@@ -284,7 +317,7 @@ namespace BIMPlugins.Test2dRebar
             var splitTypeParam = typeParam.Split('_')[0];
             
             var idParamFilter = idParamId.CreateEqualsFilter(idParam);
-            var typeParamFilter = splitTypeParam == "ВертАрм" ? typeParamId.CreateEqualsFilter(typeParam) : typeParamId.CreateContainsFilter(splitTypeParam);
+            var typeParamFilter = splitTypeParam.Contains("ВертАрм") ? typeParamId.CreateEqualsFilter(typeParam) : typeParamId.CreateContainsFilter(splitTypeParam);
             var andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter]);
 
             var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter);

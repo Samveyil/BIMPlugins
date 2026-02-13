@@ -141,6 +141,33 @@ namespace BIMPlugins.Test2dRebar
                     }
                 }
 
+                var dopRebars = rebars
+                    .Where(r => r.get_Parameter(_typeGuid).AsString().Contains("ВертАрм_Доп"))
+                    .ToList();
+
+                if (dopRebars.Count != 0)
+                {
+                    if (!countDict.ContainsKey("ВертАрм_Доп"))
+                        countDict["ВертАрм_Доп"] = 0;
+
+                    if (dopRebars.FirstOrDefault(r => r.get_Parameter(_typeGuid).AsString() == "ВертАрм_Доп_2ряд") != null)
+                    {
+                        countDict["ВертАрм_Доп"] += (countDict["ВертАрм"] / 2).Round(0);
+                    }
+                    else if (doc.ToElements(BuiltInCategory.OST_DetailComponents, idParamFilter)
+                                .Where(r => !r.get_Parameter(_typeGuid).AsString().IsNullOrEmpty() && r.get_Parameter(_typeGuid).AsString().Contains("ВертАрм_Доп"))
+                                .GroupBy(r => r.OwnerViewId).FirstOrDefault(g => g.Count() == 1) != null)
+                    {
+                        countDict["ВертАрм_Доп"] += (countDict["ВертАрм"] / 2).Round(0);
+                    }
+                    else
+                    {
+                        var palkaParam = palka.LookupParameter("ВертАрм_Доп_2ряд_Диаметр").Set(palka.LookupParameter("ВертАрм_Доп_Диаметр").AsDouble());
+                        
+                        countDict["ВертАрм_Доп"] += countDict["ВертАрм"];
+                    }
+                }
+
                 if (rebars.FirstOrDefault(r => r.get_Parameter(_typeGuid).AsString() == "ВертАрм_2ряд") != null)
                 {
                     countDict["ВертАрм"] = (countDict["ВертАрм"] / 2).Round(0);
@@ -152,11 +179,14 @@ namespace BIMPlugins.Test2dRebar
                     var rType = r.get_Parameter(_typeGuid).AsString();
                     if (rType.IsNullOrEmpty())
                         continue;
+
+                    if (rType.Contains("ВертАрм_Доп"))
+                        rType = "ВертАрм_Доп";
                     else
                         rType = rType.Split('_')[0];
 
                     if (!countDict.ContainsKey(rType))
-                        continue;
+                                continue;
 
                     var targetParam = r.get_Parameter(palkaTypeDic["_Количество"]);
                     if (targetParam == null || targetParam.IsReadOnly)
