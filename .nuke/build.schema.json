@@ -105,18 +105,7 @@
           "type": "array",
           "description": "Build configurations to run sequentially",
           "items": {
-            "type": "string",
-            "enum": [
-              "R2019",
-              "R2020",
-              "R2021",
-              "R2022",
-              "R2023",
-              "R2024",
-              "R2025",
-              "R2026",
-              "Release"
-            ]
+            "type": "string"
           }
         },
         "ProjectName": {

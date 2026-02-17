@@ -147,7 +147,7 @@ namespace BIMPlugins.Docs
 
                 if (!dirName.EndsWith(".rvt"))
                 {
-                    foreach (string filePath in Directory.GetFiles(dirPath))
+                    foreach (string filePath in Directory.GetFiles(dirPath).Where(f => f.EndsWith(".rvt")))
                     {
                         XElement fileElement = new XElement("file", new XAttribute("name", Path.GetFileName(filePath)));
                         dirElement.Add(fileElement);
