@@ -3,6 +3,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Test2dRebar.Classes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,9 +14,8 @@ namespace BIMPlugins.Test2dRebar
     [Regeneration(RegenerationOption.Manual)]
     public class UpdatePalkaCmd : IExternalCommand
     {
-        private Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
-        private Guid _typeGuid = new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa");                  // OLP_Зона расположения
-        private Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
+        private Guid _idGuid = RebarMethods.IdGuid;
+        private Guid _typeGuid = RebarMethods.TypeGuid;
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -47,7 +47,7 @@ namespace BIMPlugins.Test2dRebar
 
             var idParamFilter = idParamId.CreateEqualsFilter(ids);
 
-            var rebars = doc.ToElements(BuiltInCategory.OST_DetailComponents, idParamFilter)
+            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, idParamFilter)
                 .Where(r => !r.get_Parameter(_typeGuid).AsString().IsNullOrEmpty())
                 .ToList();
 
@@ -61,7 +61,7 @@ namespace BIMPlugins.Test2dRebar
 
             var countDict = new Dictionary<string, double>();
 
-            Element palka = null;
+            FamilyInstance palka = null;
             using (Transaction t = new Transaction(doc, "test"))
             {
                 t.Start();
@@ -91,14 +91,23 @@ namespace BIMPlugins.Test2dRebar
 
                     foreach (var sectionGroup in sectionGroups)
                     {
-                        var visParam = palka.LookupParameter($"{sectionGroup.Key.Type}_{sectionGroup.Key.ViewName}.Вкл");
-                        if (visParam != null)
-                            visParam.Set(1);
+                        if (palka.Symbol.FamilyName.Contains("Пилон"))
+                        {
+                            palka.LookupParameter("ВертАрмТорца_Начало.Вкл").Set(1);
+                            palka.LookupParameter("ВертАрмТорца_Конец.Вкл").Set(1);
+                            break;
+                        }
+                        else
+                        {
+                            var visParam = palka.LookupParameter($"{sectionGroup.Key.Type}_{sectionGroup.Key.ViewName}.Вкл");
+                            if (visParam != null)
+                                visParam.Set(1);
+                        }  
                     }
 
-                    foreach (var r in typeRebars)
+                    foreach (var typeRebar in typeRebars)
                     {
-                        var rType = r.get_Parameter(_typeGuid).AsString();
+                        var rType = typeRebar.get_Parameter(_typeGuid).AsString();
 
                         var visParam = palka.LookupParameter($"{rType}.Вкл");
                         if (visParam != null)
@@ -106,26 +115,32 @@ namespace BIMPlugins.Test2dRebar
 
                         if (rType == "ГорАрм_ДопШагСнизу" || rType == "ГорАрм_ДопШагСверху")
                         {
-                            palka.LookupParameter(rType).Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble());
+                            palka.LookupParameter(rType).Set(typeRebar.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble());
 
-                            var countArray = r.LookupParameter("Колво.Расч");
+                            var countArray = typeRebar.LookupParameter("Колво.Расч");
                             if (countArray == null)
                                 continue;
 
                             if (rType == "ГорАрм_ДопШагСнизу")
                             {
                                 palka.LookupParameter($"OLP_ГорАрм_Нижняя зона учащения")
-                                    .Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
+                                    .Set(typeRebar.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
                             }
                             else
                             {
                                 palka.LookupParameter($"OLP_ГорАрм_Верхняя зона учащения")
-                                    .Set(r.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
+                                    .Set(typeRebar.get_Parameter(palkaTypeDic["_Шаг"]).AsDouble() * countArray.AsInteger());
                             }
                         }
 
                         if (!rType.Contains("ГорАрм") && (!rType.Contains("ВертАрм") || rType.Contains("ВертАрмТорца")))
                             rType = rType.Split('_')[0];
+
+                        if (palka.Symbol.FamilyName.Contains("Пилон") && rType == "ГорАрм")
+                        {
+                            if (typeRebar.GetSymbolParameter(RebarMethods.PrefixGuid).AsString() == "Х")
+                                palka.LookupParameter("Хомут.Вкл").Set(1);
+                        }
 
                         foreach (var kvp in palkaTypeDic.Skip(1))
                         {
@@ -134,7 +149,7 @@ namespace BIMPlugins.Test2dRebar
                             if (palkaParam == null)
                                 continue;
 
-                            palkaParam.SetValue(r.get_Parameter(kvp.Value).GetValue());
+                            palkaParam.SetValue(typeRebar.get_Parameter(kvp.Value).GetValue());
                         }
                     }
 
@@ -249,7 +264,7 @@ namespace BIMPlugins.Test2dRebar
                         }
                     }
 
-                    var useScheduleParam = r.get_Parameter(_useScheduleGuid) ?? r.LookupParameter("Учет в спецификации");
+                    var useScheduleParam = r.get_Parameter(RebarMethods.UseScheduleGuid) ?? r.LookupParameter("Учет в спецификации");
 
                     if (!useScheduleParam.IsReadOnly)
                         useScheduleParam.Set(0);

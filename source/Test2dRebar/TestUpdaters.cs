@@ -3,6 +3,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Test2dRebar.Classes;
 using System;
 using System.Linq;
 
@@ -12,7 +13,7 @@ namespace BIMPlugins.Test2dRebar
     [Regeneration(RegenerationOption.Manual)]
     public class ViewUpdater : IUpdater
     {
-        private Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
+        private Guid _idGuid = RebarMethods.IdGuid;
 
         public void Execute(UpdaterData data)
         {
@@ -45,12 +46,12 @@ namespace BIMPlugins.Test2dRebar
 
     public class RebarWallUpdater : IUpdater
     {
-        private Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
-        private Guid _typeGuid = new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa");                  // OLP_Зона расположения
-        private Guid _stepGuid = new Guid("5d7cb726-ac59-4f05-a902-8fdffa796d15");                  // ADSK_Шаг элементов
-        private Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
-        private Guid _pointLengthGuid = new Guid("b10d2260-5080-470d-be69-e136df3b45f6");           // OLP_Арм_Аdef
-        private Guid _formGuid = new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d");                  // OLP_Арм_Форма
+        private Guid _idGuid = RebarMethods.IdGuid;
+        private Guid _typeGuid = RebarMethods.TypeGuid;
+        private Guid _stepGuid = RebarMethods.StepGuid;
+        private Guid _useScheduleGuid = RebarMethods.UseScheduleGuid;
+        private Guid _dimenAGuid = RebarMethods.DimenAGuid;
+        private Guid _formGuid = RebarMethods.FormGuid;
 
         public void Execute(UpdaterData data)
         {
@@ -131,14 +132,14 @@ namespace BIMPlugins.Test2dRebar
                     if (sourceRebar == null)
                         return;
 
-                    var rebarFormParam = GetFormParameter(rebar);
+                    var rebarFormParam = rebar.GetSymbolParameter(_formGuid);
                     if (rebarFormParam == null)
                     {
                         rebar.get_Parameter(_typeGuid).Set(string.Empty);
                         return;
                     }
 
-                    if (rebarFormParam.AsInteger() != GetFormParameter(sourceRebar).AsInteger())
+                    if (rebarFormParam.AsInteger() != sourceRebar.GetSymbolParameter(_formGuid).AsInteger())
                     {
                         TaskDialog.Show("Ошибка", "Элементы содержат разную форму стержней!");
                         rebar.get_Parameter(_typeGuid).Set(string.Empty);
@@ -193,7 +194,7 @@ namespace BIMPlugins.Test2dRebar
                     var sourceParameters = rebar
                         .GetOrderedParameters()
                         .Where(p => p.HasValue && (
-                            p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid, _pointLengthGuid }.Contains(p.GUID) ||
+                            p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid, _dimenAGuid }.Contains(p.GUID) ||
                             !p.IsShared && new[] { BuiltInParameterGroup.PG_GEOMETRY, BuiltInParameterGroup.PG_STRUCTURAL }.Contains(p.Definition.ParameterGroup)
                         ));
 
@@ -260,22 +261,9 @@ namespace BIMPlugins.Test2dRebar
                 ? typeParamId.CreateContainsFilter("Доп")
                 : typeParamId.CreateNotContainsFilter("Доп");
 
-            var rebarFormParam = rebar.Symbol.get_Parameter(_formGuid);
-            rebarFormParam ??= rebar.GetSubComponentIds()
-                .FirstOrDefault()
-                .ToElement<FamilyInstance>()
-                .Symbol.get_Parameter(_formGuid);
-
-            var rebarForm = rebarFormParam.AsInteger();
-
+            var rebarFormParam = rebar.GetSymbolParameter(_formGuid);
             var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter, row2Filter]))
-                .Where(r =>
-                {
-                    var rebarFormParam = r.Symbol.get_Parameter(_formGuid);
-                    rebarFormParam ??= r.GetSubComponentIds().FirstOrDefault().ToElement<FamilyInstance>().Symbol.get_Parameter(_formGuid);
-
-                    return rebarFormParam.AsInteger() == rebarForm;
-                })
+                .Where(r => r.GetSymbolParameter(_formGuid).AsInteger() == rebarFormParam.AsInteger())
                 .ToList();
             
             var pointRebars = rebars.Where(r => r.Symbol.FamilyName.Contains("Точка")).ToList();
@@ -294,10 +282,28 @@ namespace BIMPlugins.Test2dRebar
 
                 foreach (var pointRebar in pointRebars)
                 {
-                    var lengthParam = pointRebar.get_Parameter(_pointLengthGuid);
+                    var lengthParam = pointRebar.get_Parameter(_dimenAGuid);
 
                     if (lengthParam != null && !lengthParam.IsReadOnly && lengthParam.AsDouble().Round() != length.Round())
                         lengthParam.Set(length);
+                }
+            }
+            else if (splitTypeParam.Contains("ГорАрм") && rebarFormParam.AsInteger() != 1)
+            {
+                var arrayRebar = rebars.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Массив"));
+                if (arrayRebar != null)
+                {
+                    var lengthParam = arrayRebar.get_Parameter(_dimenAGuid);
+
+                    if (lengthParam != null)
+                    {
+                        foreach (var r in rebars)
+                        {
+                            var targetParam = r.get_Parameter(lengthParam.GUID);
+                            if (targetParam != null && !targetParam.IsReadOnly && targetParam.AsDouble().Round() != lengthParam.AsDouble().Round())
+                                targetParam.Set(lengthParam.AsDouble());
+                        }
+                    }
                 }
             }
             else
@@ -305,7 +311,7 @@ namespace BIMPlugins.Test2dRebar
                 var lengthRebar = rebars.FirstOrDefault(r => r.Symbol.FamilyName.Contains("Стержень"));
                 if (lengthRebar != null)
                 {
-                    var lengthParam = lengthRebar.get_Parameter(_pointLengthGuid);
+                    var lengthParam = lengthRebar.get_Parameter(_dimenAGuid);
 
                     if (lengthParam != null)
                     {
@@ -392,18 +398,6 @@ namespace BIMPlugins.Test2dRebar
                 }
             }
         }
-
-        private Parameter GetFormParameter(FamilyInstance rebar)
-        {
-            var sourceFormParam = rebar.Symbol.get_Parameter(_formGuid);
-            sourceFormParam ??= rebar.GetSubComponentIds()
-                .FirstOrDefault()?
-                .ToElement<FamilyInstance>()
-                .Symbol.get_Parameter(_formGuid);
-
-            return sourceFormParam;
-        }
-
 
         public string GetAdditionalInformation() => "Привязка элементов 2д-армирования стен";
         public ChangePriority GetChangePriority() => ChangePriority.DetailComponents;
