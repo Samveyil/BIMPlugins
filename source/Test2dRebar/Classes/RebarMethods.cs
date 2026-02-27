@@ -25,5 +25,12 @@ namespace BIMPlugins.Test2dRebar.Classes
 
             return sourceFormParam;
         }
+        public static bool IsAboveCenter(this FamilyInstance rebar, XYZ midlPoint, XYZ upDirect)
+        {
+            XYZ relativeVector = rebar.ToLocationCoordinates(ElementExtensions.LocationType.StartPoint) - midlPoint;
+            double projection = relativeVector.DotProduct(upDirect);
+
+            return projection > 0.001;
+        }
     }
 }

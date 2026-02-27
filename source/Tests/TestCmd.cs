@@ -13,7 +13,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
-using System.Windows;
 using System.Xml.Linq;
 
 namespace BIMPlugins.Tests
@@ -68,24 +67,40 @@ namespace BIMPlugins.Tests
                 //}
 
                 //var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
-                //    .Where(r => r.Symbol.FamilyName == "E-SHP-70 - Дуга_x021");
+                //    .Where(r => r.Symbol.FamilyName == "1E-SHP-66 - Дуга_x01");
 
-                //var newSymbol = new ElementId(31820257).ToElement<FamilySymbol>();
+                //var newSymbol = new ElementId(31092768).ToElement<FamilySymbol>();
 
                 //foreach (var rebar in rebars)
                 //{
-                //    var p1 = rebar.LookupParameter("Прямой участок1").AsDouble();
-                //    if (p1 == 0)
-                //        continue;
-
                 //    var p2 = rebar.LookupParameter("Радиус").AsDouble();
-                //    var p3 = rebar.LookupParameter("Угол").AsDouble();
 
                 //    rebar.Symbol = newSymbol;
 
-                //    rebar.LookupParameter("Прямой участок1").Set(p1);
                 //    rebar.LookupParameter("Радиус").Set(p2);
-                //    rebar.LookupParameter("Угол").Set(p3);
+                //}
+
+                //var view = doc.ActiveView;
+
+                //var rightDirect = view.RightDirection.Normalize();
+                //var upDirect = view.UpDirection.Normalize();
+
+                //var wall = new ElementId(26010811).ToElement<Wall>();
+
+                //var midlPoint = (wall.Location as LocationCurve).Curve.Evaluate(0.5, true);
+
+                //var targetPoint = RevitAPI.UIDocument.ToSelectedElements().First().ToLocationCoordinates();
+
+                //XYZ relativeVector = targetPoint - midlPoint;
+                //double projection = relativeVector.DotProduct(upDirect);
+
+                //if (projection > 0.001) // небольшой допуск из-за погрешностей вычислений
+                //{
+                //    TaskDialog.Show("Результат", $"Точка ВЫШЕ на {projection * 304.8:F2} мм");
+                //}
+                //else if (projection < -0.001)
+                //{
+                //    TaskDialog.Show("Результат", $"Точка НИЖЕ на {Math.Abs(projection) * 304.8:F2} мм");
                 //}
 
                 t.Commit();
@@ -95,8 +110,8 @@ namespace BIMPlugins.Tests
             var idParameter = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d"));
 
             UnRegisterUpdaters(new RebarWallUpdater(), doc);
-            UnRegisterUpdaters(new ViewUpdater(), doc);  
-            
+            UnRegisterUpdaters(new ViewUpdater(), doc);
+
             RegisterUpdater(
                 new ViewUpdater(),
                 doc,

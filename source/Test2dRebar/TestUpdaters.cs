@@ -128,7 +128,12 @@ namespace BIMPlugins.Test2dRebar
 
                 if (data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(typeParamId)) || data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM))))
                 {
-                    var sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
+                    FamilyInstance sourceRebar;
+                    if (typeParam == "Шпилька")
+                        sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString() && r.get_Parameter(_typeGuid).AsString() == "Шпилька");
+                    else
+                        sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
+                    
                     if (sourceRebar == null)
                         return;
 
@@ -150,8 +155,8 @@ namespace BIMPlugins.Test2dRebar
                         .GetOrderedParameters()
                         .Where(p => p.HasValue && (
                             p.IsShared && !new[] { _useScheduleGuid, _stepGuid, _typeGuid }.Contains(p.GUID) ||
-                            p.Definition.ParameterGroup == BuiltInParameterGroup.PG_STRUCTURAL ||
-                            p.Definition.ParameterGroup == BuiltInParameterGroup.PG_GEOMETRY
+                            !p.IsShared && new[] { BuiltInParameterGroup.PG_GEOMETRY, BuiltInParameterGroup.PG_STRUCTURAL }.Contains(p.Definition.ParameterGroup) ||
+                            (p.Definition as InternalDefinition).BuiltInParameter == BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS
                         ));
 
                     foreach (var sourceParam in sourceParams)
@@ -241,6 +246,9 @@ namespace BIMPlugins.Test2dRebar
 
                     SetLengthToPointRebars(doc, rebar, idParamId, typeParamId);
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
+
+                    if (splitTypeParam == "Шпилька" || splitTypeParam == "ВертАрмТорца")
+                        SetCommentForMark(doc, rebar, idParamId, typeParamId);
                 }
             }
         }
@@ -374,6 +382,52 @@ namespace BIMPlugins.Test2dRebar
                     p.Set(1);
                 }
             }
+            else if (splitTypeParam == "ВертАрмТорца")
+            {
+                var view = rebar.OwnerViewId.ToElement<View>();
+                var upDict = view.UpDirection.Normalize();
+
+                var wall = doc.ToElements<Wall>(view.Id)
+                    .FirstOrDefault(w => (w.Location as LocationCurve).Curve is Line line && line.Direction.Normalize().IsAlmostEqualTo(upDict));
+
+                var wallMidlPoint = (wall.Location as LocationCurve).Curve.Evaluate(0.5, true);
+
+                var sectionGroups = rebars
+                    .Where(r => r.get_Parameter(_typeGuid).AsString() == typeParam)
+                    .GroupBy(r => r.IsAboveCenter(wallMidlPoint, upDict))
+                    .ToList();
+
+                foreach (var group in sectionGroups)
+                {
+                    elementsWithTrue = group
+                        .Where(element =>
+                        {
+                            var param = element.get_Parameter(_useScheduleGuid) ?? element.LookupParameter("Учет в спецификации");
+                            return param != null && param.AsInteger() == 1;
+                        })
+                        .ToList();
+
+                    if (elementsWithTrue.Count > 1)
+                    {
+                        elementsWithTrue.Remove(elementsWithTrue[0]);
+                        foreach (var element in elementsWithTrue)
+                        {
+                            var param = element.get_Parameter(_useScheduleGuid) ?? element.LookupParameter("Учет в спецификации");
+                            if (!param.IsReadOnly)
+                                param.Set(0);
+                        }
+                    }
+
+                    if (elementsWithTrue.Count == 0)
+                    {
+                        var r = group.FirstOrDefault(r => r.get_Parameter(_useScheduleGuid) != null && !r.get_Parameter(_useScheduleGuid).IsReadOnly)
+                            ?? group.First();
+
+                        var p = r.get_Parameter(_useScheduleGuid) ?? r.LookupParameter("Учет в спецификации");
+                        p.Set(1);
+                    }
+                }
+            }
             else
             {
                 if (elementsWithTrue.Count > 1)
@@ -389,14 +443,33 @@ namespace BIMPlugins.Test2dRebar
 
                 if (elementsWithTrue.Count == 0)
                 {
-                    var r = rebars.FirstOrDefault(r => r.get_Parameter(_useScheduleGuid) != null
-                                                   && !r.get_Parameter(_useScheduleGuid).IsReadOnly)
+                    var r = rebars.FirstOrDefault(r => r.get_Parameter(_useScheduleGuid) != null && !r.get_Parameter(_useScheduleGuid).IsReadOnly)
                         ?? rebars.First();
 
                     var p = r.get_Parameter(_useScheduleGuid) ?? r.LookupParameter("Учет в спецификации");
                     p.Set(1);
                 }
             }
+        }
+        private void SetCommentForMark(Document doc, FamilyInstance rebar, ElementId idParamId, ElementId typeParamId)
+        {
+            var idParam = rebar.get_Parameter(_idGuid).AsString();
+            var typeParam = rebar.get_Parameter(_typeGuid).AsString();
+
+            if (idParam.IsNullOrEmpty() || typeParam.IsNullOrEmpty())
+                return;
+
+            var sourceParam = rebar.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS);
+            if (!sourceParam.HasValue)
+                return;
+
+            var idParamFilter = idParamId.CreateEqualsFilter(idParam);
+            var typeParamFilter = typeParamId.CreateEqualsFilter(typeParam);
+            var andFilter = new LogicalAndFilter([idParamFilter, typeParamFilter]);
+
+            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter);
+            foreach (var r in rebars)
+                r.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(sourceParam.AsString());
         }
 
         public string GetAdditionalInformation() => "Привязка элементов 2д-армирования стен";
