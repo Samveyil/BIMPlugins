@@ -126,7 +126,8 @@ namespace BIMPlugins.Test2dRebar
                 
                 var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, andFilter).ToList();
 
-                if (data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(typeParamId)) || data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM))))
+                if (data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(idParamId)) || data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(typeParamId)) || 
+                    data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM))))
                 {
                     FamilyInstance sourceRebar;
                     if (typeParam == "Шпилька")
@@ -388,7 +389,8 @@ namespace BIMPlugins.Test2dRebar
                 var upDict = view.UpDirection.Normalize();
 
                 var wall = doc.ToElements<Wall>(view.Id)
-                    .FirstOrDefault(w => (w.Location as LocationCurve).Curve is Line line && line.Direction.Normalize().IsAlmostEqualTo(upDict));
+                    .FirstOrDefault(w => (w.Location as LocationCurve).Curve is Line line &&
+                        (line.Direction.Normalize().IsAlmostEqualTo(upDict) || line.Direction.Normalize().IsAlmostEqualTo(upDict.Negate())));
 
                 var wallMidlPoint = (wall.Location as LocationCurve).Curve.Evaluate(0.5, true);
 

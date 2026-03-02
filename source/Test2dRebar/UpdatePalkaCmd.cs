@@ -64,7 +64,8 @@ namespace BIMPlugins.Test2dRebar
                 edgeRebarUpViewDirect = edgeRebarView.UpDirection.Normalize();
 
                 var wall = doc.ToElements<Wall>(edgeRebarView.Id)
-                    .FirstOrDefault(w => (w.Location as LocationCurve).Curve is Line line && line.Direction.Normalize().IsAlmostEqualTo(edgeRebarUpViewDirect));
+                    .FirstOrDefault(w => (w.Location as LocationCurve).Curve is Line line &&
+                        (line.Direction.Normalize().IsAlmostEqualTo(edgeRebarUpViewDirect) || line.Direction.Normalize().IsAlmostEqualTo(edgeRebarUpViewDirect.Negate())));
 
                 var wallMidlPoint = (wall.Location as LocationCurve).Curve.Evaluate(0.5, true);
 

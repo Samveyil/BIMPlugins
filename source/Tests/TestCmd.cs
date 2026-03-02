@@ -123,6 +123,7 @@ namespace BIMPlugins.Tests
                 doc,
                 new LogicalAndFilter([new ElementClassFilter(typeof(FamilyInstance)), new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents)]),
                 [
+                    Element.GetChangeTypeParameter(idParameter.Id),
                     Element.GetChangeTypeParameter(typeParameter.Id),
                     Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM)),
                     Element.GetChangeTypeElementAddition(),
