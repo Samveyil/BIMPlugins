@@ -1,6 +1,8 @@
 ﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Test2dRebar.Classes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -13,6 +15,7 @@ namespace BIMPlugins.Test2dRebar.WPF
     {
         [ObservableProperty] private List<ViewTypeItem> _viewTypes = [];
 
+        private readonly Guid _idGuid = RebarMethods.IdGuid;
         private readonly Element _palka;
         private readonly List<View> _views;
 
@@ -22,13 +25,13 @@ namespace BIMPlugins.Test2dRebar.WPF
             _palka = palka;
 
             var viewItems = new List<ViewItem>();
-            foreach (var view in _views)
+            foreach (var view in _views.OrderBy(v => v.Title))
             {
-                var item = new ViewItem(view) { IsSelected = view.get_Parameter(new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d")).AsString()?.Contains(_palka.Id.ToString()) ?? false };
+                var item = new ViewItem(view) { IsSelected = view.get_Parameter(_idGuid).AsString()?.Contains(_palka.Id.ToString()) ?? false };
                 viewItems.Add(item);
             }
 
-            foreach (var g in viewItems.GroupBy(v => v.ViewType).OrderBy(g => g.Key))
+            foreach (var g in viewItems.GroupBy(v => v.ViewType))
             {
                 var viewType = new ViewTypeItem(g.Key);
                 foreach (var item in g)
@@ -57,7 +60,13 @@ namespace BIMPlugins.Test2dRebar.WPF
 
                 foreach (var view in _views)
                 {
-                    var param = view.get_Parameter(new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d"));
+                    var param = view.get_Parameter(_idGuid);
+                    if (param.IsReadOnly)
+                    {
+                        TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон вида не заблокировал параметр");
+                        return;
+                    }
+
                     if (param.AsString().IsNullOrEmpty())
                         continue;
 
@@ -67,12 +76,20 @@ namespace BIMPlugins.Test2dRebar.WPF
 
                 foreach (var view in selectedViews)
                 {
-                    var param = view.get_Parameter(new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d"));
+                    var param = view.get_Parameter(_idGuid);
+                    if (param.IsReadOnly)
+                    {
+                        TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон не заблокировал параметр");
+                        return;
+                    }
+
                     if (param.AsString().IsNullOrEmpty())
                         param.Set(idPalka);
                     else if (!param.AsString().Contains(idPalka))
                         param.Set(string.Join(";", [param.AsString(), idPalka]));
                 }
+
+                _palka.get_Parameter(_idGuid).Set(string.Join(";", selectedViews.Select(v => v.Id.ToString()).OrderBy(id => id)));
 
                 t.Commit();
             }

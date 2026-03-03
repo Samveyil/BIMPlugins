@@ -130,8 +130,8 @@ namespace BIMPlugins.Test2dRebar
                     data.IsChangeTriggered(rebarId, Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM))))
                 {
                     FamilyInstance sourceRebar;
-                    if (typeParam == "Шпилька")
-                        sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString() && r.get_Parameter(_typeGuid).AsString() == "Шпилька");
+                    if (splitTypeParam == "Шпилька")
+                        sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString() && r.get_Parameter(_typeGuid).AsString() == typeParam);
                     else
                         sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
                     

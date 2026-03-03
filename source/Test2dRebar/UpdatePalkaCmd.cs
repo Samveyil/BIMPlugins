@@ -44,9 +44,28 @@ namespace BIMPlugins.Test2dRebar
 
             var idParamId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == _idGuid).Id;
 
-            var ids = doc.ActiveView.get_Parameter(_idGuid).AsString();
+            View view;
+            var selectedPalka = RevitAPI.UIDocument.ToSelectedElements().FirstOrDefault(e => e is FamilyInstance instance && instance.Symbol.FamilyName.Contains("Палка"));
+            if (selectedPalka != null)
+            {
+                var viewId = selectedPalka.get_Parameter(_idGuid).AsString()?.Split(';')[0];
+                if (viewId.IsNullOrEmpty())
+                {
+                    message = "Не возможно определить вид, относящийся к выбранной палке"!;
+                    return Result.Cancelled;
+                }
+
+                view = new ElementId(int.Parse(viewId)).ToElement<View>();
+            }
+            else
+                view = doc.ActiveView;
+
+            var ids = view.get_Parameter(_idGuid).AsString();
             if (ids.IsNullOrEmpty())
+            {
+                message = "Не возможно определить палки, относящиеся к активному виду"!;
                 return Result.Cancelled;
+            }
 
             var idParamFilter = idParamId.CreateEqualsFilter(ids);
 
@@ -115,8 +134,7 @@ namespace BIMPlugins.Test2dRebar
                             : inverted ? "Конец" : "Начало";
 
                         var visParam = palka.LookupParameter($"{sectionGroup.Key.Type}_{location}.Вкл");
-                        if (visParam != null)
-                            visParam.Set(1);
+                        visParam?.Set(1);
                     }
 
                     foreach (var typeRebar in typeRebars)
@@ -124,8 +142,7 @@ namespace BIMPlugins.Test2dRebar
                         var rType = typeRebar.get_Parameter(_typeGuid).AsString();
 
                         var visParam = palka.LookupParameter($"{rType}.Вкл");
-                        if (visParam != null)
-                            visParam.Set(1);
+                        visParam?.Set(1);
 
                         if (rType == "ГорАрм_ДопШагСнизу" || rType == "ГорАрм_ДопШагСверху")
                         {
