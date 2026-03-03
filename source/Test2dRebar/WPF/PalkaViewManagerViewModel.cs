@@ -54,44 +54,61 @@ namespace BIMPlugins.Test2dRebar.WPF
 
             var idPalka = _palka.Id.ToString();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Присвоить палку к виду"))
+            using (TransactionGroup tGroup = new TransactionGroup(RevitAPI.Document, "Присвоить палку к виду"))
             {
-                t.Start();
+                tGroup.Start();
 
-                foreach (var view in _views)
+                var ids = string.Empty;
+
+                using (Transaction t = new Transaction(RevitAPI.Document, "Присвоить палку к виду"))
                 {
-                    var param = view.get_Parameter(_idGuid);
-                    if (param.IsReadOnly)
+                    t.Start();
+
+                    foreach (var view in _views)
                     {
-                        TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон вида не заблокировал параметр");
-                        return;
+                        var param = view.get_Parameter(_idGuid);
+                        if (param.IsReadOnly)
+                        {
+                            TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон вида не заблокировал параметр");
+                            return;
+                        }
+
+                        if (param.AsString().IsNullOrEmpty())
+                            continue;
+
+                        if (param.AsString().Contains(idPalka))
+                            param.Set(param.AsString().Replace(idPalka, "").Trim(';'));
                     }
 
-                    if (param.AsString().IsNullOrEmpty())
-                        continue;
-
-                    if (param.AsString().Contains(idPalka))
-                        param.Set(param.AsString().Replace(idPalka, "").Trim(';'));
-                }
-
-                foreach (var view in selectedViews)
-                {
-                    var param = view.get_Parameter(_idGuid);
-                    if (param.IsReadOnly)
+                    foreach (var view in selectedViews)
                     {
-                        TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон не заблокировал параметр");
-                        return;
+                        var param = view.get_Parameter(_idGuid);
+                        if (param.IsReadOnly)
+                        {
+                            TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон не заблокировал параметр");
+                            return;
+                        }
+
+                        if (param.AsString().IsNullOrEmpty())
+                            ids = idPalka;
+                        else if (!param.AsString().Contains(idPalka))
+                            ids = string.Join(";", [param.AsString(), idPalka]);
+
+                        param.Set(ids);
                     }
 
-                    if (param.AsString().IsNullOrEmpty())
-                        param.Set(idPalka);
-                    else if (!param.AsString().Contains(idPalka))
-                        param.Set(string.Join(";", [param.AsString(), idPalka]));
+                    _palka.get_Parameter(_idGuid).Set(string.Join(";", selectedViews.Select(v => v.Id.ToString()).OrderBy(id => id)));
+
+                    t.Commit();
                 }
 
-                _palka.get_Parameter(_idGuid).Set(string.Join(";", selectedViews.Select(v => v.Id.ToString()).OrderBy(id => id)));
+                if (!ids.IsNullOrEmpty())
+                {
+                    var idParamId = RevitAPI.Document.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == _idGuid).Id;
+                    RebarMethods.UpdateElements(RevitAPI.Document, idParamId, ids);
+                }
 
-                t.Commit();
+                tGroup.Assimilate();
             }
         }
 
