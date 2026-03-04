@@ -16,6 +16,7 @@ namespace BIMPlugins.Test2dRebar.Classes
         public static Guid DimenAGuid { get; } = new Guid("b10d2260-5080-470d-be69-e136df3b45f6");             // OLP_Арм_Аdef
         public static Guid FormGuid { get; } = new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d");               // OLP_Арм_Форма
         public static Guid PrefixGuid { get; } = new Guid("dce379c0-5e32-4695-b16a-d76ef0100172");             // OLP_Арм_Позиция_Префикс
+        public static Guid RazdelGuid { get; } = new Guid("e1b06433-f527-403c-8986-af9a01e6be7f");             // ADSK_Комплект чертежей
 
         public static Dictionary<string, Guid> PalkaTypeDic { get; } = new Dictionary<string, Guid>()
         {
@@ -25,7 +26,7 @@ namespace BIMPlugins.Test2dRebar.Classes
         };
         public static List<Guid> PalkaParamGuids { get; } = new List<Guid>
         {
-            new Guid("e1b06433-f527-403c-8986-af9a01e6be7f"),                                                   // ADSK_Комплект чертежей
+            RazdelGuid,
             new Guid("92ae0425-031b-40a9-8904-023f7389963b"),                                                   // ADSK_Марка изделия
             /*new Guid("5d369dfb-17a2-4ae2-a1a1-bdfc33ba7405"), */                                              // ADSK_Марка конструкции
             new Guid("b5aee52e-5294-46e8-8086-f76421185a84"),                                                   // OLP_Количество конструкций
@@ -52,8 +53,12 @@ namespace BIMPlugins.Test2dRebar.Classes
             return projection > 0.001;
         }
 
-        public static void UpdateElements(Document doc, ElementId idParamId, string ids)
+        public static void UpdateElements(Document doc, ElementId idParamId, View view)
         {
+            var ids = view.get_Parameter(IdGuid).AsString();
+            if (ids.IsNullOrEmpty())
+                return;
+
             var idParamFilter = idParamId.CreateEqualsFilter(ids);
 
             var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, idParamFilter)

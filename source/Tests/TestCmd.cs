@@ -106,27 +106,58 @@ namespace BIMPlugins.Tests
                 t.Commit();
             }
 
-            var typeParameter = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa"));
-            var idParameter = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d"));
+            var familyParamId = new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM);
 
-            UnRegisterUpdaters(new RebarWallUpdater(), doc);
+            var typeParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa")).Id;
+            var idParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d")).Id;
+
             UnRegisterUpdaters(new ViewUpdater(), doc);
+            UnRegisterUpdaters(new RebarWallUpdater(), doc);
+            UnRegisterUpdaters(new PalkaUpdater(), doc);
 
             RegisterUpdater(
                 new ViewUpdater(),
                 doc,
-                new LogicalOrFilter([new ElementClassFilter(typeof(ViewPlan)), new ElementClassFilter(typeof(ViewSection))]),
-                [Element.GetChangeTypeParameter(idParameter.Id), Element.GetChangeTypeElementAddition()]
+                new ElementMulticlassFilter(
+                [
+                    typeof(ViewPlan),
+                    typeof(ViewSection)
+                ]),
+                [
+                    Element.GetChangeTypeParameter(idParameterId),
+                    Element.GetChangeTypeElementAddition(),
+                    Element.GetChangeTypeElementDeletion()
+                ]
             );
             RegisterUpdater(
                 new RebarWallUpdater(),
                 doc,
-                new LogicalAndFilter([new ElementClassFilter(typeof(FamilyInstance)), new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents)]),
+                new LogicalAndFilter(
                 [
-                    Element.GetChangeTypeParameter(idParameter.Id),
-                    Element.GetChangeTypeParameter(typeParameter.Id),
+                    new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents),
+                    new ElementClassFilter(typeof(FamilyInstance)),
+                    new LogicalOrFilter([familyParamId.CreateBeginsWithFilter("280"), familyParamId.CreateBeginsWithFilter("281")])
+                ]),
+                [
+                    Element.GetChangeTypeParameter(idParameterId),
+                    Element.GetChangeTypeParameter(typeParameterId),
                     Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM)),
                     Element.GetChangeTypeElementAddition(),
+                    Element.GetChangeTypeElementDeletion(),
+                    Element.GetChangeTypeAny()
+                ]
+            );
+            RegisterUpdater(
+                new PalkaUpdater(),
+                doc,
+                new LogicalAndFilter(
+                [
+                    new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents),
+                    new ElementClassFilter(typeof(FamilyInstance)),
+                    familyParamId.CreateBeginsWithFilter("285")
+                ]),
+                [
+                    Element.GetChangeTypeParameter(idParameterId),
                     Element.GetChangeTypeElementDeletion(),
                     Element.GetChangeTypeAny()
                 ]

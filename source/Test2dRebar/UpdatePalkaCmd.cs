@@ -44,7 +44,7 @@ namespace BIMPlugins.Test2dRebar
                 return Result.Cancelled;
             }
 
-            RebarMethods.UpdateElements(doc, idParamId, ids);
+            RebarMethods.UpdateElements(doc, idParamId, view);
 
             return Result.Succeeded;
         }

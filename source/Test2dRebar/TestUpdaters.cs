@@ -36,6 +36,27 @@ namespace BIMPlugins.Test2dRebar
                 if (idParam.HasValue)
                     idParam.Set(string.Empty);
             }
+
+            if (data.GetDeletedElementIds().Count != 0)
+            {
+                var palkas = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
+                    .Where(r => !r.get_Parameter(_idGuid).AsString().IsNullOrEmpty() && r.get_Parameter(BuiltInParameter.ELEM_FAMILY_PARAM).AsValueString().StartsWith("285"));
+
+                foreach (var palka in palkas)
+                {
+                    var param = palka.get_Parameter(_idGuid);
+
+                    var value = param.AsString().Split(';');
+                    var result = string.Join(";",
+                        value.Where(id =>
+                            new ElementId(int.Parse(id)).ToElement(doc) != null
+                        )
+                    );
+
+                    if (result != param.AsString())
+                        param.Set(result);
+                }
+            }
         }
 
         public string GetAdditionalInformation() => "Передача Id палки из вида элементам 2д-армирования";
@@ -74,38 +95,15 @@ namespace BIMPlugins.Test2dRebar
                 var view = ownerViewId.ToElement<View>(doc);
                 var idParamValue = view.get_Parameter(_idGuid).AsString();
                 if (!idParamValue.IsNullOrEmpty())
-                {
                     rebar.get_Parameter(_idGuid).Set(idParamValue);
-                }
 
                 SetScheduleParameter(doc, rebar, idParamId, typeParamId);
             }   
 
             if (data.GetDeletedElementIds().Count != 0)
             {
-                var rebars = doc.ToElements<FamilyInstance>(doc.ActiveView.Id, BuiltInCategory.OST_DetailComponents);
-                foreach (var rebar in rebars)
+                foreach (var rebar in doc.ToElements<FamilyInstance>(doc.ActiveView.Id, BuiltInCategory.OST_DetailComponents))
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
-
-                var groupedRebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
-                    .Where(r => !r.get_Parameter(_idGuid).AsString().IsNullOrEmpty())
-                    .GroupBy(r => r.get_Parameter(_idGuid).AsString())
-                    .Select(g => g.First());
-
-                foreach (var rebar in groupedRebars)
-                {
-                    var param = rebar.get_Parameter(_idGuid);
-
-                    var value = param.AsString().Split(';');
-                    var result = string.Join(";",
-                        value.Where(id =>
-                            new ElementId(int.Parse(id)).ToElement(doc) != null
-                        )
-                    );
-
-                    foreach (var view in doc.ToElements<View>(idParamId.CreateEqualsFilter(param.AsString())))
-                        view.get_Parameter(_idGuid).Set(result);
-                }
             }
 
             foreach (var rebarId in data.GetModifiedElementIds())
@@ -478,5 +476,99 @@ namespace BIMPlugins.Test2dRebar
         public ChangePriority GetChangePriority() => ChangePriority.DetailComponents;
         public UpdaterId GetUpdaterId() => new UpdaterId(RevitAPI.Application.ActiveAddInId, new Guid("F53272A9-D777-4E05-880C-AA514CB2766C"));
         public string GetUpdaterName() => "2dRebarWallUpdater";
+    }
+
+    public class PalkaUpdater : IUpdater
+    {
+        private Guid _idGuid = RebarMethods.IdGuid;
+
+        public void Execute(UpdaterData data)
+        {
+            var doc = data.GetDocument();
+
+            var shParams = doc.ToElements<SharedParameterElement>().ToList();
+
+            var idParamId = shParams.FirstOrDefault(p => p.GuidValue == _idGuid).Id;
+
+            if (data.GetDeletedElementIds().Count != 0)
+            {
+                var groupedViews = doc.ToElements(new ElementMulticlassFilter([typeof(ViewPlan), typeof(ViewSection)]))
+                    .Where(r => !r.get_Parameter(_idGuid).AsString().IsNullOrEmpty())
+                    .GroupBy(r => r.get_Parameter(_idGuid).AsString())
+                    .Select(g => g.First());
+
+                foreach (var view in groupedViews)
+                {
+                    var param = view.get_Parameter(_idGuid);
+
+                    var value = param.AsString().Split(';');
+                    var result = string.Join(";",
+                        value.Where(id =>
+                            new ElementId(int.Parse(id)).ToElement(doc) != null
+                        )
+                    );
+
+                    if (result != param.AsString())
+                        param.Set(result);
+                }
+            }
+
+            foreach (var palkaId in data.GetModifiedElementIds())
+            {
+                var palka = palkaId.ToElement<FamilyInstance>(doc);
+
+                var idParam = palka.get_Parameter(_idGuid).AsString();
+                if (idParam.IsNullOrEmpty())
+                    continue;
+
+                var palkas = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, idParamId.CreateEqualsFilter(idParam)).ToList();
+
+                if (data.IsChangeTriggered(palkaId, Element.GetChangeTypeParameter(idParamId)))
+                {
+                    var sourcePalka = palkas.FirstOrDefault(r => r.Id.ToString() != palkaId.ToString());
+
+                    if (sourcePalka == null)
+                        return;
+
+                    var sourceParams = sourcePalka
+                        .GetOrderedParameters()
+                        .Where(p => p.HasValue);
+
+                    foreach (var sourceParam in sourceParams)
+                    {
+                        var targetParam = sourceParam.IsShared || (sourceParam.Definition as InternalDefinition).BuiltInParameter != BuiltInParameter.INVALID
+                            ? palka.get_Parameter(sourceParam.Definition)
+                            : palka.LookupParameter(sourceParam.Definition.Name);
+
+                        if (targetParam != null && !targetParam.IsReadOnly)
+                            targetParam.SetValue(sourceParam.GetValue());
+                    }
+                }
+                else
+                {
+                    var sourceParameters = palka
+                        .GetOrderedParameters()
+                        .Where(p => p.HasValue);
+
+                    foreach (var r in palkas)
+                    {
+                        foreach (var sourceParam in sourceParameters)
+                        {
+                            var targetParam = sourceParam.IsShared || (sourceParam.Definition as InternalDefinition).BuiltInParameter != BuiltInParameter.INVALID
+                                ? r.get_Parameter(sourceParam.Definition)
+                                : r.LookupParameter(sourceParam.Definition.Name);
+
+                            if (targetParam != null && !targetParam.IsReadOnly)
+                                targetParam.SetValue(sourceParam.GetValue());
+                        }
+                    }
+                }
+            }
+        }
+
+        public string GetAdditionalInformation() => "Привязка одиннаковых палок";
+        public ChangePriority GetChangePriority() => ChangePriority.DetailComponents;
+        public UpdaterId GetUpdaterId() => new UpdaterId(RevitAPI.Application.ActiveAddInId, new Guid("1EC46D1C-FDFC-4876-BAEB-F1409F4E5EE7"));
+        public string GetUpdaterName() => "2dPalkaUpdater";
     }
 }

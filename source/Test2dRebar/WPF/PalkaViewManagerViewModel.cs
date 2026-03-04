@@ -16,19 +16,29 @@ namespace BIMPlugins.Test2dRebar.WPF
         [ObservableProperty] private List<ViewTypeItem> _viewTypes = [];
 
         private readonly Guid _idGuid = RebarMethods.IdGuid;
-        private readonly Element _palka;
-        private readonly List<View> _views;
+        private readonly List<Element> _palkas;
+        private readonly List<string> _palkaIds;
+        private readonly List<ViewSection> _views;
+        private readonly List<ViewSection> _lastSelectedViews = [];   
 
-        public PalkaViewManagerViewModel(List<View> views, Element palka)
+        public PalkaViewManagerViewModel(List<ViewSection> views, List<Element> palkas)
         {
             _views = views;
-            _palka = palka;
+            _palkas = palkas;
+
+            _palkaIds = _palkas.Select(p => p.Id.ToString()).ToList();
 
             var viewItems = new List<ViewItem>();
             foreach (var view in _views.OrderBy(v => v.Title))
             {
-                var item = new ViewItem(view) { IsSelected = view.get_Parameter(_idGuid).AsString()?.Contains(_palka.Id.ToString()) ?? false };
+                var viewIds = view.get_Parameter(_idGuid).AsString()?.Split(';').Select(s => s.Trim()).ToList();
+
+                var isSelected = _palkaIds.Any(id => viewIds.Contains(id));
+                var item = new ViewItem(view) { IsSelected = isSelected };
                 viewItems.Add(item);
+
+                if (isSelected)
+                    _lastSelectedViews.Add(view);
             }
 
             foreach (var g in viewItems.GroupBy(v => v.ViewType))
@@ -52,19 +62,17 @@ namespace BIMPlugins.Test2dRebar.WPF
                 .Select(viewItem => viewItem.View)
                 .ToList();
 
-            var idPalka = _palka.Id.ToString();
+            var idParamId = RevitAPI.Document.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == _idGuid).Id;
 
             using (TransactionGroup tGroup = new TransactionGroup(RevitAPI.Document, "Присвоить палку к виду"))
             {
                 tGroup.Start();
 
-                var ids = string.Empty;
-
-                using (Transaction t = new Transaction(RevitAPI.Document, "Присвоить палку к виду"))
+                using (Transaction t = new Transaction(RevitAPI.Document, "Удалить старые виды палки"))
                 {
                     t.Start();
 
-                    foreach (var view in _views)
+                    foreach (var view in _lastSelectedViews.Except(selectedViews).ToList())
                     {
                         var param = view.get_Parameter(_idGuid);
                         if (param.IsReadOnly)
@@ -76,9 +84,27 @@ namespace BIMPlugins.Test2dRebar.WPF
                         if (param.AsString().IsNullOrEmpty())
                             continue;
 
-                        if (param.AsString().Contains(idPalka))
-                            param.Set(param.AsString().Replace(idPalka, "").Trim(';'));
+                        var result = param.AsString();
+                        foreach (var palka in _palkas)
+                        {
+                            if (result.Contains(palka.Id.ToString()))
+                                result = result.Replace(palka.Id.ToString(), "");
+                        }
+
+                        param.Set(result.Trim(';').Replace(";;", ";"));
                     }
+
+                    t.Commit();
+                }
+
+                foreach (var view in _lastSelectedViews.Except(selectedViews).ToList())
+                {
+                    RebarMethods.UpdateElements(RevitAPI.Document, idParamId, view);
+                }
+
+                using (Transaction t = new Transaction(RevitAPI.Document, "Присвоить новые виды палке"))
+                {
+                    t.Start();
 
                     foreach (var view in selectedViews)
                     {
@@ -89,24 +115,29 @@ namespace BIMPlugins.Test2dRebar.WPF
                             return;
                         }
 
-                        if (param.AsString().IsNullOrEmpty())
-                            ids = idPalka;
-                        else if (!param.AsString().Contains(idPalka))
-                            ids = string.Join(";", [param.AsString(), idPalka]);
+                        var result = param.AsString();
+                        if (result.IsNullOrEmpty())
+                            result = string.Join(";", _palkaIds);
+                        else
+                        {
+                            foreach (var palka in _palkas)
+                            {
+                                if (!result.Contains(palka.Id.ToString()))
+                                    result = string.Join(";", [result, palka.Id.ToString()]);
+                            }
+                        }
 
-                        param.Set(ids);
+                        param.Set(result);
                     }
 
-                    _palka.get_Parameter(_idGuid).Set(string.Join(";", selectedViews.Select(v => v.Id.ToString()).OrderBy(id => id)));
+                    foreach (var palka in _palkas)
+                        palka.get_Parameter(_idGuid).Set(string.Join(";", selectedViews.Select(v => v.Id.ToString()).OrderBy(id => id)));
 
                     t.Commit();
                 }
 
-                if (!ids.IsNullOrEmpty())
-                {
-                    var idParamId = RevitAPI.Document.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == _idGuid).Id;
-                    RebarMethods.UpdateElements(RevitAPI.Document, idParamId, ids);
-                }
+                if (selectedViews.Count != 0)
+                    RebarMethods.UpdateElements(RevitAPI.Document, idParamId, selectedViews.First());
 
                 tGroup.Assimilate();
             }
