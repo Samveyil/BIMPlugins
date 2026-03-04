@@ -4,12 +4,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.Bars;
-using BIMPlugins.ExtStorage.Methods;
 using System.Collections.Generic;
 using System.Linq;
 using BIMPlugins.ExtStorage.Extensions;
 
-namespace BIMPlugins.Common.WPF
+namespace BIMPlugins.Parameters.WPF
 {
     public partial class NumerateViewModel : ObservableObject
     {

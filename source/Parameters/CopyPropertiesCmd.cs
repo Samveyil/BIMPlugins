@@ -4,10 +4,9 @@ using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.FailuresProcessing;
-using BIMPlugins.ExtStorage.Methods;
 using System.Linq;
 
-namespace BIMPlugins.Common
+namespace BIMPlugins.Parameters
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
@@ -42,11 +41,11 @@ namespace BIMPlugins.Common
 
                         foreach (var hostParam in hostParameters)
                         {
-                            var elemParam = element.ToParameter(hostParam.Id);
+                            var targetParam = element.ToParameter(hostParam.Id);
 
-                            if (!hostParam.HasValue && !elemParam.HasValue) continue;
+                            if (targetParam == null || (!hostParam.HasValue && !targetParam.HasValue)) continue;
 
-                            elemParam.SetValue(hostParam.GetValue());
+                            targetParam.SetValue(hostParam.GetValue());
                         }
 
                         t.Commit();

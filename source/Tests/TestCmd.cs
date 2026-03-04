@@ -103,6 +103,9 @@ namespace BIMPlugins.Tests
                 //    TaskDialog.Show("Результат", $"Точка НИЖЕ на {Math.Abs(projection) * 304.8:F2} мм");
                 //}
 
+                var famType = new ElementId(114705).ToElement<ViewFamilyType>();
+
+
                 t.Commit();
             }
 

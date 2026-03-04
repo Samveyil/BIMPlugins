@@ -2,10 +2,10 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
-using BIMPlugins.Common.WPF;
+using BIMPlugins.Parameters.WPF;
 
 
-namespace BIMPlugins.Common
+namespace BIMPlugins.Parameters
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]

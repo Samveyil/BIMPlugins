@@ -1,4 +1,4 @@
-﻿namespace BIMPlugins.Common.WPF
+﻿namespace BIMPlugins.Parameters.WPF
 {
     /// <summary>
     /// Логика взаимодействия для OVVKWorksetView.xaml
