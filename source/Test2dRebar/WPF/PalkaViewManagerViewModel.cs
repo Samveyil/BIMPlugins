@@ -31,9 +31,15 @@ namespace BIMPlugins.Test2dRebar.WPF
             var viewItems = new List<ViewItem>();
             foreach (var view in _views.OrderBy(v => v.Title))
             {
-                var viewIds = view.get_Parameter(_idGuid).AsString()?.Split(';').Select(s => s.Trim()).ToList();
+                bool isSelected = false;
 
-                var isSelected = _palkaIds.Any(id => viewIds.Contains(id));
+                var param = view.get_Parameter(_idGuid).AsString();
+                if (!param.IsNullOrEmpty())
+                {
+                    var viewPalkaIds = param.Split(';').Select(s => s.Trim()).ToList();
+                    isSelected = _palkaIds.Any(id => viewPalkaIds.Contains(id));
+                }   
+
                 var item = new ViewItem(view) { IsSelected = isSelected };
                 viewItems.Add(item);
 
@@ -48,6 +54,28 @@ namespace BIMPlugins.Test2dRebar.WPF
                     viewType.Views.Add(item);
 
                 ViewTypes.Add(viewType);
+            }
+        }
+
+        [RelayCommand]
+        private void NewSection()
+        {
+            RaiseCloseRequest();
+
+            var section = RebarMethods.CreateViewSection();
+            if (section == null)
+                return;
+
+            RevitAPI.UIDocument.ActiveView = section;
+
+            using (Transaction t = new Transaction(RevitAPI.Document,"Создать сечение"))
+            {
+                t.Start();
+
+                section.get_Parameter(RebarMethods.RazdelGuid).Set(_palkas[0].get_Parameter(RebarMethods.RazdelGuid).AsString());
+                section.get_Parameter(_idGuid).Set(string.Join(";", _palkaIds));
+
+                t.Commit();
             }
         }
 

@@ -1,5 +1,4 @@
-﻿using Autodesk.Revit.Attributes;
-using Autodesk.Revit.DB;
+﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
@@ -9,8 +8,6 @@ using System.Linq;
 
 namespace BIMPlugins.Test2dRebar
 {
-    [Transaction(TransactionMode.Manual)]
-    [Regeneration(RegenerationOption.Manual)]
     public class ViewUpdater : IUpdater
     {
         private Guid _idGuid = RebarMethods.IdGuid;

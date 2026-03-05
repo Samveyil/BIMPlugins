@@ -1,4 +1,6 @@
 ﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Methods;
 using System;
@@ -305,6 +307,57 @@ namespace BIMPlugins.Test2dRebar.Classes
 
                 t.Commit();
             }
+        }
+
+        public static ViewSection CreateViewSection()
+        {
+            var sectionType = RevitAPI.Document.ToElements<ViewFamilyType>().FirstOrDefault(v => v.ViewFamily == ViewFamily.Section);
+
+            var wall = RevitAPI.UIDocument.PickObject<Wall>("Выберите стену");
+            var wallCurve = (wall.Location as LocationCurve).Curve;
+            if (wallCurve is not Line)
+            {
+                TaskDialog.Show("Ошибка", "Стена должна быть прямолинейной");
+                return null;
+            }
+
+            var wallLine = wallCurve as Line;
+            var wallDirection = wallLine.Direction;
+            var perpDirection = new XYZ(-wallDirection.Y, wallDirection.X, 0);
+
+            var midPoint = wallLine.Evaluate(0.5, true);
+            var ZCoord = wall.get_BoundingBox(null).Min.Z;
+
+            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
+
+            double sectionDepth = 300 * intUnit;
+            double sectionHeight = wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble();
+            double sectionWidth = wall.Width + 1200 * intUnit;
+
+            var transform = Transform.Identity;
+            transform.Origin = midPoint + new XYZ(0, 0, ZCoord);
+            transform.BasisX = perpDirection;
+            transform.BasisY = XYZ.BasisZ;
+            transform.BasisZ = wallDirection;
+
+            var sectionBox = new BoundingBoxXYZ()
+            {
+                Transform = transform,
+                Min = new XYZ(-sectionWidth / 2, -600 * intUnit, 0),
+                Max = new XYZ(sectionWidth / 2, sectionHeight + 600 * intUnit, sectionDepth)
+            };
+
+            ViewSection viewSection;
+            using (Transaction t = new Transaction(RevitAPI.Document, "Создать сечение"))
+            {
+                t.Start();
+
+                viewSection = ViewSection.CreateSection(RevitAPI.Document, sectionType.Id, sectionBox);
+
+                t.Commit();
+            }
+
+            return viewSection;
         }
     }
 }

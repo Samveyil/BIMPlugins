@@ -7,6 +7,7 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Methods;
 using BIMPlugins.Test2dRebar;
+using BIMPlugins.Test2dRebar.Classes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -103,14 +104,12 @@ namespace BIMPlugins.Tests
                 //    TaskDialog.Show("Результат", $"Точка НИЖЕ на {Math.Abs(projection) * 304.8:F2} мм");
                 //}
 
-                var famType = new ElementId(114705).ToElement<ViewFamilyType>();
-
+                
 
                 t.Commit();
             }
 
             var familyParamId = new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM);
-
             var typeParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa")).Id;
             var idParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d")).Id;
 

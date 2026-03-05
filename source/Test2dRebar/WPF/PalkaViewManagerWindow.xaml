@@ -8,7 +8,7 @@
         xmlns:local="clr-namespace:BIMPlugins.Test2dRebar.WPF"
         d:DataContext="{d:DesignInstance local:PalkaViewManagerViewModel}"
         mc:Ignorable="d"
-        Title="Настройка" Height="550" Width="500" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
+        Title="Настройка" Height="570" Width="500" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
@@ -21,6 +21,11 @@
     </Window.Resources>
 
     <StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Width="25" Height="25" Padding="0" Margin="5 0" Command="{Binding NewSectionCommand}" Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Создать сечение">
+                <materialDesign:PackIcon Kind="ShapeRectanglePlus" Width="25" Height="25" Foreground="Black"/>
+            </Button>
+        </StackPanel>
         <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="#f88518" Style="{StaticResource MaterialDesignToolBarMainPanelBorderStyle}">
             <TreeView Panel.ZIndex="0" ItemsSource="{Binding ViewTypes, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="450" MaxHeight="450"
                       VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0" Padding="0" 
