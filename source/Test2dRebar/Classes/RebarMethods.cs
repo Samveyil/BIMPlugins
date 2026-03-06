@@ -269,11 +269,7 @@ namespace BIMPlugins.Test2dRebar.Classes
                     if (rType.Contains("ВертАрмТорца"))
                         r.get_Parameter(new Guid("0134e43b-3fd9-40bb-9abd-41fa4f5b6481")).Set(ids.Split(';').Count());
 
-                    var palkaPos = palka.get_Parameter(NumberGuid).AsString();
-                    var palkaMark = palka.get_Parameter(StructureMarkGuid).AsString();
-                    var wallThikness = palka.get_Parameter(WallThiknessGuid).AsValueString();
-
-                    r.get_Parameter(StructureMarkGuid).Set($"{palkaPos}-{palkaMark}{wallThikness}");
+                    r.get_Parameter(StructureMarkGuid).Set(GetWallMark(palka, palka.get_Parameter(NumberGuid).AsString()));
 
                     foreach (var guid in PalkaParamGuids)
                     {
@@ -369,11 +365,8 @@ namespace BIMPlugins.Test2dRebar.Classes
 
             var palka = palkas[0];
             var razdel = palka.get_Parameter(RazdelGuid).AsString();
-            var structureMark = palka.get_Parameter(StructureMarkGuid).AsString();
-            var wallThikness = palka.get_Parameter(WallThiknessGuid).AsValueString();
-
             var palkaNumber = palka.get_Parameter(NumberGuid).AsString().IsNullOrEmpty() ? GetNumber(razdel).ToString() : palka.get_Parameter(NumberGuid).AsString();
-            var wallMark = $"{palkaNumber}-{structureMark}{wallThikness}";
+            var wallMark = GetWallMark(palka, palkaNumber);
 
             ViewSection viewSection;
             ViewSection viewDetail;
@@ -477,6 +470,14 @@ namespace BIMPlugins.Test2dRebar.Classes
                     }
                 }
             }
+        }
+
+        public static string GetWallMark(Element palka, string palkaNumber)
+        {
+            var structureMark = palka.get_Parameter(StructureMarkGuid).AsString();
+            var wallThikness = palka.get_Parameter(WallThiknessGuid).AsValueString();
+
+            return $"{palkaNumber}-{structureMark}{wallThikness}";
         }
     }
 }
