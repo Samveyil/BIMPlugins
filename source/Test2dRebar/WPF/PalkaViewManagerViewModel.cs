@@ -62,21 +62,7 @@ namespace BIMPlugins.Test2dRebar.WPF
         {
             RaiseCloseRequest();
 
-            var section = RebarMethods.CreateViewSection();
-            if (section == null)
-                return;
-
-            RevitAPI.UIDocument.ActiveView = section;
-
-            using (Transaction t = new Transaction(RevitAPI.Document,"Создать сечение"))
-            {
-                t.Start();
-
-                section.get_Parameter(RebarMethods.RazdelGuid).Set(_palkas[0].get_Parameter(RebarMethods.RazdelGuid).AsString());
-                section.get_Parameter(_idGuid).Set(string.Join(";", _palkaIds));
-
-                t.Commit();
-            }
+            RebarMethods.CreateViewSection(_palkas);
         }
 
         [RelayCommand]

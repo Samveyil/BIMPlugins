@@ -5,18 +5,15 @@ using Nuke.Common.ProjectModel;
 public class Build : BIMPluginsBuild
 {
     protected override int MajorVersion => 3;
-    protected override int MinorVersion => 0;
-    protected override int MaintenanceVersion => 9;
+    protected override int MinorVersion => 1;
+    protected override int MaintenanceVersion => 0;
 
 
     [Solution("BIMPlugins.sln")]
-    public override Solution Solution { get; }
+    protected override Solution Solution { get; }
 
-    [Parameter("Project to build name")]
-    public override string ProjectName { get; } = "BIMPlugins";
-
-    [Parameter("Build configurations to run sequentially")]
-    public override string[] Configurations { get; } = new[] { "R2019", "R2020", "R2021", "R2022", "R2023" };
+    [Parameter("Имя проекта для сборки")]
+    protected override string ProjectName { get; } = "BIMPlugins";
 
     public static int Main() => Execute<Build>(x => x.Compile);
 }

@@ -309,43 +309,61 @@ namespace BIMPlugins.Test2dRebar.Classes
             }
         }
 
-        public static ViewSection CreateViewSection()
+        public static void CreateViewSection(List<Element> palkas)
         {
             var sectionType = RevitAPI.Document.ToElements<ViewFamilyType>().FirstOrDefault(v => v.ViewFamily == ViewFamily.Section);
+            var detailType = RevitAPI.Document.ToElements<ViewFamilyType>().FirstOrDefault(v => v.ViewFamily == ViewFamily.Detail);
 
             var wall = RevitAPI.UIDocument.PickObject<Wall>("Выберите стену");
             var wallCurve = (wall.Location as LocationCurve).Curve;
             if (wallCurve is not Line)
             {
                 TaskDialog.Show("Ошибка", "Стена должна быть прямолинейной");
-                return null;
+                return;
             }
 
             var wallLine = wallCurve as Line;
             var wallDirection = wallLine.Direction;
             var perpDirection = new XYZ(-wallDirection.Y, wallDirection.X, 0);
 
+            var wallHeight = wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble();
+            var wallLength = wallLine.Length;
+            var wallWidth = wall.Width;
+
             var midPoint = wallLine.Evaluate(0.5, true);
             var ZCoord = wall.get_BoundingBox(null).Min.Z;
 
             var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
 
-            double sectionDepth = 300 * intUnit;
-            double sectionHeight = wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble();
-            double sectionWidth = wall.Width + 1200 * intUnit;
+            var sectionDepth = 300 * intUnit;
 
-            var transform = Transform.Identity;
-            transform.Origin = midPoint + new XYZ(0, 0, ZCoord);
-            transform.BasisX = perpDirection;
-            transform.BasisY = XYZ.BasisZ;
-            transform.BasisZ = wallDirection;
+            var sectionTransform = Transform.Identity;
+            sectionTransform.Origin = midPoint + new XYZ(0, 0, ZCoord);
+            sectionTransform.BasisX = perpDirection;
+            sectionTransform.BasisY = XYZ.BasisZ;
+            sectionTransform.BasisZ = wallDirection;
 
             var sectionBox = new BoundingBoxXYZ()
             {
-                Transform = transform,
-                Min = new XYZ(-sectionWidth / 2, -600 * intUnit, 0),
-                Max = new XYZ(sectionWidth / 2, sectionHeight + 600 * intUnit, sectionDepth)
+                Transform = sectionTransform,
+                Min = new XYZ(-(wallWidth / 2 + 600 * intUnit), -600 * intUnit, 0),
+                Max = new XYZ(wallWidth / 2 + 600 * intUnit, wallHeight + 600 * intUnit, sectionDepth)
             };
+
+            var detailTransform = Transform.Identity;
+            detailTransform.Origin = midPoint + new XYZ(0, 0, ZCoord + wallHeight / 2);
+            detailTransform.BasisX = perpDirection;
+            detailTransform.BasisY = wallDirection;
+            detailTransform.BasisZ = XYZ.BasisZ.Negate();
+
+            var detailBox = new BoundingBoxXYZ()
+            {
+                Transform = detailTransform,
+                Min = new XYZ(-(wallWidth / 2 + 300 * intUnit), -(wallLength / 2 + 150 * intUnit), 0),
+                Max = new XYZ(wallWidth / 2 + 300 * intUnit, wallLength / 2 + 150 * intUnit, sectionDepth)
+            };
+
+            var palkaIds = palkas.Select(p => p.Id.ToString()).ToList();
 
             ViewSection viewSection;
             using (Transaction t = new Transaction(RevitAPI.Document, "Создать сечение"))
@@ -353,11 +371,17 @@ namespace BIMPlugins.Test2dRebar.Classes
                 t.Start();
 
                 viewSection = ViewSection.CreateSection(RevitAPI.Document, sectionType.Id, sectionBox);
+                viewSection.get_Parameter(RazdelGuid).Set(palkas[0].get_Parameter(RazdelGuid).AsString());
+                viewSection.get_Parameter(IdGuid).Set(string.Join(";", palkaIds));
+
+                var viewDetail = ViewSection.CreateDetail(RevitAPI.Document, detailType.Id, detailBox);
+                viewDetail.get_Parameter(RazdelGuid).Set(palkas[0].get_Parameter(RazdelGuid).AsString());
+                viewDetail.get_Parameter(IdGuid).Set(string.Join(";", palkaIds));
 
                 t.Commit();
             }
 
-            return viewSection;
+            RevitAPI.UIDocument.ActiveView = viewSection;
         }
     }
 }

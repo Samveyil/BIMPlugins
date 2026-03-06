@@ -110,7 +110,7 @@
         },
         "ProjectName": {
           "type": "string",
-          "description": "Project to build name"
+          "description": "Имя проекта для сборки"
         },
         "Solution": {
           "type": "string",
