@@ -19,6 +19,9 @@ namespace BIMPlugins.Test2dRebar.Classes
         public static Guid FormGuid { get; } = new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d");               // OLP_Арм_Форма
         public static Guid PrefixGuid { get; } = new Guid("dce379c0-5e32-4695-b16a-d76ef0100172");             // OLP_Арм_Позиция_Префикс
         public static Guid RazdelGuid { get; } = new Guid("e1b06433-f527-403c-8986-af9a01e6be7f");             // ADSK_Комплект чертежей
+        public static Guid NumberGuid { get; } = new Guid("92ae0425-031b-40a9-8904-023f7389963b");             // ADSK_Марка изделия
+        public static Guid StructureMarkGuid { get; } = new Guid("5d369dfb-17a2-4ae2-a1a1-bdfc33ba7405");      // ADSK_Марка конструкции
+        public static Guid WallThiknessGuid { get; } = new Guid("a506ea75-dab1-4c28-8921-c59c841ebf70");       // OLP_Толщина стены
 
         public static Dictionary<string, Guid> PalkaTypeDic { get; } = new Dictionary<string, Guid>()
         {
@@ -29,8 +32,7 @@ namespace BIMPlugins.Test2dRebar.Classes
         public static List<Guid> PalkaParamGuids { get; } = new List<Guid>
         {
             RazdelGuid,
-            new Guid("92ae0425-031b-40a9-8904-023f7389963b"),                                                   // ADSK_Марка изделия
-            /*new Guid("5d369dfb-17a2-4ae2-a1a1-bdfc33ba7405"), */                                              // ADSK_Марка конструкции
+            NumberGuid,
             new Guid("b5aee52e-5294-46e8-8086-f76421185a84"),                                                   // OLP_Количество конструкций
             /*new Guid("0134e43b-3fd9-40bb-9abd-41fa4f5b6481"),*/                                               // OLP_Количество сборок
             new Guid("5776fb34-04bb-4a41-8f43-81edd9b0daff"),                                                   // OLP_Специфицировать сборку
@@ -267,11 +269,11 @@ namespace BIMPlugins.Test2dRebar.Classes
                     if (rType.Contains("ВертАрмТорца"))
                         r.get_Parameter(new Guid("0134e43b-3fd9-40bb-9abd-41fa4f5b6481")).Set(ids.Split(';').Count());
 
-                    var palkaPos = palka.get_Parameter(new Guid("92ae0425-031b-40a9-8904-023f7389963b")).AsString();
-                    var palkaMark = palka.get_Parameter(new Guid("5d369dfb-17a2-4ae2-a1a1-bdfc33ba7405")).AsString();
-                    var wallThikhness = palka.get_Parameter(new Guid("a506ea75-dab1-4c28-8921-c59c841ebf70")).AsValueString();
+                    var palkaPos = palka.get_Parameter(NumberGuid).AsString();
+                    var palkaMark = palka.get_Parameter(StructureMarkGuid).AsString();
+                    var wallThikness = palka.get_Parameter(WallThiknessGuid).AsValueString();
 
-                    r.get_Parameter(new Guid("5d369dfb-17a2-4ae2-a1a1-bdfc33ba7405")).Set($"{palkaPos}-{palkaMark}{wallThikhness}");
+                    r.get_Parameter(StructureMarkGuid).Set($"{palkaPos}-{palkaMark}{wallThikness}");
 
                     foreach (var guid in PalkaParamGuids)
                     {
@@ -359,29 +361,122 @@ namespace BIMPlugins.Test2dRebar.Classes
             var detailBox = new BoundingBoxXYZ()
             {
                 Transform = detailTransform,
-                Min = new XYZ(-(wallWidth / 2 + 300 * intUnit), -(wallLength / 2 + 150 * intUnit), 0),
-                Max = new XYZ(wallWidth / 2 + 300 * intUnit, wallLength / 2 + 150 * intUnit, sectionDepth)
+                Min = new XYZ(-(wallWidth / 2 + 300 * intUnit), -(wallLength / 2 + 300 * intUnit), 0),
+                Max = new XYZ(wallWidth / 2 + 300 * intUnit, wallLength / 2 + 300 * intUnit, sectionDepth)
             };
 
             var palkaIds = palkas.Select(p => p.Id.ToString()).ToList();
 
+            var palka = palkas[0];
+            var razdel = palka.get_Parameter(RazdelGuid).AsString();
+            var structureMark = palka.get_Parameter(StructureMarkGuid).AsString();
+            var wallThikness = palka.get_Parameter(WallThiknessGuid).AsValueString();
+
+            var palkaNumber = palka.get_Parameter(NumberGuid).AsString().IsNullOrEmpty() ? GetNumber(razdel).ToString() : palka.get_Parameter(NumberGuid).AsString();
+            var wallMark = $"{palkaNumber}-{structureMark}{wallThikness}";
+
             ViewSection viewSection;
-            using (Transaction t = new Transaction(RevitAPI.Document, "Создать сечение"))
+            ViewSection viewDetail;
+
+            using (TransactionGroup tGroup = new TransactionGroup(RevitAPI.Document, "Создать сечение"))
             {
-                t.Start();
+                tGroup.Start();
 
-                viewSection = ViewSection.CreateSection(RevitAPI.Document, sectionType.Id, sectionBox);
-                viewSection.get_Parameter(RazdelGuid).Set(palkas[0].get_Parameter(RazdelGuid).AsString());
-                viewSection.get_Parameter(IdGuid).Set(string.Join(";", palkaIds));
+                using (Transaction t = new Transaction(RevitAPI.Document, "Создать сечение"))
+                {
+                    t.Start();
 
-                var viewDetail = ViewSection.CreateDetail(RevitAPI.Document, detailType.Id, detailBox);
-                viewDetail.get_Parameter(RazdelGuid).Set(palkas[0].get_Parameter(RazdelGuid).AsString());
-                viewDetail.get_Parameter(IdGuid).Set(string.Join(";", palkaIds));
+                    viewSection = ViewSection.CreateSection(RevitAPI.Document, sectionType.Id, sectionBox);
+                    viewSection.get_Parameter(RazdelGuid).Set(palkas[0].get_Parameter(RazdelGuid).AsString());
+                    SetViewName(viewSection,$"21_{razdel}_{wallMark}_Сеч");
 
-                t.Commit();
+                    viewDetail = ViewSection.CreateDetail(RevitAPI.Document, detailType.Id, detailBox);
+                    viewDetail.get_Parameter(RazdelGuid).Set(palkas[0].get_Parameter(RazdelGuid).AsString());
+                    SetViewName(viewDetail, $"21_{razdel}_{wallMark}_Узел");
+
+                    t.Commit();
+                }
+
+                using (Transaction t = new Transaction(RevitAPI.Document, "Присвоить OLP_Id"))
+                {
+                    t.Start();
+
+                    viewSection.get_Parameter(IdGuid).Set(string.Join(";", palkaIds));
+                    viewDetail.get_Parameter(IdGuid).Set(string.Join(";", palkaIds));
+
+                    var newViewIds = string.Join(";", viewSection.Id.ToString(), viewDetail.Id.ToString());
+                    foreach (var pal in palkas)
+                    {
+                        pal.get_Parameter(NumberGuid).Set(palkaNumber.ToString());
+                        pal.get_Parameter(IdGuid).Set(newViewIds);
+                    }
+
+                    t.Commit();
+                }
+
+                tGroup.Assimilate();
             }
 
             RevitAPI.UIDocument.ActiveView = viewSection;
+        }
+        public static int GetNumber(string razdel)
+        {
+            var numbers = RevitAPI.Document.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
+                .Where(r => r.get_Parameter(BuiltInParameter.ELEM_FAMILY_PARAM).AsValueString().StartsWith("285") && !r.get_Parameter(NumberGuid).AsString().IsNullOrEmpty() &&
+                            r.get_Parameter(RazdelGuid).AsString() == razdel)
+                .Select(p =>
+                {
+                    string numStr = p.get_Parameter(NumberGuid).AsString();
+                    int num;
+                    return int.TryParse(numStr, out num) ? num : (int?)null;
+                })
+                .Where(n => n.HasValue)
+                .Select(n => n.Value)
+                .ToList();
+
+            if (!numbers.Any())
+                return 1;
+            else
+            {
+                numbers.Sort();
+
+                int expectedNumber = 1;
+                foreach (int num in numbers)
+                {
+                    if (num > expectedNumber)
+                    {
+                        return expectedNumber;
+                    }
+                    expectedNumber = num + 1;
+                }
+
+                return numbers.Max() + 1;
+            }
+        }
+        public static void SetViewName(View view, string baseName)
+        {
+            string currentName = baseName;
+            int counter = 0;
+
+            while (true)
+            {
+                try
+                {
+                    view.Name = currentName;
+                    break;
+                }
+                catch (Exception)
+                {
+                    counter++;
+
+                    currentName = new string('!', counter) + baseName;
+
+                    if (counter > 10)
+                    {
+                        throw new Exception("Не удалось найти свободное имя после 10 попыток.");
+                    }
+                }
+            }
         }
     }
 }

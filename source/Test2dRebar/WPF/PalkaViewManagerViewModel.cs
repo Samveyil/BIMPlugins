@@ -62,7 +62,50 @@ namespace BIMPlugins.Test2dRebar.WPF
         {
             RaiseCloseRequest();
 
-            RebarMethods.CreateViewSection(_palkas);
+            var idParamId = RevitAPI.Document.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == _idGuid).Id;
+
+            using (TransactionGroup tGroup = new TransactionGroup(RevitAPI.Document, "Присвоить палку к виду"))
+            {
+                tGroup.Start();
+
+                RebarMethods.CreateViewSection(_palkas);
+
+                using (Transaction t = new Transaction(RevitAPI.Document, "Удалить старые виды палки"))
+                {
+                    t.Start();
+
+                    foreach (var view in _lastSelectedViews)
+                    {
+                        var param = view.get_Parameter(_idGuid);
+                        if (param.IsReadOnly)
+                        {
+                            TaskDialog.Show("Ошибка", "Параметр OLP_Id заблокирован. Проверьте, что шаблон вида не заблокировал параметр");
+                            return;
+                        }
+
+                        if (param.AsString().IsNullOrEmpty())
+                            continue;
+
+                        var result = param.AsString();
+                        foreach (var palka in _palkas)
+                        {
+                            if (result.Contains(palka.Id.ToString()))
+                                result = result.Replace(palka.Id.ToString(), "");
+                        }
+
+                        param.Set(result.Trim(';').Replace(";;", ";"));
+                    }
+
+                    t.Commit();
+                }
+
+                foreach (var view in _lastSelectedViews)
+                {
+                    RebarMethods.UpdateElements(RevitAPI.Document, idParamId, view);
+                }
+
+                tGroup.Assimilate();
+            }
         }
 
         [RelayCommand]

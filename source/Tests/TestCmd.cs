@@ -104,43 +104,6 @@ namespace BIMPlugins.Tests
                 //    TaskDialog.Show("Результат", $"Точка НИЖЕ на {Math.Abs(projection) * 304.8:F2} мм");
                 //}
 
-                var sectionType = RevitAPI.Document.ToElements<ViewFamilyType>().FirstOrDefault(v => v.ViewFamily == ViewFamily.Detail);
-
-                var wall = RevitAPI.UIDocument.PickObject<Wall>("Выберите стену");
-                var wallCurve = (wall.Location as LocationCurve).Curve;
-
-                var wallLine = wallCurve as Line;
-                var wallDirection = wallLine.Direction;
-                var perpDirection = new XYZ(-wallDirection.Y, wallDirection.X, 0);
-
-                var midPoint = wallLine.Evaluate(0.5, true);
-                var ZCoord = wall.get_BoundingBox(null).Min.Z;
-
-                var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
-
-                var sectionDepth = 300 * intUnit;
-                var sectionWidth = wall.Width + 600 * intUnit;
-                var wallHeight = wall.get_Parameter(BuiltInParameter.WALL_USER_HEIGHT_PARAM).AsDouble();
-                var wallLength = wallLine.Length;
-
-                var transform = Transform.Identity;
-                transform.Origin = midPoint + new XYZ(0, 0, ZCoord + wallHeight / 2);
-                transform.BasisX = perpDirection;
-                transform.BasisY = wallDirection;
-                transform.BasisZ = XYZ.BasisZ.Negate();
-
-                ExMethods.CreateDirectShape([Point.Create(midPoint)]);
-
-
-                var sectionBox = new BoundingBoxXYZ()
-                {
-                    Transform = transform,
-                    Min = new XYZ(-sectionWidth / 2, -(wallLength / 2 + 150 * intUnit), 0),
-                    Max = new XYZ(sectionWidth / 2, (wallLength / 2 + 150 * intUnit), sectionDepth)
-                };
-
-                ViewSection.CreateDetail(RevitAPI.Document, sectionType.Id, sectionBox);
-
                 t.Commit();
             }
 
