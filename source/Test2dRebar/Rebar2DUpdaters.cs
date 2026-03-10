@@ -23,6 +23,11 @@ namespace BIMPlugins.Test2dRebar
                 var idParam = view.get_Parameter(_idGuid).AsString();
                 foreach (var r in doc.ToElements<FamilyInstance>(view.Id, BuiltInCategory.OST_DetailComponents))
                     r.get_Parameter(_idGuid).Set(idParam);
+
+                if (idParam.IsNullOrEmpty())
+                {
+                    RebarMethods.SetViewName(view, $"!{view.Name}");
+                }
             }
 
             foreach (var viewId in data.GetAddedElementIds())
@@ -126,10 +131,11 @@ namespace BIMPlugins.Test2dRebar
                 {
                     FamilyInstance sourceRebar;
                     if (splitTypeParam == "Шпилька")
-                        sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString() && r.get_Parameter(_typeGuid).AsString() == typeParam);
+                        sourceRebar = rebars.FirstOrDefault(r => !data.GetModifiedElementIds().Select(id => id.ToString()).Contains(r.Id.ToString()) &&
+                                                            r.get_Parameter(_typeGuid).AsString() == typeParam);
                     else
-                        sourceRebar = rebars.FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
-                    
+                        sourceRebar = rebars.FirstOrDefault(r => !data.GetModifiedElementIds().Select(id => id.ToString()).Contains(r.Id.ToString()));
+
                     if (sourceRebar == null)
                         return;
 
@@ -478,6 +484,7 @@ namespace BIMPlugins.Test2dRebar
     public class PalkaUpdater : IUpdater
     {
         private Guid _idGuid = RebarMethods.IdGuid;
+        private Guid _numberGuid = RebarMethods.NumberGuid;
 
         public void Execute(UpdaterData data)
         {
@@ -486,15 +493,14 @@ namespace BIMPlugins.Test2dRebar
             var shParams = doc.ToElements<SharedParameterElement>().ToList();
 
             var idParamId = shParams.FirstOrDefault(p => p.GuidValue == _idGuid).Id;
+            var numberParamId = shParams.FirstOrDefault(p => p.GuidValue == _numberGuid).Id;
 
             if (data.GetDeletedElementIds().Count != 0)
             {
-                var groupedViews = doc.ToElements(new ElementMulticlassFilter([typeof(ViewPlan), typeof(ViewSection)]))
-                    .Where(r => !r.get_Parameter(_idGuid).AsString().IsNullOrEmpty())
-                    .GroupBy(r => r.get_Parameter(_idGuid).AsString())
-                    .Select(g => g.First());
+                var views = doc.ToElements<ViewSection>(/*new ElementMulticlassFilter([typeof(ViewPlan), typeof(ViewSection)])*/)
+                    .Where(r => !r.get_Parameter(_idGuid).AsString().IsNullOrEmpty());
 
-                foreach (var view in groupedViews)
+                foreach (var view in views)
                 {
                     var param = view.get_Parameter(_idGuid);
 
@@ -522,10 +528,25 @@ namespace BIMPlugins.Test2dRebar
 
                 if (data.IsChangeTriggered(palkaId, Element.GetChangeTypeParameter(idParamId)))
                 {
-                    var sourcePalka = palkas.FirstOrDefault(r => r.Id.ToString() != palkaId.ToString());
+                    var sourcePalka = palkas.FirstOrDefault(p => !data.GetModifiedElementIds().Select(id => id.ToString()).Contains(p.Id.ToString()));
 
                     if (sourcePalka == null)
+                    {
+                        var numberParam = palka.get_Parameter(_numberGuid);
+                        if (numberParam.AsString().IsNullOrEmpty())
+                            return;
+
+                        var sameNumberPalkas = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, numberParamId.CreateEqualsFilter(numberParam.AsString()))
+                            .Where(p => p.get_Parameter(BuiltInParameter.ELEM_FAMILY_PARAM).AsValueString().StartsWith("285"))
+                            .GroupBy(p => p.get_Parameter(_idGuid).AsString());
+
+                        if (sameNumberPalkas.Count() > 1)
+                        {
+                            numberParam.Set(RebarMethods.GetNumber(palka.get_Parameter(RebarMethods.RazdelGuid).AsString()).ToString());
+                        }
+
                         return;
+                    }
 
                     var sourceParams = sourcePalka
                         .GetOrderedParameters()
@@ -541,11 +562,30 @@ namespace BIMPlugins.Test2dRebar
                             targetParam.SetValue(sourceParam.GetValue());
                     }
                 }
+                else if (data.IsChangeTriggered(palkaId, Element.GetChangeTypeParameter(numberParamId)))
+                {
+                    var numberParam = palka.get_Parameter(_numberGuid).AsString();
+                    if (numberParam.IsNullOrEmpty())
+                        return;
+
+                    var sameNumberPalkas = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, numberParamId.CreateEqualsFilter(numberParam))
+                        .Where(p => p.get_Parameter(BuiltInParameter.ELEM_FAMILY_PARAM).AsValueString().StartsWith("285"))
+                        .GroupBy(p => p.get_Parameter(_idGuid).AsString());
+
+                    var number = sameNumberPalkas.Count() > 1
+                        ? RebarMethods.GetNumber(palka.get_Parameter(RebarMethods.RazdelGuid).AsString()).ToString()
+                        : numberParam;
+
+                    foreach (var r in palkas)
+                    {
+                        r.get_Parameter(_numberGuid).Set(number);
+                    }
+                }
                 else
                 {
                     var sourceParameters = palka
                         .GetOrderedParameters()
-                        .Where(p => p.HasValue);
+                        .Where(p => p.HasValue && (p.IsShared && p.GUID != _numberGuid || !p.IsShared));
 
                     foreach (var r in palkas)
                     {

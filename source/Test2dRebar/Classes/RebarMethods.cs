@@ -365,7 +365,7 @@ namespace BIMPlugins.Test2dRebar.Classes
 
             var palka = palkas[0];
             var razdel = palka.get_Parameter(RazdelGuid).AsString();
-            var palkaNumber = palka.get_Parameter(NumberGuid).AsString().IsNullOrEmpty() ? GetNumber(razdel).ToString() : palka.get_Parameter(NumberGuid).AsString();
+            var palkaNumber = GetNumber(razdel).ToString();
             var wallMark = GetWallMark(palka, palkaNumber);
 
             ViewSection viewSection;
@@ -464,14 +464,14 @@ namespace BIMPlugins.Test2dRebar.Classes
 
                     currentName = new string('!', counter) + baseName;
 
-                    if (counter > 10)
+                    if (counter > 20)
                     {
                         throw new Exception("Не удалось найти свободное имя после 10 попыток.");
                     }
                 }
             }
         }
-
+        
         public static string GetWallMark(Element palka, string palkaNumber)
         {
             var structureMark = palka.get_Parameter(StructureMarkGuid).AsString();

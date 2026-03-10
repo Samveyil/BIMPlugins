@@ -193,8 +193,31 @@ namespace BIMPlugins.Test2dRebar.WPF
                     t.Commit();
                 }
 
-                if (selectedViews.Count != 0)
-                    RebarMethods.UpdateElements(RevitAPI.Document, idParamId, selectedViews.First());
+                using (Transaction t = new Transaction(RevitAPI.Document, "Актуализировать имя вида"))
+                {
+                    t.Start();
+
+                    var palka = _palkas[0];
+                    var razdel = palka.get_Parameter(RebarMethods.RazdelGuid).AsString();
+                    var palkaNumber = palka.get_Parameter(RebarMethods.NumberGuid).AsString();
+                    var wallMark = RebarMethods.GetWallMark(palka, palkaNumber);
+
+                    foreach (var view in selectedViews.Where(v => v.Name.StartsWith("!")))
+                    {
+                        var lastNamePart = new string[] { "Сеч", "Узел", "Разв" }.Contains(view.Name.Split('_').LastOrDefault())
+                            ? view.Name.Split('_').LastOrDefault()
+                            : view.ViewType == ViewType.Section
+                                ? "Сеч"
+                                : "Узел";
+
+                        RebarMethods.SetViewName(view, $"21_{razdel}_{wallMark}_" + lastNamePart);
+                    }
+
+                    t.Commit();
+                }
+
+                    if (selectedViews.Count != 0)
+                        RebarMethods.UpdateElements(RevitAPI.Document, idParamId, selectedViews.First());
 
                 tGroup.Assimilate();
             }

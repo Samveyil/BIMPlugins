@@ -48,7 +48,13 @@ namespace BIMPlugins.Test2dRebar
                     {
                         var view = new ElementId(int.Parse(strId)).ToElement<View>();
 
-                        SetViewName(view, $"21_{razdel}_{wallMark}_" + view.Name.Split('_').LastOrDefault());
+                        var lastNamePart = new string[] { "Сеч", "Узел", "Разв" }.Contains(view.Name.Split('_').LastOrDefault())
+                            ? view.Name.Split('_').LastOrDefault()
+                            : view.ViewType == ViewType.Section
+                                ? "Сеч"
+                                : "Узел";
+
+                        RebarMethods.SetViewName(view, $"21_{razdel}_{wallMark}_" + lastNamePart);
                     }
                 }
 
@@ -71,32 +77,6 @@ namespace BIMPlugins.Test2dRebar
             }
 
             return Result.Succeeded;
-        }
-
-        private void SetViewName(View view, string baseName)
-        {
-            string currentName = baseName;
-            int counter = 0;
-
-            while (true)
-            {
-                try
-                {
-                    view.Name = currentName;
-                    break;
-                }
-                catch (Exception)
-                {
-                    counter++;
-
-                    currentName = new string('$', counter) + baseName;
-
-                    if (counter > 20)
-                    {
-                        throw new Exception("Не удалось найти свободное имя после 10 попыток.");
-                    }
-                }
-            }
         }
     }
 }

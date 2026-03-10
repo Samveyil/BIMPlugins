@@ -108,8 +108,9 @@ namespace BIMPlugins.Tests
             }
 
             var familyParamId = new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM);
-            var typeParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa")).Id;
-            var idParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d")).Id;
+            var idParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == RebarMethods.IdGuid).Id;
+            var typeParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == RebarMethods.TypeGuid).Id;
+            var numberParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == RebarMethods.NumberGuid).Id;
 
             UnRegisterUpdaters(new ViewUpdater(), doc);
             UnRegisterUpdaters(new RebarWallUpdater(), doc);
@@ -158,6 +159,7 @@ namespace BIMPlugins.Tests
                 ]),
                 [
                     Element.GetChangeTypeParameter(idParameterId),
+                    Element.GetChangeTypeParameter(numberParameterId),
                     Element.GetChangeTypeElementDeletion(),
                     Element.GetChangeTypeAny()
                 ]
