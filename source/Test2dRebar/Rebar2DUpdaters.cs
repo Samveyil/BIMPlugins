@@ -183,18 +183,8 @@ namespace BIMPlugins.Test2dRebar
                         if (sourceRebar == null)
                             return;
                     }
-                    else if (splitTypeParam.Contains("ВертАрм"))
-                    {
-                        typeParamFilter = typeParamId.CreateEqualsFilter(splitTypeParam);
 
-                        sourceRebar = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter]))
-                            .FirstOrDefault(r => r.Id.ToString() != rebarId.ToString());
-
-                        if (sourceRebar == null)
-                            return;
-                    }
-
-                    rebar.get_Parameter(_stepGuid).SetValue(sourceRebar.get_Parameter(_stepGuid).GetValue());
+                    rebar.get_Parameter(_stepGuid).Set(sourceRebar.get_Parameter(_stepGuid).AsDouble());
                 }
                 else
                 {
@@ -220,12 +210,13 @@ namespace BIMPlugins.Test2dRebar
                         }
                     }
 
+                    var stepValue = rebar.get_Parameter(_stepGuid).AsDouble();
                     if (splitTypeParam == "ГорАрм" || splitTypeParam == "Шпилька")
                     {
                         typeParamFilter = typeParamId.CreateEqualsFilter(typeParam);
 
                         foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter])))
-                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
+                            r.get_Parameter(_stepGuid).Set(stepValue);
                     }
                     else if (splitTypeParam == "ВертАрм" || splitTypeParam == "ВертПка")
                     {
@@ -233,18 +224,40 @@ namespace BIMPlugins.Test2dRebar
                         var typeParamNotContainsFilter = typeParamId.CreateNotContainsFilter("ВертАрмТорца");
 
                         foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, orTypeParamFilter, typeParamNotContainsFilter])))
-                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
+                            r.get_Parameter(_stepGuid).Set(stepValue);
+
+                        //Передача диаметера, если есть разбежка
+                        orTypeParamFilter = new LogicalOrFilter(
+                        [
+                            typeParamId.CreateEqualsFilter(typeParam),
+                            typeParamId.CreateEqualsFilter(typeParam.Contains("Разбежка") ? typeParam.Replace("_Разбежка", "").Trim() : $"{typeParam}_Разбежка")
+                        ]);
+
+                        var rebarDiamValue = rebar.get_Parameter(new Guid("a13859b3-a733-4df0-ba54-ba74966408e9")).AsDouble();
+                        foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, orTypeParamFilter])))
+                            r.get_Parameter(new Guid("a13859b3-a733-4df0-ba54-ba74966408e9")).Set(rebarDiamValue);
                     }
                     else if (splitTypeParam == "ВертАрмТорца")
                     {
                         typeParamFilter = typeParamId.CreateContainsFilter(splitTypeParam);
 
                         foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter])))
-                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
+                            r.get_Parameter(_stepGuid).Set(stepValue);
+
+                        //Передача диаметера, если есть разбежка
+                        var orTypeParamFilter = new LogicalOrFilter(
+                        [
+                            typeParamId.CreateEqualsFilter(typeParam),
+                            typeParamId.CreateEqualsFilter(typeParam.Contains("Разбежка") ? typeParam.Replace("_Разбежка", "").Trim() : $"{typeParam}_Разбежка")
+                        ]);
+
+                        var rebarDiamValue = rebar.get_Parameter(new Guid("a13859b3-a733-4df0-ba54-ba74966408e9")).AsDouble();
+                        foreach (var r in doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, orTypeParamFilter])))
+                            r.get_Parameter(new Guid("a13859b3-a733-4df0-ba54-ba74966408e9")).Set(rebarDiamValue);
                     }
                     else
                         foreach (var r in rebars)
-                            r.get_Parameter(_stepGuid).SetValue(rebar.get_Parameter(_stepGuid).GetValue());
+                            r.get_Parameter(_stepGuid).Set(stepValue);
 
                     SetLengthToPointRebars(doc, rebar, idParamId, typeParamId);
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
@@ -267,12 +280,20 @@ namespace BIMPlugins.Test2dRebar
                 ? typeParamId.CreateContainsFilter("ВертАрм")
                 : typeParamId.CreateContainsFilter(splitTypeParam);
 
-            var row2Filter = typeParam.Contains("Доп")
+            var row2Filter = typeParam.Contains("2ряд")
+                ? typeParamId.CreateContainsFilter("2ряд")
+                : typeParamId.CreateNotContainsFilter("2ряд");
+            
+            var dopFilter = typeParam.Contains("Доп")
                 ? typeParamId.CreateContainsFilter("Доп")
                 : typeParamId.CreateNotContainsFilter("Доп");
 
+            var razbeshFilter = typeParam.Contains("Разбежка")
+                ? typeParamId.CreateContainsFilter("Разбежка")
+                : typeParamId.CreateNotContainsFilter("Разбежка");
+
             var rebarFormParam = rebar.GetSymbolParameter(_formGuid);
-            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter, row2Filter]))
+            var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents, new LogicalAndFilter([idParamFilter, typeParamFilter, row2Filter, dopFilter, razbeshFilter]))
                 .Where(r => r.GetSymbolParameter(_formGuid).AsInteger() == rebarFormParam.AsInteger())
                 .ToList();
             
