@@ -262,7 +262,7 @@ namespace BIMPlugins.Test2dRebar
                     SetLengthToPointRebars(doc, rebar, idParamId, typeParamId);
                     SetScheduleParameter(doc, rebar, idParamId, typeParamId);
 
-                    if (splitTypeParam == "Шпилька" || splitTypeParam == "ВертАрмТорца")
+                    if (splitTypeParam == "Шпилька" /*|| splitTypeParam == "ВертАрм"*/)
                         SetCommentForMark(doc, rebar, idParamId, typeParamId);
                 }
             }

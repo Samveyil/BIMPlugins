@@ -94,7 +94,7 @@ namespace BIMPlugins.Test2dRebar.Classes
                 .Select(g => g.First())
                 .ToList();
 
-            var types = typeRebars.Select(r => r.get_Parameter(TypeGuid).AsString());
+            var types = typeRebars.Select(r => r.get_Parameter(TypeGuid).AsString()).ToList();
             var hasTopRebar = types.Any(t => t == "ГорАрм_ДопШагСверху");
             var hasBottomRebar = types.Any(t => t == "ГорАрм_ДопШагСнизу");
 
@@ -230,6 +230,13 @@ namespace BIMPlugins.Test2dRebar.Classes
                 if (typeRebars.FirstOrDefault(r => r.get_Parameter(TypeGuid).AsString() == "ВертАрм_2ряд") != null)
                     countDict["ВертАрм"] = (countDict["ВертАрм"] / 2).Round(0);
 
+                if (typeRebars.FirstOrDefault(r => r.get_Parameter(TypeGuid).AsString() == "ВертАрм_Разбежка") != null)
+                {
+                    var count = countDict["ВертАрм"];
+                    countDict["ВертАрм"] = Math.Ceiling(count / 2);
+                    countDict["ВертАрм_Разбежка"] = Math.Floor(count / 2);
+                }
+
                 /// Корректировка кол-ва ВертАрмТорца
                 foreach (var sectionGroup in sectionGroups.Where(g => g.Key.Type != "ГорПка"))
                 {
@@ -246,7 +253,9 @@ namespace BIMPlugins.Test2dRebar.Classes
 
                     if (rType.Contains("ВертАрм_Доп"))
                         rType = "ВертАрм_Доп";
-                    else
+                    else if (rType == "ВертАрм_Разбежка" || rType == "ВертАрм_2ряд_Разбежка")
+                        rType = "ВертАрм_Разбежка";
+                    else if (!rType.Contains("ВертАрмТорца"))
                         rType = rType.Split('_')[0];
 
                     if (!countDict.ContainsKey(rType))
@@ -302,6 +311,15 @@ namespace BIMPlugins.Test2dRebar.Classes
 
                     rebar.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set($"{vertArmStep}x{horArmStep}(h) {countType}");
                 }
+
+                //if (types.Any(t => t.Contains("Разбежка")))
+                //{
+                //    foreach (var rebar in typeRebars.Where(r => r.get_Parameter(TypeGuid).AsString().Contains("ВертАрм") && !r.get_Parameter(TypeGuid).AsString().Contains("ВертАрмТорца")))
+                //    {
+                //        var value = rebar.get_Parameter(TypeGuid).AsString().Contains("Разбежка") ? "ряд 2" : "ряд 1";
+                //        rebar.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).Set(value);
+                //    }
+                //}
 
                 t.Commit();
             }
