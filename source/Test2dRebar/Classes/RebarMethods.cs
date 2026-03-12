@@ -100,6 +100,17 @@ namespace BIMPlugins.Test2dRebar.Classes
 
             var countDict = new Dictionary<string, double>();
 
+            /// Подсчет кол-ва ВертАрмТорца
+            foreach (var sectionGroup in sectionGroups.Where(g => g.Key.Type != "ГорПка"))
+            {
+                countDict[sectionGroup.Key.Type] = sectionGroup.Count();
+            }
+
+            double GetEdgeRebarValue(string key) => countDict.ContainsKey(key) ? countDict[key] : 0;
+
+            var edgeRebarCount = GetEdgeRebarValue("ВертАрмТорца") + GetEdgeRebarValue("ВертАрмТорца_2ряд")
+                + GetEdgeRebarValue("ВертАрмТорца_Разбежка") + GetEdgeRebarValue("ВертАрмТорца_2ряд_Разбежка");
+
             FamilyInstance palka = null;
             using (Transaction t = new Transaction(doc, "Передать из палки"))
             {
@@ -108,6 +119,8 @@ namespace BIMPlugins.Test2dRebar.Classes
                 foreach (var id in ids.Split(';'))
                 {
                     palka = new ElementId(int.Parse(id)).ToElement<FamilyInstance>();
+
+                    palka.LookupParameter("ВертАрмТорца_КоличНаТорец").Set((int)edgeRebarCount);
 
                     foreach (var visibleParam in palka.Parameters.Cast<Parameter>().Where(p => p.Definition.Name.EndsWith(".Вкл") && !p.IsReadOnly))
                         visibleParam.Set(0);
@@ -165,7 +178,7 @@ namespace BIMPlugins.Test2dRebar.Classes
 
                         if (palka.Symbol.FamilyName.Contains("Пилон") && rType == "ГорАрм")
                         {
-                            if (typeRebar.GetSymbolParameter(RebarMethods.PrefixGuid).AsString() == "Х")
+                            if (typeRebar.GetSymbolParameter(PrefixGuid).AsString() == "Х")
                                 palka.LookupParameter("Хомут.Вкл").Set(1);
                         }
 
@@ -185,6 +198,8 @@ namespace BIMPlugins.Test2dRebar.Classes
                     foreach (var group in typeRebars.GroupBy(r => r.get_Parameter(TypeGuid).AsString().Split('_')[0]))
                     {
                         var rType = group.Key;
+                        if (rType.Contains("ВертАрмТорца"))
+                            continue;
 
                         var palkaParam = palka.Parameters.Cast<Parameter>()
                             .FirstOrDefault(p => p.Definition.Name == $"{rType}_Количество");
@@ -235,12 +250,6 @@ namespace BIMPlugins.Test2dRebar.Classes
                     var count = countDict["ВертАрм"];
                     countDict["ВертАрм"] = Math.Ceiling(count / 2);
                     countDict["ВертАрм_Разбежка"] = Math.Floor(count / 2);
-                }
-
-                /// Корректировка кол-ва ВертАрмТорца
-                foreach (var sectionGroup in sectionGroups.Where(g => g.Key.Type != "ГорПка"))
-                {
-                    countDict[sectionGroup.Key.Type] = sectionGroup.Count();
                 }
 
                 /// Корректировка кол-ва ВертПка
