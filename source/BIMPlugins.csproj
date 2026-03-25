@@ -52,6 +52,8 @@
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
 		<AssemblyName>Dbg_$(AssemblyName)</AssemblyName>
+		<StartAction>Program</StartAction>
+		<StartProgram>C:\Program Files\Autodesk\Revit $(RevitVersion)\Revit.exe</StartProgram>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="!$(Configuration.Contains('Debug'))">
@@ -66,11 +68,17 @@
 		<PackageReference Include="BIMPlugins.Bars" Version="*" />
 		<PackageReference Include="BIMPlugins.ExtStorage" Version="$(RevitVersion).*" />
 		<PackageReference Include="BIMPlugins.Windows" Version="*" />
+		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
 		<PackageReference Include="Revit_All_Main_Versions_API_x64" Version="$(RevitVersion).*" IncludeAssets="build; compile" PrivateAssets="All" />
-		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.*" />
 		<PackageReference Include="ricaun.Revit.UI" Version="*" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Reference Include="BIMPlugins.UI">
+	    <HintPath>..\..\BIMPlugins.UI\source\bin\Release\2019\BIMPlugins.UI.dll</HintPath>
+	  </Reference>
 	</ItemGroup>
 
 	<ItemGroup>

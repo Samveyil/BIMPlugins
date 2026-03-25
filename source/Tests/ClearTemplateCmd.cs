@@ -22,8 +22,7 @@ namespace BIMPlugins.Tests
 
             var parameterBinds = new List<ParameterBind>();
 
-            var map = doc.ParameterBindings;
-            var iter = map.ForwardIterator();
+            var iter = doc.ParameterBindings.ForwardIterator();
             while (iter.MoveNext())
             {
                 var paramBind = new ParameterBind(iter.Current as ElementBinding, iter.Key as InternalDefinition);
@@ -56,7 +55,7 @@ namespace BIMPlugins.Tests
 
                     foreach (var paramName in paramKvp.Value)
                     {
-                        map = doc.ParameterBindings;
+                        var map = doc.ParameterBindings;
 
                         var paramBind = parameterBinds.FirstOrDefault(p => p.Name == paramName);
                         if (paramBind == null)
@@ -71,8 +70,12 @@ namespace BIMPlugins.Tests
                         }
                         else
                         {
+                            map.Remove(paramBind.Definition);
+
                             map.ReInsert(paramBind.Definition, bind, paramGroup);
                         }
+
+                        doc.ParameterBindings.ToDefinition(paramName).SetAllowVaryBetweenGroups(doc, paramBind.VariesAcrossGroups);
                     }
                 }
 

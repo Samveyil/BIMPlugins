@@ -1,28 +1,26 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Autodesk.Windows;
 using BIMPlugins.ClashViewer;
 using BIMPlugins.Common;
 using BIMPlugins.Common.WPF;
 using BIMPlugins.Docs;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Methods;
 using BIMPlugins.Families;
 using BIMPlugins.Levels;
 using BIMPlugins.Parameters;
 using BIMPlugins.Sheets;
+using BIMPlugins.UI;
+using BIMPlugins.UI.Utils;
 using BIMPlugins.Views;
 using BIMPlugins.Windows.ViewModels;
 using MaterialDesignColors;
 using MaterialDesignThemes.Wpf;
-using ricaun.Revit.UI;
 using System;
 using System.Collections.Specialized;
 using System.Linq;
 using System.Windows;
 using System.Windows.Media;
-using RibbonPanel = Autodesk.Revit.UI.RibbonPanel;
 
 namespace BIMPlugins
 {
@@ -44,7 +42,7 @@ namespace BIMPlugins
         {
             _uiControlApp = application;
 
-            UIMethods.FindTab(_uiControlApp, tabName);
+            _uiControlApp.FindOrCreateRibbonTab(tabName);
             InitializeDlls();
             
             try
@@ -60,49 +58,27 @@ namespace BIMPlugins
                 return Result.Failed;
             }
 
-            //Изменить
-            _modifyPanel = UIMethods.CreateAWPanel();
-            
-            var modifyTab = ComponentManager.Ribbon.Tabs.FirstOrDefault(t => t.Id == "Modify");
-            modifyTab.Panels.Add(_modifyPanel);
-            modifyTab.Panels.CollectionChanged += new NotifyCollectionChangedEventHandler(OnCollectionChanged);
-
             //Утилиты
             RibbonPanel commonPanel = application.CreateRibbonPanel(tabName, "Утилиты");
 
             var whoDidButton = commonPanel.CreatePushButton<WhoDidCmd, NotAvailableInFamilyEditor>("Кто сделал\nэто?").SetShowText()
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "angry-32.png"))
+                .SetLargeImage("/BIMPlugins;component/Resources/angry-32.png")
                 .SetToolTip("Позволяет узнать создателя, владельца и последнего редактора выбранного элемента")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Кто сделал это.pdf");
-
-            _whoDidButton = whoDidButton.GetRibbonItem<Autodesk.Windows.RibbonButton>().Clone() as Autodesk.Windows.RibbonButton;
-            _whoDidButton.ShowText = true;
-
-            var fastButton = commonPanel.CreatePushButton<FastSelectCmd, NotAvailableInFamilyEditor>("Быстрый\nвыбор").SetShowText()
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "fastSelect-32.png"))
-                .SetToolTip("Позволяет выбрать элементы одиннаковой категории или все экземпляры одного семейства");
-
-            _fastSelectButton = fastButton.GetRibbonItem<Autodesk.Windows.RibbonButton>().Clone() as Autodesk.Windows.RibbonButton;
-            _fastSelectButton.ShowText = true;
-
-            commonPanel.Remove(fastButton);
-
-            _modifyPanel.Source.Items.Add(_whoDidButton);
-            _modifyPanel.Source.Items.Add(_fastSelectButton);
 
             var projectPanelLargeStackedItems = new PushButton[]
             {
                 whoDidButton,
                 commonPanel.CreatePushButton<RotateElementsCmd, NotAvailableInFamilyEditor>("Повернуть").SetShowText()
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "rotate-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "rotate-32.png"))
                     .SetToolTip("Поворачивает элементы вокруг своей оси на заданный угол")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Повернуть.pdf"),
                 commonPanel.CreatePushButton<SuperFilterCmd, NotAvailableInFamilyEditor>("Суперфильтр").SetShowText()
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "superFilter.tiff"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "superFilter.tiff"))
                     .SetToolTip("Фильтр элементов по параметрам")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Суперфильтр.pdf"),
                 commonPanel.CreatePushButton<SumCmd, NotAvailableInFamilyEditor>("Сумма").SetShowText()
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "calculator-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "calculator-32.png"))
                     .SetToolTip("Сумма параметров")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Сумма.pdf"),
             };
@@ -111,34 +87,53 @@ namespace BIMPlugins
             var projectPanelStackedItems = new PushButton[]
             {
                 commonPanel.CreatePushButton<MirrorCmd, NotAvailableInFamilyEditor>("Зеркало").SetShowText()
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "mirror-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "mirror-32.png"))
                     .SetToolTip("Поиск отзеркаленных семейств"),
                 commonPanel.CreatePushButton<ViewSettingsCmd, NotAvailableInFamilyEditor>("Настройка\nвидимости").SetShowText()
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "bulb-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "bulb-32.png"))
                     .SetToolTip("Настроить видимость фильтров и рабочих наборов")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Настройка видимости.pdf"),
                 commonPanel.CreatePushButton<GetFaceAreaCmd, NotAvailableInFamilyEditor>("Площадь\nграней").SetShowText()
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "areaSum-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "areaSum-32.png"))
                     .SetToolTip("Вычисляет суммарную площадь выбранных граней")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Площадь граней.pdf")
             };
             commonPanel.RowStackedItems(projectPanelStackedItems);
 
+            //Изменить
+            var tempPanel = _uiControlApp.CreateOrSelectPanel("Temp");
+
+            _whoDidButton = whoDidButton.ToAWRibbonItem<Autodesk.Windows.RibbonButton>().Clone() as Autodesk.Windows.RibbonButton;
+            _whoDidButton.ShowText = true;
+            _whoDidButton.Orientation = System.Windows.Controls.Orientation.Vertical;
+            
+            _fastSelectButton = tempPanel.CreatePushButton<FastSelectCmd, NotAvailableInFamilyEditor>("Быстрый\nвыбор")
+                .SetLargeImage(GetImagePath("BIMPlugins", "fastSelect-32.png"))
+                .SetToolTip("Позволяет выбрать элементы одиннаковой категории или все экземпляры одного семейства")
+                .ToAWRibbonItem<Autodesk.Windows.RibbonButton>();
+
+            tempPanel.Remove();
+
+            _modifyPanel = RibbonModifyUtils.CreateRibbonPanel(tabName, [_whoDidButton, _fastSelectButton]);
+
+            var modifyTab = RibbonModifyUtils.RibbonTab();
+            modifyTab.Panels.CollectionChanged += new NotifyCollectionChangedEventHandler(OnCollectionChanged);
+
             //Коллизии
             RibbonPanel nwcPanel = application.CreateRibbonPanel(tabName, "Коллизии");
             nwcPanel.CreatePushButton<ClashViewerCmd, AlwaysAvailable>("Просмотр").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "clashManager.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "clashManager.tiff"))
                 .SetToolTip("Позволяет просматривать коллизии из отчета Navisworks")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Просмотр коллизий_Новый.pdf");
 
             //Виды
             RibbonPanel viewsPanel = application.CreateRibbonPanel(tabName, "Виды");
             viewsPanel.CreatePushButton<ColourFilterCmd, NotAvailableInFamilyEditor>("Цветные\nфильтры").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "colorFilter.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "colorFilter.tiff"))
                 .SetToolTip("Позволяет создавать цветные фильтры на виде по значениям выбранного параметра выбранных категорий")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Цветные фильтры.pdf");
             viewsPanel.CreatePushButton<ImageFromLegendCmd, NotAvailableInFamilyEditor>("Изображения\nиз легенд").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "imageFromLegend-32.png"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "imageFromLegend-32.png"))
                 .SetToolTip("Позволяет сохранить в проекте изображения из легенд")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Изображения из легенд.pdf");
             viewsPanel.CreatePushButton<SectionBoxCmd, NotAvailableInFamilyEditor>("Обрезка\nпо уровням").SetShowText(true)
@@ -146,36 +141,36 @@ namespace BIMPlugins
                 .SetToolTip("Обрезка 3D-вида по выбранным уровням")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Обрезка по уровням.pdf");
             viewsPanel.CreatePushButton<CropBoxOn3DCmd, NotAvailableInFamilyEditor>("Секущий\nдиапазон").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "cropBox-32.png"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "cropBox-32.png"))
                 .SetToolTip("Показ секущего диапазона видов в цвете на 3D")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Секущий диапазон.pdf");
             viewsPanel.CreatePushButton<ActivateByIdCmd, NotAvailableInFamilyEditor>("Перейти\nпо Id").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "getSheetById.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "getSheetById.tiff"))
                 .SetToolTip("Позволяет открыть вид по его Id или по Id элемента, привязанному к этому виду, из буфера обмена");
 
             //Листы
             RibbonPanel sheetsPanel = application.CreateRibbonPanel(tabName, "Листы");
             sheetsPanel.CreatePushButton<SpecificationScheduleCmd, NotAvailableInFamilyEditor>("Ведомость\nспецификаций").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "specification.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "specification.tiff"))
                 .SetToolTip("Позволяет создать ведомость спецификаций в Revit")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Ведомость спецификаций.pdf");
             sheetsPanel.CreatePushButton<WhereIsViewCmd, NotAvailableInFamilyEditor>("Где вид?").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "whereIsView-32.png"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "whereIsView-32.png"))
                 .SetToolTip("Позволяет быстро определять на каком листе располагается активный вид")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Где вид.pdf");
 
             var sheetsPanelStackedItems = new PushButton[]
             {
                 sheetsPanel.CreatePushButton<CopySheetsCmd, NotAvailableInFamilyEditor>("Дубликатор листов").SetShowText(true)
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "copySheets-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "copySheets-32.png"))
                     .SetToolTip("Позволяет копировать листы с заданными настройками")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Дубликатор листов.pdf"),
                 sheetsPanel.CreatePushButton<SheetsNumberingCmd, NotAvailableInFamilyEditor>("Нумератор листов").SetShowText(true)
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "renumberSheets-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "renumberSheets-32.png"))
                     .SetToolTip("Позволяет производить перенумерацию листов в рамках одной группы листов")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Нумератор листов.pdf"),
                 sheetsPanel.CreatePushButton<CopyStampCmd, NotAvailableInFamilyEditor>("Копировать штамп").SetShowText(true)
-                    .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "copyStamp-32.png"))
+                    .SetLargeImage(GetImagePath("BIMPlugins", "copyStamp-32.png"))
                     .SetToolTip("Позволяет скопировать заполнения штампа с выбранного листа на выбранные листы")
                     .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Копировать штамп.pdf"),
             };
@@ -184,26 +179,26 @@ namespace BIMPlugins
             //Параметры
             RibbonPanel parametersPanel = application.CreateRibbonPanel(tabName, "Параметры");
             parametersPanel.CreatePushButton<SetParameterValueCmd, NotAvailableInFamilyEditor>("Заполнятор").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "setParameterValue.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "setParameterValue.tiff"))
                 .SetToolTip("Позволяет заполнить параметр у выбранных элементов по выбранной логике работы")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Заполнятор.pdf");
             parametersPanel.CreatePushButton<CopyPropertiesCmd, NotAvailableInFamilyEditor>("Копирование\nсвойств").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "copyProperties.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "copyProperties.tiff"))
                 .SetToolTip("Позволяет скопировать свойства с одного элемента на другой")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Копирование свойств.pdf");
             parametersPanel.CreatePushButton<NumerateCmd, NotAvailableInFamilyEditor>("Нумерация").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "numerate.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "numerate.tiff"))
                 .SetToolTip("Позволяет добавить нумерацию в указанный параметр элементов")
                 .SetContextualHelp(@"B:\00_Библиотека\1_Инструкции\Общие\BIMPlugins\Инструкция Нумерация.pdf");
 
             //Уровни
             RibbonPanel levelPanel = application.CreateRibbonPanel(tabName, "Уровни");
             levelPanel.CreatePushButton<MoveLevelCmd, NotAvailableInFamilyEditor>("Переместить\nуровень").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "moveLevel.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "moveLevel.tiff"))
                 .SetToolTip("Позволяет переместить уровень на нужную отметку, не меняя положение элементов в модели")
                 .SetContextualHelp(@"X:\03_BIM отдел\02_Инструкции\Инструкции к BIMPlugins\Инструкция Переместить уровень.pdf");
             levelPanel.CreatePushButton<SetNewLevelCmd, NotAvailableInFamilyEditor>("Назначить\nуровень").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "setNewLevel.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "setNewLevel.tiff"))
                 .SetToolTip("Позволяет изменить привязку элемента к уровню")
                 .SetContextualHelp(@"X:\03_BIM отдел\02_Инструкции\Инструкции к BIMPlugins\Инструкция Назначить уровень.pdf");
 
@@ -211,26 +206,26 @@ namespace BIMPlugins
             RibbonPanel docsPanel = application.CreateRibbonPanel(tabName, "Документы");
             var serverSplitBtn = docsPanel.CreateSplitButton("RevitServer");
             serverSplitBtn.CreatePushButton<RSNInfoCmd, AlwaysAvailable>("Найти\nпроект").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "serverInfo.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "serverInfo.tiff"))
                 .SetToolTip("Позволяет найти и открыть файл с Revit Server");
             serverSplitBtn.CreatePushButton<MakeRSNCmd, AlwaysAvailable>("Создать\nструктуру").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "serverCreate.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "serverCreate.tiff"))
                 .SetToolTip("Позволяет создать структуру RSN для использования в других плагинах");
 
             docsPanel.CreatePushButton<RelinquishCmd, AlwaysAvailable>("Освободить\nэлементы").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "relinquish.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "relinquish.tiff"))
                 .SetToolTip("Позволяет освободить все забранные элементы в проектах");
             docsPanel.CreatePushButton<CloseDocsCmd, AlwaysAvailable>("Закрыть").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "closeDocks.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "closeDocks.tiff"))
                 .SetToolTip("При ошибке плагинов фоновые документы не закрываются и хранятся в памяти");
 
             //Семейства
             RibbonPanel familyPanel = application.CreateRibbonPanel(tabName, "Семейства");
             familyPanel.CreatePushButton<SaveFamilyCmd, AvailableInFamilyEditor>("Сохранить").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "saveFamily.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "saveFamily.tiff"))
                 .SetToolTip("Позволяет пересохранить семейство без увеличения размера файла");
             familyPanel.CreatePushButton<BindParametersCmd, AvailableInFamilyEditor>("Связать\nпараметры").SetShowText(true)
-                .SetLargeImage(UIMethods.GetImagePath("BIMPlugins", "bindFamilies.tiff"))
+                .SetLargeImage(GetImagePath("BIMPlugins", "bindFamilies.tiff"))
                 .SetToolTip("Позволяет связать параметры между родительским и вложенным семействами");
 
             return Result.Succeeded;
@@ -258,6 +253,11 @@ namespace BIMPlugins
             var hue = new Hue("Dammy", Colors.Black, Colors.White);
 
             var vm = new MessageViewModel("1", MessageBoxImage.None, true);
+        }
+
+        public static string GetImagePath(string dllName, string imageName)
+        {
+            return $@"/{dllName};component/Resources/{imageName}";
         }
     }
 

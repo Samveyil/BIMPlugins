@@ -1,20 +1,7 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Autodesk.Revit.UI.Events;
-using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
-using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Methods;
-using BIMPlugins.Test2dRebar;
-using BIMPlugins.Test2dRebar.Classes;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Security.Cryptography;
-using System.Xml.Linq;
 
 namespace BIMPlugins.Tests
 {
@@ -26,196 +13,17 @@ namespace BIMPlugins.Tests
         {
             var doc = RevitAPI.Document;
 
-            //Guid _idGuid = new Guid("7289385b-86de-4ac5-bd2a-3e5f004b542d");                    // OLP_Id
-            //Guid _typeGuid = new Guid("215d6c56-3700-4db9-a5f5-53ec85b36daa");                  // OLP_Зона расположения
-            //Guid _stepGuid = new Guid("5d7cb726-ac59-4f05-a902-8fdffa796d15");                  // ADSK_Шаг элементов
-            //Guid _useScheduleGuid = new Guid("b220b6e8-254f-479f-95b8-62fc7123b098");           // OLP_Учет в спецификации
-
-            //var shParams = doc.ToElements<SharedParameterElement>();
-
-            //var idParamId = shParams.FirstOrDefault(p => p.GuidValue == _idGuid).Id;
-            //var typeParamId = shParams.FirstOrDefault(p => p.GuidValue == _typeGuid).Id;
-            //var useScheduleParamId = shParams.FirstOrDefault(p => p.GuidValue == _useScheduleGuid).Id;
 
             using (Transaction t = new Transaction(doc, "test"))
             {
                 t.Start();
 
-                //var rebar = new ElementId(25759661).ToElement();
+                
 
-                //var idParam = rebar.get_Parameter(_idGuid).AsString();
-                ////var typeParam = rebar.get_Parameter(_typeGuid).AsString();
-
-                //////typeParam = typeParam.Split('_')[0];
-
-                ////var idParamFilter = idParamId.CreateEqualsFilter("25749139");
-                //////var typeParamFilter = typeParamId.CreateContainsFilter(typeParam);
-
-                ////var rebars = doc.ToElements(idParamFilter);
-                ////foreach (var r in rebars)
-                ////{
-                ////    r.get_Parameter(_idGuid).Set("25782650");
-                ////}
-
-                //double length = 0;
-                //foreach (var id in idParam.Split(';'))
-                //{
-                //    var palka = new ElementId(int.Parse(id)).ToElement(doc);
-                //    var palkaOffset = palka.LookupParameter("ГорАрм_ОтступОтТорца").AsDouble();
-                //    var palkaLength = palka.LookupParameter("Длина").AsDouble();
-
-                //    length += palkaLength - 2 * palkaOffset;
-                //}
-
-                //var rebars = doc.ToElements<FamilyInstance>(BuiltInCategory.OST_DetailComponents)
-                //    .Where(r => r.Symbol.FamilyName == "1E-SHP-66 - Дуга_x01");
-
-                //var newSymbol = new ElementId(31092768).ToElement<FamilySymbol>();
-
-                //foreach (var rebar in rebars)
-                //{
-                //    var p2 = rebar.LookupParameter("Радиус").AsDouble();
-
-                //    rebar.Symbol = newSymbol;
-
-                //    rebar.LookupParameter("Радиус").Set(p2);
-                //}
-
-                //var view = doc.ActiveView;
-
-                //var rightDirect = view.RightDirection.Normalize();
-                //var upDirect = view.UpDirection.Normalize();
-
-                //var wall = new ElementId(26010811).ToElement<Wall>();
-
-                //var midlPoint = (wall.Location as LocationCurve).Curve.Evaluate(0.5, true);
-
-                //var targetPoint = RevitAPI.UIDocument.ToSelectedElements().First().ToLocationCoordinates();
-
-                //XYZ relativeVector = targetPoint - midlPoint;
-                //double projection = relativeVector.DotProduct(upDirect);
-
-                //if (projection > 0.001) // небольшой допуск из-за погрешностей вычислений
-                //{
-                //    TaskDialog.Show("Результат", $"Точка ВЫШЕ на {projection * 304.8:F2} мм");
-                //}
-                //else if (projection < -0.001)
-                //{
-                //    TaskDialog.Show("Результат", $"Точка НИЖЕ на {Math.Abs(projection) * 304.8:F2} мм");
-                //}
-
-                t.Commit();
+                t.RollBack();
             }
-
-            var familyParamId = new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM);
-            var idParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == RebarMethods.IdGuid).Id;
-            var typeParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == RebarMethods.TypeGuid).Id;
-            var numberParameterId = doc.ToElements<SharedParameterElement>().FirstOrDefault(p => p.GuidValue == RebarMethods.NumberGuid).Id;
-
-            UnRegisterUpdaters(new ViewUpdater(), doc);
-            UnRegisterUpdaters(new RebarWallUpdater(), doc);
-            UnRegisterUpdaters(new PalkaUpdater(), doc);
-
-            RegisterUpdater(
-                new ViewUpdater(),
-                doc,
-                new ElementMulticlassFilter(
-                [
-                    typeof(ViewPlan),
-                    typeof(ViewSection)
-                ]),
-                [
-                    Element.GetChangeTypeParameter(idParameterId),
-                    Element.GetChangeTypeElementAddition(),
-                    Element.GetChangeTypeElementDeletion()
-                ]
-            );
-            RegisterUpdater(
-                new RebarWallUpdater(),
-                doc,
-                new LogicalAndFilter(
-                [
-                    new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents),
-                    new ElementClassFilter(typeof(FamilyInstance)),
-                    new LogicalOrFilter([familyParamId.CreateBeginsWithFilter("280"), familyParamId.CreateBeginsWithFilter("281")])
-                ]),
-                [
-                    Element.GetChangeTypeParameter(idParameterId),
-                    Element.GetChangeTypeParameter(typeParameterId),
-                    Element.GetChangeTypeParameter(new ElementId(BuiltInParameter.ELEM_TYPE_PARAM)),
-                    Element.GetChangeTypeElementAddition(),
-                    Element.GetChangeTypeElementDeletion(),
-                    Element.GetChangeTypeAny()
-                ]
-            );
-            RegisterUpdater(
-                new PalkaUpdater(),
-                doc,
-                new LogicalAndFilter(
-                [
-                    new ElementCategoryFilter(BuiltInCategory.OST_DetailComponents),
-                    new ElementClassFilter(typeof(FamilyInstance)),
-                    familyParamId.CreateBeginsWithFilter("285")
-                ]),
-                [
-                    Element.GetChangeTypeParameter(idParameterId),
-                    Element.GetChangeTypeParameter(numberParameterId),
-                    Element.GetChangeTypeElementDeletion(),
-                    Element.GetChangeTypeAny()
-                ]
-            );
 
             return Result.Succeeded;
-        }
-
-        private static void RegisterUpdater(IUpdater updater, Document document, ElementFilter elementFilter, List<ChangeType> changeTypes)
-        {
-            var updaterId = updater.GetUpdaterId();
-
-            if (UpdaterRegistry.IsUpdaterRegistered(updaterId, document))
-            {
-                return;
-            }
-
-            UpdaterRegistry.RegisterUpdater(updater, document, true);
-
-            foreach (var changeType in changeTypes)
-            {
-                UpdaterRegistry.AddTrigger(updaterId, document, elementFilter, changeType);
-            }
-        }
-        private static void UnRegisterUpdaters(IUpdater updater, Document document)
-        {
-            var updaterId = updater.GetUpdaterId();
-
-            if (UpdaterRegistry.IsUpdaterRegistered(updaterId, document))
-            {
-                UpdaterRegistry.UnregisterUpdater(updaterId, document);
-            }
-        }
-
-
-        private void SetLength(FamilyInstance familyInstance, Parameter parameter)
-        {
-            var rebLine = (familyInstance.Location as LocationCurve).Curve as Line;
-
-            var direction = rebLine.Direction;
-            direction = direction.Normalize();
-
-            XYZ startPoint;
-            if (rebLine.Direction.Z.Round() == 1)
-            {
-                startPoint = rebLine.GetEndPoint(0);
-            }
-            else
-            {
-                startPoint = rebLine.GetEndPoint(1);
-                direction = direction.Negate();
-            }
-
-            XYZ endPoint = startPoint + direction * parameter.AsDouble();
-
-            (familyInstance.Location as LocationCurve).Curve = Line.CreateBound(startPoint, endPoint);
         }
     }
 }
