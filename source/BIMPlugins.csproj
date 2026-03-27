@@ -67,7 +67,7 @@
 		<PackageReference Include="Aspose.Cells" Version="25.3.0" />
 		<PackageReference Include="BIMPlugins.Bars" Version="*" />
 		<PackageReference Include="BIMPlugins.ExtStorage" Version="$(RevitVersion).*" />
-		<PackageReference Include="BIMPlugins.UI" Version="$(RevitVersion).*" />
+		<PackageReference Include="BIMPlugins.UI" Version="*" />
 		<PackageReference Include="BIMPlugins.Windows" Version="*" />
 		<PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
 		<PackageReference Include="MaterialDesignThemes" Version="5.2.1" />
