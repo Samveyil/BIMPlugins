@@ -191,7 +191,7 @@ namespace BIMPlugins.Views.WPF
                         _ => parameterId.CreateEqualsFilter(value.ToString())
                     };
 
-                    var parameterFilterElement = filters.FirstOrDefault(f => f.Name == $"SEPlugins_{SelectedParameterName}_{valueItem.ValueString}");
+                    var parameterFilterElement = filters.FirstOrDefault(f => f.Name == $"BIMPlugins_{SelectedParameterName}_{valueItem.ValueString}");
                     if (parameterFilterElement != null)
                     {
                         parameterFilterElement.SetCategories(_selectedCategories.Select(c => c.Id).ToList());

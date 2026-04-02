@@ -249,10 +249,10 @@ namespace BIMPlugins
 
         private void InitializeDlls()
         {
-            var card = new Card();
-            var hue = new Hue("Dammy", Colors.Black, Colors.White);
+            new Card();
+            new Hue("Dammy", Colors.Black, Colors.White);
 
-            var vm = new MessageViewModel("1", MessageBoxImage.None, true);
+            new MessageViewModel("1", MessageBoxImage.None, true);
         }
     }
 
