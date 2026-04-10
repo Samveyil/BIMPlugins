@@ -83,47 +83,47 @@ namespace BIMPlugins.Tests
                 {
                     t.Start();
 
-                    var param = parameters.FirstOrDefault(p => p.Definition.Name == "Класс стали");
-                    famManager.RemoveParameter(param);
+                    //var param = parameters.FirstOrDefault(p => p.Definition.Name == "Класс стали");
+                    //famManager.RemoveParameter(param);
 
-                    if (famManager.Types.Cast<FamilyType>().Count() == 3)
-                        famManager.DeleteCurrentType();
+                    //if (famManager.Types.Cast<FamilyType>().Count() == 3)
+                    //    famManager.DeleteCurrentType();
 
-                    famManager.RenameCurrentType("А500С");
+                    //famManager.RenameCurrentType("А500С");
 
-                    var newParam = famManager.AddParameter(
-                        ParameterMethods.FindExternalDefinition("ADSK_Код металлопроката", new Guid("32a47c7f-e91d-4a8e-bf24-927cb679b4d1")),
-                        BuiltInParameterGroup.PG_REBAR_ARRAY,
-                        false
-                    );
-                    famManager.Set(newParam, 500);
+                    //var newParam = famManager.AddParameter(
+                    //    ParameterMethods.FindExternalDefinition("ADSK_Код металлопроката", new Guid("32a47c7f-e91d-4a8e-bf24-927cb679b4d1")),
+                    //    BuiltInParameterGroup.PG_REBAR_ARRAY,
+                    //    false
+                    //);
+                    //famManager.Set(newParam, 500);
 
-                    newParam = famManager.AddParameter("#Арматура_Код металлопроката",
-                        BuiltInParameterGroup.PG_REBAR_ARRAY,
-                        ParameterType.Text,
-                        false
-                    );
+                    //newParam = famManager.AddParameter("#Арматура_Код металлопроката",
+                    //    BuiltInParameterGroup.PG_REBAR_ARRAY,
+                    //    ParameterType.Text,
+                    //    false
+                    //);
 
-                    famManager.SetDescription(newParam, "240 - А240;\r\n400 - А400;\r\n500 - А500С; 500.1 - В500С; 500.3 - А500; 500.4 - А500СП;\r\n600 - А600; 600.1 - Ап600;\r\n800 - А800;\r\n1000 - А1000;");
-                    famManager.SetFormula(newParam, "\"#\"");
+                    //famManager.SetDescription(newParam, "240 - А240;\r\n400 - А400;\r\n500 - А500С; 500.1 - В500С; 500.3 - А500; 500.4 - А500СП;\r\n600 - А600; 600.1 - Ап600;\r\n800 - А800;\r\n1000 - А1000;");
+                    //famManager.SetFormula(newParam, "\"#\"");
 
-                    newParam = famManager.AddParameter("#Проволка_Код металлопроката",
-                        BuiltInParameterGroup.PG_REBAR_ARRAY,
-                        ParameterType.Text,
-                        false
-                    );
+                    //newParam = famManager.AddParameter("#Проволка_Код металлопроката",
+                    //    BuiltInParameterGroup.PG_REBAR_ARRAY,
+                    //    ParameterType.Text,
+                    //    false
+                    //);
 
-                    famManager.SetDescription(newParam, "500.2 - Вp-I;\r\n1200 - Вр-II Ø8; 1200.1 - В-II Ø8;\r\n1300 - Вр-II Ø7; 1300.1 - В-II Ø7;\r\n1400 - Вр-II (Ø4 Ø5 Ø6); 1400.1 - В-II (Ø4 Ø5 Ø6);\r\n1500 - Вр-II Ø3; 1500.1 - В-II Ø3;");
-                    famManager.SetFormula(newParam, "\"#\"");
+                    //famManager.SetDescription(newParam, "500.2 - Вp-I;\r\n1200 - Вр-II Ø8; 1200.1 - В-II Ø8;\r\n1300 - Вр-II Ø7; 1300.1 - В-II Ø7;\r\n1400 - Вр-II (Ø4 Ø5 Ø6); 1400.1 - В-II (Ø4 Ø5 Ø6);\r\n1500 - Вр-II Ø3; 1500.1 - В-II Ø3;");
+                    //famManager.SetFormula(newParam, "\"#\"");
 
-                    famDoc.Regenerate();
-                    parameters = famManager.GetParameters().ToList();
+                    //famDoc.Regenerate();
+                    //parameters = famManager.GetParameters().ToList();
 
-                    var index = parameters.FindIndex(p => p.Definition.Name == "ADSK_Код металлопроката");
-                    param = parameters[index];
+                    //var index = parameters.FindIndex(p => p.Definition.Name == "ADSK_Код металлопроката");
+                    //param = parameters[index];
 
-                    parameters.RemoveAt(index);
-                    parameters.Insert(index - 2, param);
+                    //parameters.RemoveAt(index);
+                    //parameters.Insert(index - 2, param);
 
                     famManager.ReorderParameters(parameters);
 

@@ -238,7 +238,7 @@ namespace BIMPlugins
 
             _modifyPanel.IsVisible = visible;
             _fastSelectButton.IsVisible = visible;
-            _whoDidButton.IsVisible = visible && RevitAPI.Document.IsWorkshared;
+            _whoDidButton.IsVisible = visible && RevitAPI.Document?.IsWorkshared == true;
         }
 
         private void InitializeDlls()
