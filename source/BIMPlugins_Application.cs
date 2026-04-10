@@ -115,6 +115,7 @@ namespace BIMPlugins
             tempPanel.Remove();
 
             _modifyPanel = RibbonModifyUtils.CreateRibbonPanel(tabName, [_whoDidButton, _fastSelectButton]);
+            _modifyPanel.IsVisible = false;
 
             var modifyTab = RibbonModifyUtils.RibbonTab();
             modifyTab.Panels.CollectionChanged += new NotifyCollectionChangedEventHandler(OnCollectionChanged);
@@ -233,18 +234,11 @@ namespace BIMPlugins
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
-            if (e.NewItems != null && RevitAPI.UIDocument?.ToSelectedElements().Count() == 1)
-            {
-                _modifyPanel.IsVisible = true;
-                _fastSelectButton.IsVisible = true;
-                _whoDidButton.IsVisible = RevitAPI.Document.IsWorkshared;
-            }
-            if (e.OldItems != null || RevitAPI.UIDocument?.ToSelectedElements().Count() != 1)
-            {
-                _modifyPanel.IsVisible = false;
-                _whoDidButton.IsVisible = false;
-                _fastSelectButton.IsVisible = false;
-            }
+            var visible = RevitAPI.UIDocument?.ToSelectedElements().Count() == 1;
+
+            _modifyPanel.IsVisible = visible;
+            _fastSelectButton.IsVisible = visible;
+            _whoDidButton.IsVisible = visible && RevitAPI.Document.IsWorkshared;
         }
 
         private void InitializeDlls()

@@ -4,7 +4,6 @@ using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Interfaces;
 using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Collections.Generic;
@@ -15,7 +14,7 @@ namespace BIMPlugins.Tests
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
-    public class TestCmd : IExternalCommand
+    public class TestCmd1 : IExternalCommand
     {
 
         private const double GoldenRatioConjugate = 0.618033988749895;
@@ -59,17 +58,18 @@ namespace BIMPlugins.Tests
 
             var paramNames = new List<string>
             {
+                "ADSK_Обозначение",
                 "ADSK_Код металлопроката",
                 "#Арматура_Код металлопроката",
                 "#Проволка_Код металлопроката"
             };
 
-            var famFolderPath = @"C:\Users\shibliev\Desktop\Test";
-
             var saveOpt = new SaveAsOptions()
             {
                 MaximumBackups = 1
             };
+
+            var famFolderPath = @"C:\Users\shibliev\Desktop\Test";
 
             foreach (var filePath in Directory.GetFiles(famFolderPath))
             {
@@ -83,24 +83,54 @@ namespace BIMPlugins.Tests
                 {
                     t.Start();
 
-                    var famInst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
-                        .CreateBeginsWithFilter("280_Условный стержень для маркировки")).FirstOrDefault();
+                    var param = parameters.FirstOrDefault(p => p.Definition.Name == "Класс стали");
+                    famManager.RemoveParameter(param);
 
-                    var Inst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
-                        .CreateBeginsWithFilter("280_Стержень")).FirstOrDefault();
+                    if (famManager.Types.Cast<FamilyType>().Count() == 3)
+                        famManager.DeleteCurrentType();
 
-                    famInst.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"))
-                        .SetValue(Inst.ToElementType(famDoc).get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d")).GetValue());
+                    famManager.RenameCurrentType("А500С");
+
+                    var newParam = famManager.AddParameter(
+                        ParameterMethods.FindExternalDefinition("ADSK_Код металлопроката", new Guid("32a47c7f-e91d-4a8e-bf24-927cb679b4d1")),
+                        BuiltInParameterGroup.PG_REBAR_ARRAY,
+                        false
+                    );
+                    famManager.Set(newParam, 500);
+
+                    newParam = famManager.AddParameter("#Арматура_Код металлопроката",
+                        BuiltInParameterGroup.PG_REBAR_ARRAY,
+                        ParameterType.Text,
+                        false
+                    );
+
+                    famManager.SetDescription(newParam, "240 - А240;\r\n400 - А400;\r\n500 - А500С; 500.1 - В500С; 500.3 - А500; 500.4 - А500СП;\r\n600 - А600; 600.1 - Ап600;\r\n800 - А800;\r\n1000 - А1000;");
+                    famManager.SetFormula(newParam, "\"#\"");
+
+                    newParam = famManager.AddParameter("#Проволка_Код металлопроката",
+                        BuiltInParameterGroup.PG_REBAR_ARRAY,
+                        ParameterType.Text,
+                        false
+                    );
+
+                    famManager.SetDescription(newParam, "500.2 - Вp-I;\r\n1200 - Вр-II Ø8; 1200.1 - В-II Ø8;\r\n1300 - Вр-II Ø7; 1300.1 - В-II Ø7;\r\n1400 - Вр-II (Ø4 Ø5 Ø6); 1400.1 - В-II (Ø4 Ø5 Ø6);\r\n1500 - Вр-II Ø3; 1500.1 - В-II Ø3;");
+                    famManager.SetFormula(newParam, "\"#\"");
+
+                    famDoc.Regenerate();
+                    parameters = famManager.GetParameters().ToList();
+
+                    var index = parameters.FindIndex(p => p.Definition.Name == "ADSK_Код металлопроката");
+                    param = parameters[index];
+
+                    parameters.RemoveAt(index);
+                    parameters.Insert(index - 2, param);
+
+                    famManager.ReorderParameters(parameters);
 
                     t.Commit();
                 }
 
-                famDoc.PurgeUnused();
-
                 var newPath = filePath.Replace(".rfa", "1.rfa");
-
-                saveOpt.PreviewViewId = famDoc.ToElements<View>().FirstOrDefault(v => v.Name == "Опорный уровень").Id;
-
                 famDoc.SaveAs(newPath, saveOpt);
 
                 famDoc.Close(false);

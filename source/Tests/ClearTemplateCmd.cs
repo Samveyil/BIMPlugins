@@ -32,13 +32,13 @@ namespace BIMPlugins.Tests
 
             var guidsDict = new Dictionary<string, Guid>();
 
-            var paramDict = GetSortParametersDict(@"C:\Users\shibliev\Desktop\параметры.txt");
+            var paramDict = GetSortParametersDict(@"C:\Users\shibliev\Desktop\параметры_Прочее.txt");
 
             using (Transaction t = new Transaction(doc, "Очистить шаблон"))
             {
                 t.Start();
 
-                foreach (var param in doc.ToElements<SharedParameterElement>().ToList())
+                foreach (var param in doc.ToElements<SharedParameterElement>().Where(p => p.GetDefinition().ParameterGroup == BuiltInParameterGroup.INVALID).ToList())
                 {
                     guidsDict.Add(param.Name, param.GuidValue);
 
