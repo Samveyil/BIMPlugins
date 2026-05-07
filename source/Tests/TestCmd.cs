@@ -1,4 +1,5 @@
 ﻿using Autodesk.Revit.Attributes;
+using Autodesk.Revit.Creation;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
@@ -17,13 +18,9 @@ namespace BIMPlugins.Tests
     [Regeneration(RegenerationOption.Manual)]
     public class TestCmd : IExternalCommand
     {
-
-        private const double GoldenRatioConjugate = 0.618033988749895;
-        private static double _currentHue = 0;
-
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            //var doc = RevitAPI.Document;
+            var doc = RevitAPI.Document;
 
             //var result = string.Empty;
 
@@ -57,57 +54,57 @@ namespace BIMPlugins.Tests
 
             //TaskDialog.Show("Инфо", result);
 
-            var paramNames = new List<string>
-            {
-                "ADSK_Код металлопроката",
-                "#Арматура_Код металлопроката",
-                "#Проволка_Код металлопроката"
-            };
+            //var paramNames = new List<string>
+            //{
+            //    "ADSK_Код металлопроката",
+            //    "#Арматура_Код металлопроката",
+            //    "#Проволка_Код металлопроката"
+            //};
 
-            var famFolderPath = @"C:\Users\shibliev\Desktop\Test";
+            //var famFolderPath = @"C:\Users\shibliev\Desktop\Test";
 
-            var saveOpt = new SaveAsOptions()
-            {
-                MaximumBackups = 1
-            };
+            //var saveOpt = new SaveAsOptions()
+            //{
+            //    MaximumBackups = 1
+            //};
 
-            foreach (var filePath in Directory.GetFiles(famFolderPath))
-            {
-                var famDoc = RevitAPI.Application.OpenDocumentFile(filePath);
-                //var famDoc = RevitAPI.Document;
-                var famManager = famDoc.FamilyManager;
+            //foreach (var filePath in Directory.GetFiles(famFolderPath))
+            //{
+            //    var famDoc = RevitAPI.Application.OpenDocumentFile(filePath);
+            //    //var famDoc = RevitAPI.Document;
+            //    var famManager = famDoc.FamilyManager;
 
-                var parameters = famManager.GetParameters().ToList();
+            //    var parameters = famManager.GetParameters().ToList();
 
-                using (Transaction t = new Transaction(famDoc, "test"))
-                {
-                    t.Start();
+            //    using (Transaction t = new Transaction(famDoc, "test"))
+            //    {
+            //        t.Start();
 
-                    var famInst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
-                        .CreateBeginsWithFilter("280_Условный стержень для маркировки")).FirstOrDefault();
+            //        var famInst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
+            //            .CreateBeginsWithFilter("280_Условный стержень для маркировки")).FirstOrDefault();
 
-                    var Inst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
-                        .CreateBeginsWithFilter("280_Стержень")).FirstOrDefault();
+            //        var Inst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
+            //            .CreateBeginsWithFilter("280_Стержень")).FirstOrDefault();
 
-                    famInst.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"))
-                        .SetValue(Inst.ToElementType(famDoc).get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d")).GetValue());
+            //        famInst.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"))
+            //            .SetValue(Inst.ToElementType(famDoc).get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d")).GetValue());
 
-                    t.Commit();
-                }
+            //        t.Commit();
+            //    }
 
-                famDoc.PurgeUnused();
+            //    famDoc.PurgeUnused();
 
-                var newPath = filePath.Replace(".rfa", "1.rfa");
+            //    var newPath = filePath.Replace(".rfa", "1.rfa");
 
-                saveOpt.PreviewViewId = famDoc.ToElements<View>().FirstOrDefault(v => v.Name == "Опорный уровень").Id;
+            //    saveOpt.PreviewViewId = famDoc.ToElements<View>().FirstOrDefault(v => v.Name == "Опорный уровень").Id;
 
-                famDoc.SaveAs(newPath, saveOpt);
+            //    famDoc.SaveAs(newPath, saveOpt);
 
-                famDoc.Close(false);
+            //    famDoc.Close(false);
 
-                File.Delete(filePath);
-                File.Move(newPath, filePath);
-            }
+            //    File.Delete(filePath);
+            //    File.Move(newPath, filePath);
+            //}
 
             //var view = doc.ActiveView;
 
@@ -118,58 +115,59 @@ namespace BIMPlugins.Tests
             //    .FirstOrDefault(e => e.Name == "<Сплошная заливка>")
             //    .Id;
 
+            //var elev = UnitUtils.ConvertToInternalUnits(90000, ParameterMethods.GetUnitType());
+
+            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
+
             //using (Transaction t = new Transaction(doc, "test"))
             //{
             //    t.Start();
 
-            //    foreach (var filterId in filters)
+            //    //var level = Level.Create(doc, elev);
+            //    //level.Name = $"{DateTime.Today.ToString("yyyyMMdd")}_Абс.отм.";
+
+            //    //foreach (var link in doc.ToElements<RevitLinkInstance>())
+            //    //{
+            //    //    var zCoord = link.GetTotalTransform().Origin.Z;
+
+            //    //    ElementTransformUtils.MoveElement(doc, link.Id, new XYZ(0, 0, elev - zCoord));
+            //    //}
+
+            //    foreach (var elem in RevitAPI.UIDocument.ToSelectedElements())
             //    {
-            //        view.SetFilterOverrides(filterId, SetPatternColor(GenerateDistinctColor(), patternId));
+            //        elem.LookupParameter("OLP_Task_Высота").Set(720 * intUnit);
+            //        elem.LookupParameter("OLP_Task_Глубина").Set(1320 * intUnit);
+            //        elem.LookupParameter("OLP_Task_Ширина").Set(2160 * intUnit);
             //    }
+
+
 
             //    t.Commit();
             //}
 
+            ProjectLocation currentLocation = doc.ActiveProjectLocation;
+
+            XYZ origin = new XYZ();
+            ProjectPosition projectPosition = currentLocation.GetProjectPosition(origin);
+
+            double elevation = UnitUtils.ConvertToInternalUnits(130, ParameterMethods.GetUnitType("m"));
+
+            ProjectPosition newPosition =
+              doc.Application.Create.NewProjectPosition(projectPosition.EastWest, projectPosition.NorthSouth, elevation, projectPosition.Angle);
+
+            using (Transaction t = new Transaction(doc, "Задать абсолютную отметку"))
+            {
+                t.Start();
+
+                if (newPosition != null)
+                {
+                    currentLocation.SetProjectPosition(origin, newPosition);
+                }
+
+                t.Commit();
+            }
+
             return Result.Succeeded;
-        }
-
-        private Color GenerateDistinctColor()
-        {
-            _currentHue += GoldenRatioConjugate;
-            _currentHue %= 1.0;
-
-            double hue = _currentHue * 360;
-
-            double saturation = 0.7;
-            double value = 0.9;
-
-            double c = value * saturation;
-            double x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
-            double m = value - c;
-
-            double r, g, b;
-
-            if (hue < 60) { r = c; g = x; b = 0; }
-            else if (hue < 120) { r = x; g = c; b = 0; }
-            else if (hue < 180) { r = 0; g = c; b = x; }
-            else if (hue < 240) { r = 0; g = x; b = c; }
-            else if (hue < 300) { r = x; g = 0; b = c; }
-            else { r = c; g = 0; b = x; }
-
-            return new Color(
-                (byte)((r + m) * 255),
-                (byte)((g + m) * 255),
-                (byte)((b + m) * 255)
-            );
-        }
-        private OverrideGraphicSettings SetPatternColor(Color color, ElementId patternId)
-        {
-            var graphicSettings = new OverrideGraphicSettings();
-
-            graphicSettings.SetSurfaceForegroundPatternColor(color);
-            graphicSettings.SetSurfaceForegroundPatternId(patternId);
-
-            return graphicSettings;
         }
     }
 }
