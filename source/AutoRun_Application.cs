@@ -93,9 +93,12 @@ namespace BIMPlugins
 
                     var elements = WorksharingUtils.RelinquishOwnership(doc, new RelinquishOptions(true), null);
                     if (elements.GetRelinquishedWorksets().Count != 0 || elements.GetRelinquishedElements().Count != 0)
-                        toShow.Add($"Элементы освобождены!");
+                        toShow.Add("Элементы освобождены!");
                     else
-                        toShow.Add($"Не найдены занятые элементы!");
+                    {
+                        doc.SynchronizeWithCentral("Освобождение элементов за пользователя");
+                        toShow.Add("Элементы освобождены при помощи синхронизации!");
+                    }
 
                     if (doc.Close(false))
                         toShow.Add($"{filePath} закрыт\n");
