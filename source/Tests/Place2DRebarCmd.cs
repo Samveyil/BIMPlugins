@@ -6,6 +6,7 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Methods;
 using System.Linq;
 
+#if DEBUG
 namespace BIMPlugins.Tests
 {
     [Transaction(TransactionMode.Manual)]
@@ -63,3 +64,4 @@ namespace BIMPlugins.Tests
         }
     }
 }
+#endif

@@ -4,6 +4,7 @@ using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 
+#if DEBUG
 namespace BIMPlugins.Tests
 {
     [Transaction(TransactionMode.Manual)]
@@ -25,3 +26,4 @@ namespace BIMPlugins.Tests
         }
     }
 }
+#endif

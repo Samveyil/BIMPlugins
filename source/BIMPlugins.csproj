@@ -51,6 +51,7 @@
 		<OutputPath>bin\Debug\</OutputPath>
 		<ErrorReport>prompt</ErrorReport>
 		<WarningLevel>4</WarningLevel>
+		<DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
 		<AssemblyName>Dbg_$(AssemblyName)</AssemblyName>
 		<StartAction>Program</StartAction>
 		<StartProgram>C:\Program Files\Autodesk\Revit $(RevitVersion)\Revit.exe</StartProgram>

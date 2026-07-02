@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
-
+#if DEBUG
 namespace BIMPlugins.Tests
 {
     [Transaction(TransactionMode.Manual)]
@@ -133,3 +133,4 @@ namespace BIMPlugins.Tests
         }
     }
 }
+#endif

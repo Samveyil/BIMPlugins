@@ -1,17 +1,16 @@
 ﻿using Autodesk.Revit.Attributes;
-using Autodesk.Revit.Creation;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
-using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Interfaces;
 using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
+#if DEBUG
 namespace BIMPlugins.Tests
 {
     [Transaction(TransactionMode.Manual)]
@@ -22,146 +21,91 @@ namespace BIMPlugins.Tests
         {
             var doc = RevitAPI.Document;
 
-            //var result = string.Empty;
+            var famSymbol = new ElementId(26766366).ToElement<FamilySymbol>();
+            var level = new ElementId(3090007).ToElement<Level>();
 
-            //var invalidShParams = doc.ToElements<SharedParameterElement>()
-            //    .Where(p => p.GetDefinition().ParameterGroup == BuiltInParameterGroup.INVALID)
-            //    .Select(p => p.Name)
-            //    .ToList();
+            var linkInstance = new ElementId(25664072).ToElement<RevitLinkInstance>();
+            var linkDoc = linkInstance.GetLinkDocument();
+            var transform = linkInstance.GetTotalTransform();
 
-            //using (RevitProgressBar progressBar = new RevitProgressBar(true))
-            //{
-            //    progressBar.Run("Поиск параметра...", doc.ToElements<Family>().Where(f => f.IsUserCreated && !f.IsInPlace), (fam) =>
-            //    {
-            //        var famDoc = doc.EditFamily(fam);
-
-            //        var parameters = famDoc.FamilyManager.GetParameters()
-            //            .Select(p => p.Definition.Name)
-            //            .ToList();
-
-            //        var common = parameters.Intersect(invalidShParams).ToList();
-            //        if (common.Count > 0)
-            //            result += $"{famDoc.Title} " + string.Join(", ", common) + "\n";
-
-            //        famDoc.Close(false);
-            //    });
-
-            //    if (progressBar.IsCancelling())
-            //    {
-            //        return Result.Cancelled;
-            //    }
-            //}
-
-            //TaskDialog.Show("Инфо", result);
-
-            //var paramNames = new List<string>
-            //{
-            //    "ADSK_Код металлопроката",
-            //    "#Арматура_Код металлопроката",
-            //    "#Проволка_Код металлопроката"
-            //};
-
-            //var famFolderPath = @"C:\Users\shibliev\Desktop\Test";
-
-            //var saveOpt = new SaveAsOptions()
-            //{
-            //    MaximumBackups = 1
-            //};
-
-            //foreach (var filePath in Directory.GetFiles(famFolderPath))
-            //{
-            //    var famDoc = RevitAPI.Application.OpenDocumentFile(filePath);
-            //    //var famDoc = RevitAPI.Document;
-            //    var famManager = famDoc.FamilyManager;
-
-            //    var parameters = famManager.GetParameters().ToList();
-
-            //    using (Transaction t = new Transaction(famDoc, "test"))
-            //    {
-            //        t.Start();
-
-            //        var famInst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
-            //            .CreateBeginsWithFilter("280_Условный стержень для маркировки")).FirstOrDefault();
-
-            //        var Inst = famDoc.ToElements<FamilyInstance>(new ElementId(BuiltInParameter.ELEM_FAMILY_PARAM)
-            //            .CreateBeginsWithFilter("280_Стержень")).FirstOrDefault();
-
-            //        famInst.get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d"))
-            //            .SetValue(Inst.ToElementType(famDoc).get_Parameter(new Guid("9fd2ad8f-69f7-4d6e-9261-8d50de85ac9d")).GetValue());
-
-            //        t.Commit();
-            //    }
-
-            //    famDoc.PurgeUnused();
-
-            //    var newPath = filePath.Replace(".rfa", "1.rfa");
-
-            //    saveOpt.PreviewViewId = famDoc.ToElements<View>().FirstOrDefault(v => v.Name == "Опорный уровень").Id;
-
-            //    famDoc.SaveAs(newPath, saveOpt);
-
-            //    famDoc.Close(false);
-
-            //    File.Delete(filePath);
-            //    File.Move(newPath, filePath);
-            //}
-
-            //var view = doc.ActiveView;
-
-            //var filters = view.GetFilters();
-
-            //var patternId = new FilteredElementCollector(RevitAPI.Document)
-            //    .OfClass(typeof(FillPatternElement))
-            //    .FirstOrDefault(e => e.Name == "<Сплошная заливка>")
-            //    .Id;
-
-            //var elev = UnitUtils.ConvertToInternalUnits(90000, ParameterMethods.GetUnitType());
+            var panels = linkDoc.ToElements<FamilyInstance>(BuiltInCategory.OST_CurtainWallPanels)
+                .OfType<Panel>()
+                .Where(p => p.Name == "106_Панель_Стемалит 46(-25)")
+                .ToList();
 
             var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
 
-            //using (Transaction t = new Transaction(doc, "test"))
-            //{
-            //    t.Start();
+            var angles = new List<string>();
 
-            //    //var level = Level.Create(doc, elev);
-            //    //level.Name = $"{DateTime.Today.ToString("yyyyMMdd")}_Абс.отм.";
-
-            //    //foreach (var link in doc.ToElements<RevitLinkInstance>())
-            //    //{
-            //    //    var zCoord = link.GetTotalTransform().Origin.Z;
-
-            //    //    ElementTransformUtils.MoveElement(doc, link.Id, new XYZ(0, 0, elev - zCoord));
-            //    //}
-
-            //    foreach (var elem in RevitAPI.UIDocument.ToSelectedElements())
-            //    {
-            //        elem.LookupParameter("OLP_Task_Высота").Set(720 * intUnit);
-            //        elem.LookupParameter("OLP_Task_Глубина").Set(1320 * intUnit);
-            //        elem.LookupParameter("OLP_Task_Ширина").Set(2160 * intUnit);
-            //    }
-
-
-
-            //    t.Commit();
-            //}
-
-            ProjectLocation currentLocation = doc.ActiveProjectLocation;
-
-            XYZ origin = new XYZ();
-            ProjectPosition projectPosition = currentLocation.GetProjectPosition(origin);
-
-            double elevation = UnitUtils.ConvertToInternalUnits(130, ParameterMethods.GetUnitType("m"));
-
-            ProjectPosition newPosition =
-              doc.Application.Create.NewProjectPosition(projectPosition.EastWest, projectPosition.NorthSouth, elevation, projectPosition.Angle);
-
-            using (Transaction t = new Transaction(doc, "Задать абсолютную отметку"))
+            using (Transaction t = new Transaction(doc, "Создать фахверк"))
             {
                 t.Start();
 
-                if (newPosition != null)
+                famSymbol.Activate();
+
+                foreach (var panel in panels)
                 {
-                    currentLocation.SetProjectPosition(origin, newPosition);
+                    var centroid = panel.ToSolid()?.ComputeCentroid();
+                    if (centroid == null)
+                        continue;
+
+                    ElementId uGridLineId = ElementId.InvalidElementId;
+                    ElementId vGridLineId = ElementId.InvalidElementId;
+                    panel.GetRefGridLines(ref uGridLineId, ref vGridLineId);
+
+                    if (vGridLineId == ElementId.InvalidElementId)
+                        continue;
+
+                    var gridLine = vGridLineId.ToElement<CurtainGridLine>(linkDoc);
+                    var line = gridLine.AllSegmentCurves.Cast<Line>().FirstOrDefault();
+
+                    var centerLine = Line.CreateBound(
+                        centroid + line.Direction.Normalize() * -line.Length / 2,
+                        centroid + line.Direction.Normalize() * line.Length / 2
+                    );
+
+                    var panelFaceOrient = panel.FacingOrientation.Normalize();
+                    var translation = panelFaceOrient * 500 * intUnit;
+
+                    XYZ startPoint = centerLine.GetEndPoint(0);
+                    XYZ endPoint = centerLine.GetEndPoint(1);
+
+                    var orig = new XYZ(startPoint.X + translation.X, startPoint.Y + translation.Y, startPoint.Z);
+                    var newLine = Line.CreateBound(
+                        orig,
+                        new XYZ(endPoint.X + translation.X, endPoint.Y + translation.Y, endPoint.Z)
+                    );
+
+                    var colAxis = newLine.CreateTransformed(transform) as Line;
+                    
+                    var slantedColumn = doc.Create.NewFamilyInstance(
+                        colAxis,
+                        famSymbol,
+                        level,
+                        StructuralType.Column
+                    );
+
+                    doc.Regenerate();
+                    
+                    slantedColumn.get_Parameter(BuiltInParameter.SLANTED_COLUMN_BASE_CUT_STYLE).Set(1);
+                    slantedColumn.get_Parameter(BuiltInParameter.SLANTED_COLUMN_TOP_CUT_STYLE).Set(1);
+
+                    var columnFaceOrient = slantedColumn.FacingOrientation.Normalize();
+
+                    var colLine = Line.CreateBound(orig, orig + new XYZ(columnFaceOrient.X * 300 * intUnit, columnFaceOrient.Y * 300 * intUnit, 0));
+                    var panelLine = Line.CreateBound(startPoint, startPoint + new XYZ(panelFaceOrient.X * 300 * intUnit, panelFaceOrient.Y * 300 * intUnit, 0))
+                        .CreateTransformed(transform) as Line;
+
+                    //ExMethods.CreateDirectShape([colLine, panelLine]);
+
+                    var angle = colLine.Direction.Normalize().AngleTo(panelLine.Direction.Normalize());
+
+                    slantedColumn.get_Parameter(new Guid("4f9a558c-61b9-4c38-a08c-a25465aa8abd")).Set(angle);
+
+                    ElementTransformUtils.RotateElement(doc, slantedColumn.Id,
+                        colAxis,
+                        angle
+                    );
                 }
 
                 t.Commit();
@@ -171,3 +115,4 @@ namespace BIMPlugins.Tests
         }
     }
 }
+#endif

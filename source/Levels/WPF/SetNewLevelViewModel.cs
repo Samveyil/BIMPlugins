@@ -41,11 +41,23 @@ namespace BIMPlugins.Levels.WPF
             {
                 var selectedElems = RevitAPI.UIDocument.ToSelectedElements().ToList();
 
-                _elements = selectedElems.Count != 0
+                var elems = selectedElems.Count != 0
                     ? selectedElems
                     : RevitAPI.UIDocument.PickObjects("Выберите элементы").ToList();
                 
-                Count = _elements.Count;
+                Count = elems.Count;
+
+                var _uniqueIds = new HashSet<ElementId>();
+                foreach (var elem in elems)
+                {
+                    if (elem.GroupId != ElementId.InvalidElementId)
+                    {
+                        if (_uniqueIds.Add(elem.GroupId))
+                            _elements.Add(elem.GroupId.ToElement());
+                    }
+                    else if (_uniqueIds.Add(elem.Id))
+                        _elements.Add(elem);
+                }
             }
             catch { }
             finally
@@ -75,8 +87,20 @@ namespace BIMPlugins.Levels.WPF
 
             var levelsFilter = new LogicalOrFilter(filtersList);
 
-            _elements = RevitAPI.Document.ToModelElements(levelsFilter).ToList();
-            Count = _elements.Count;
+            var elems = RevitAPI.Document.ToModelElements(levelsFilter).ToList();
+            Count = elems.Count;
+
+            var _uniqueIds = new HashSet<ElementId>();
+            foreach (var elem in elems)
+            {
+                if (elem.GroupId != ElementId.InvalidElementId)
+                {
+                    if (_uniqueIds.Add(elem.GroupId))
+                        _elements.Add(elem.GroupId.ToElement());
+                }
+                else if (_uniqueIds.Add(elem.Id))
+                    _elements.Add(elem);
+            }
         }
 
         [RelayCommand]
@@ -93,39 +117,33 @@ namespace BIMPlugins.Levels.WPF
                 {
                     revitProgressBar.Run($"Назначение нового уровня...", _elements, (element) =>
                     {
-                        Parameter levelParameter = null;
-                        foreach (var param in element.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly && ((InternalDefinition)p.Definition).BuiltInParameter != BuiltInParameter.INVALID).OrderBy(p => p.Definition.Name))
+                        if (element is Group group)
                         {
-                            if (param.Definition.Name.ToLower().Contains("уровень"))
-                            {
-                                levelParameter = param;
-                                break;
-                            }
-                            else if (param.Definition.Name.Contains("Зависимость снизу"))
-                            {
-                                levelParameter = param;
-                                break;
-                            }
-                        }
+                            var groupType = group.GroupType;
+                            var groupName = groupType.Name;
 
-                        if (levelParameter == null) return;
+                            var memberIds = group.UngroupMembers();
+                            foreach (var memberId in memberIds)
+                                SetLevel(memberId.ToElement());
 
-                        if (element.LevelId == ElementId.InvalidElementId && ((InternalDefinition)levelParameter.Definition).BuiltInParameter != BuiltInParameter.STAIRS_BASE_LEVEL_PARAM)
-                        {
-                            levelParameter.Set(NewLevel.Id);
+                            RevitAPI.Document.Regenerate();
+
+                            var grpNew = RevitAPI.Document.Create.NewGroup(memberIds);
+                            var grpTypeNew = grpNew.GroupType;
+
+                            //foreach (var oldGroup in RevitAPI.Document.ToElements<Group>().Where(g => g.GroupType.Name == groupName))
+                            //    oldGroup.GroupType = grpTypeNew;
+
+                            //RevitAPI.Document.Delete(groupType.Id);
+
+                            grpTypeNew.Name = $"{groupName} - {grpTypeNew.Name}";
+
+                            //RevitAPI.Document.Regenerate();
+
+                            //grpNew.GroupType = groupId;
                         }
                         else
-                        {
-                            var offsetParameter = GetOffsetParameter(element);
-                            if (offsetParameter == null) return;
-
-                            var levelOffset = NewLevel.ProjectElevation - levelParameter.AsElementId().ToElement<Level>().ProjectElevation;
-                            var offset = offsetParameter.AsDouble() - levelOffset;
-
-                            levelParameter.Set(NewLevel.Id);
-                            if (!offsetParameter.IsReadOnly)
-                                offsetParameter.Set(offset);
-                        }
+                            SetLevel(element);
                     });
 
                     if (revitProgressBar.IsCancelling())
@@ -136,6 +154,47 @@ namespace BIMPlugins.Levels.WPF
                 }
 
                 t.Commit();
+            }
+        }
+        private void SetLevel(Element element)
+        {
+            Parameter levelParameter = null;
+            foreach (var param in element.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly && ((InternalDefinition)p.Definition).BuiltInParameter != BuiltInParameter.INVALID).OrderBy(p => p.Definition.Name))
+            {
+                if (param.Definition.Name.ToLower().Contains("уровень"))
+                {
+                    levelParameter = param;
+                    break;
+                }
+                else if (param.Definition.Name.Contains("Зависимость снизу"))
+                {
+                    levelParameter = param;
+                    break;
+                }
+                else if (param.Definition.Name.Contains("Базовая зависимость"))
+                {
+                    levelParameter = param;
+                    break;
+                }
+            }
+
+            if (levelParameter == null) return;
+
+            if (element.LevelId == ElementId.InvalidElementId && ((InternalDefinition)levelParameter.Definition).BuiltInParameter != BuiltInParameter.STAIRS_BASE_LEVEL_PARAM)
+            {
+                levelParameter.Set(NewLevel.Id);
+            }
+            else
+            {
+                var offsetParameter = GetOffsetParameter(element);
+                if (offsetParameter == null) return;
+
+                var levelOffset = NewLevel.ProjectElevation - levelParameter.AsElementId().ToElement<Level>().ProjectElevation;
+                var offset = offsetParameter.AsDouble() - levelOffset;
+
+                levelParameter.Set(NewLevel.Id);
+                if (!offsetParameter.IsReadOnly)
+                    offsetParameter.Set(offset);
             }
         }
         private Parameter GetOffsetParameter(Element element)
