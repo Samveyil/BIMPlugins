@@ -44,8 +44,8 @@ namespace BIMPlugins.Tests
                     column.get_Parameter(BuiltInParameter.FAMILY_BASE_LEVEL_PARAM).Set(botFloor.LevelId);
                     column.get_Parameter(BuiltInParameter.FAMILY_TOP_LEVEL_PARAM).Set(topFloor.LevelId);
 
-                    var columnStartPoint = column.ToLocationCoordinates(ElementExtensions.LocationType.StartPoint).Z;
-                    var columnEndPoint = column.ToLocationCoordinates(ElementExtensions.LocationType.EndPoint).Z;
+                    var columnStartPoint = column.ToPoint(ElementExtensions.LocationType.StartPoint).Z;
+                    var columnEndPoint = column.ToPoint(ElementExtensions.LocationType.EndPoint).Z;
 
                     column.get_Parameter(BuiltInParameter.SLANTED_COLUMN_BASE_EXTENSION).Set(columnStartPoint - botZ);
                     column.get_Parameter(BuiltInParameter.SLANTED_COLUMN_TOP_EXTENSION).Set(topZ - columnEndPoint);
