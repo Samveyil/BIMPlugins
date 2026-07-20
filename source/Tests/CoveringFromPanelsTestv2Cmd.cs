@@ -16,7 +16,7 @@ namespace BIMPlugins.Tests
 {
     [Transaction(TransactionMode.Manual)]
     [Regeneration(RegenerationOption.Manual)]
-    public class TestCmd1 : IExternalCommand
+    public class CoveringFromPanelsTestv2Cmd : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
