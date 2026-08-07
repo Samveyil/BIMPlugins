@@ -17,7 +17,9 @@ namespace BIMPlugins.Views
         {
             var selectedElem = RevitAPI.UIDocument.ToSelectedElements().FirstOrDefault();
 
-            if (int.TryParse(Clipboard.GetText(), out int id))
+            if (selectedElem != null && selectedElem.OwnerViewId != ElementId.InvalidElementId)
+                RevitAPI.UIDocument.ActiveView = selectedElem.OwnerViewId.ToElement<View>();
+            else if (int.TryParse(Clipboard.GetText(), out int id))
             {
                 var element = new ElementId(id).ToElement();
                 if (element is View view)
@@ -38,8 +40,6 @@ namespace BIMPlugins.Views
                     }
                 }
             }
-            else if (selectedElem != null && selectedElem.OwnerViewId != ElementId.InvalidElementId)
-                RevitAPI.UIDocument.ActiveView = selectedElem.OwnerViewId.ToElement<View>();
             else
             {
                 message = "В буфере обмена не содержится Id";
