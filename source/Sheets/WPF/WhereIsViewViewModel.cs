@@ -32,10 +32,10 @@ namespace BIMPlugins.Sheets.WPF
         [RelayCommand]
         private void OpenSheet()
         {
-            RevitAPI.UIDocument.ActiveView = Id.ToElement<ViewSheet>();
+            var viewSheet = Id.ToElement<ViewSheet>();
+            RevitAPI.UIDocument.ActiveView = viewSheet;
 
-            var uiView = RevitAPI.UIDocument.GetOpenUIViews().FirstOrDefault(v => v.ViewId.ToString() == Id.ToString());
-            uiView.ZoomToFit();
+            viewSheet.ToUIView()?.ZoomToFit();
         }
     }
 }

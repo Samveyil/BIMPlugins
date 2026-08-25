@@ -5,7 +5,6 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using System.Linq;
 using System.Windows;
-using System.Xml.Linq;
 
 namespace BIMPlugins.Views
 {
@@ -15,23 +14,32 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var selectedElem = RevitAPI.UIDocument.ToSelectedElements().FirstOrDefault();
+            var uiDoc = RevitAPI.UIDocument;
 
+            var selectedElem = uiDoc.ToSelectedElements().FirstOrDefault();
             if (selectedElem != null && selectedElem.OwnerViewId != ElementId.InvalidElementId)
-                RevitAPI.UIDocument.ActiveView = selectedElem.OwnerViewId.ToElement<View>();
+            {
+                var ownerView = selectedElem.OwnerViewId.ToElement<View>();
+                uiDoc.ActiveView = ownerView;
+                ownerView.ToUIView()?.ZoomToFit();
+            }
             else if (int.TryParse(Clipboard.GetText(), out int id))
             {
                 var element = new ElementId(id).ToElement();
                 if (element is View view)
                 {
-                    RevitAPI.UIDocument.ActiveView = view;
+                    uiDoc.ActiveView = view;
+                    view.ToUIView()?.ZoomToFit();
                 }
                 else
                 {
                     if (element.OwnerViewId != ElementId.InvalidElementId)
                     {
-                        RevitAPI.UIDocument.ActiveView = element.OwnerViewId.ToElement<View>();
-                        RevitAPI.UIDocument.Selection.SetElementIds([element.Id]);
+                        var ownerView = element.OwnerViewId.ToElement<View>();
+                        uiDoc.ActiveView = ownerView;
+                        ownerView.ToUIView()?.ZoomToFit();
+                        
+                        uiDoc.Selection.SetElementIds([element.Id]);
                     }
                     else
                     {

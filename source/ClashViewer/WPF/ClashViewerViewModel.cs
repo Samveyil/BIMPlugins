@@ -565,15 +565,7 @@ namespace BIMPlugins.ClashViewer.WPF
                 t.Commit();
             }
 
-            var uiViews = RevitAPI.UIDocument.GetOpenUIViews();
-            foreach (UIView uiView in uiViews)
-            {
-                if (uiView.ViewId == view3D.Id)
-                {
-                    uiView.ZoomToFit();
-                    break;
-                }
-            }
+            view3D.ToUIView()?.ZoomToFit();
         }
 
         [RelayCommand(CanExecute = nameof(IsUIDocumentActive))]

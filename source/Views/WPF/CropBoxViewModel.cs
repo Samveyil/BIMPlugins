@@ -282,9 +282,7 @@ namespace BIMPlugins.Views.WPF
             private void OpenView()
             {
                 RevitAPI.UIDocument.ActiveView = View;
-
-                var uiView = RevitAPI.UIDocument.GetOpenUIViews().FirstOrDefault(v => v.ViewId.ToString() == View.Id.ToString());
-                uiView.ZoomToFit();
+                View.ToUIView()?.ZoomToFit();
             }
 
             [RelayCommand]
@@ -410,9 +408,7 @@ namespace BIMPlugins.Views.WPF
                 }
 
                 RevitAPI.UIDocument.ActiveView = _view3D;
-
-                var uiView = RevitAPI.UIDocument.GetOpenUIViews().FirstOrDefault(v => v.ViewId.ToString() == _view3D.Id.ToString());
-                uiView.ZoomToFit();
+                _view3D.ToUIView()?.ZoomToFit();
             }
 
             private void SectionPlane()
