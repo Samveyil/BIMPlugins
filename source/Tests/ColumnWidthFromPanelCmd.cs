@@ -4,6 +4,7 @@ using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Collections.Generic;
@@ -36,7 +37,7 @@ namespace BIMPlugins.Tests
                 .Where(p => p.Name == "106_Панель_Стемалит 46(-25)" && p.WorksetId.IntegerValue != 16781)
                 .ToList();
 
-            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
+            var intUnit = 1d.FromMillimeters();
 
             using (Transaction t = new Transaction(doc, "Создать фахверк"))
             {

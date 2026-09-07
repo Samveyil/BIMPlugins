@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Linq;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.ClashViewer.WPF
 {
@@ -541,7 +542,7 @@ namespace BIMPlugins.ClashViewer.WPF
 
             var view3D = RevitAPI.Document.GetView3D($"Просмотр коллизий - {RevitAPI.Application.Username}");
 
-            double padding = UnitUtils.ConvertToInternalUnits(Padding / 2, ParameterMethods.GetUnitType());
+            double padding = (Padding / 2).FromMillimeters();
 
             var clashPoint = GetRevitPoint(SelectedClashResult.ClashPoint);
             var bbox = new BoundingBoxXYZ
@@ -655,7 +656,7 @@ namespace BIMPlugins.ClashViewer.WPF
                 {
                     var intersection = BooleanOperationsUtils.ExecuteBooleanOperation(
                         solid1,
-                        SolidUtils.CreateTransformed(solid2, transform),
+                        solid2.CreateTransformed(transform),
                         BooleanOperationsType.Intersect
                     );
                     
@@ -743,10 +744,12 @@ namespace BIMPlugins.ClashViewer.WPF
             double pozitionY = basePoint.Position.Y;
             double pozitionZ = basePoint.Position.Z;
 
-            double clashX = UnitUtils.ConvertToInternalUnits(clashPoint.X * 1000, ParameterMethods.GetUnitType());
-            double clashY = UnitUtils.ConvertToInternalUnits(clashPoint.Y * 1000, ParameterMethods.GetUnitType());
-            double clashZ = UnitUtils.ConvertToInternalUnits(clashPoint.Z * 1000, ParameterMethods.GetUnitType());
-            
+            var intUnit = 1000d.FromMillimeters();
+
+            double clashX = clashPoint.X * intUnit;
+            double clashY = clashPoint.Y * intUnit;
+            double clashZ = clashPoint.Z * intUnit;
+
             double resultX = clashX - baseX;
             double resultY = clashY - baseY;
             double resultZ = clashZ - baseZ;

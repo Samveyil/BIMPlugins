@@ -13,6 +13,7 @@ using BIMPlugins.Bars;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -239,8 +240,8 @@ namespace BIMPlugins.Sheets.WPF
                                 .OfCategory(BuiltInCategory.OST_TitleBlocks)
                                 .WhereElementIsNotElementType()
                                 .FirstOrDefault();
-                            
-                            ElementTransformUtils.MoveElement(RevitAPI.Document, newTitleBlock.Id, (titleBlocks[0].Location as LocationPoint).Point);
+
+                            newTitleBlock.Move((titleBlocks[0].Location as LocationPoint).Point);
                             
                             CopySheetParameters(sheetItem.Element, newSheet);
 
@@ -419,8 +420,8 @@ namespace BIMPlugins.Sheets.WPF
                     .OfCategory(BuiltInCategory.OST_GenericAnnotation)
                     .WhereElementIsNotElementType()
                     .ToElementIds();
-                
-                ElementTransformUtils.CopyElements(sheetItem.Element, annotationIds, targetSheet, null, new CopyPasteOptions());
+
+                annotationIds.CopyElements(sheetItem.Element, targetSheet);
             }
             catch { }
         }
@@ -432,8 +433,8 @@ namespace BIMPlugins.Sheets.WPF
                     .OfCategory(BuiltInCategory.OST_TextNotes)
                     .WhereElementIsNotElementType()
                     .ToElementIds();
-                
-                ElementTransformUtils.CopyElements(sheetItem.Element, textNotesIds, targetSheet, null, new CopyPasteOptions());
+
+                textNotesIds.CopyElements(sheetItem.Element, targetSheet);
             }
             catch { }
         }
@@ -446,7 +447,7 @@ namespace BIMPlugins.Sheets.WPF
                     .WhereElementIsNotElementType()
                     .ToElementIds();
                 
-                ElementTransformUtils.CopyElements(sheetItem.Element, lineIds, targetSheet, null, new CopyPasteOptions());
+                lineIds.CopyElements(sheetItem.Element, targetSheet);
             }
             catch { }
         }

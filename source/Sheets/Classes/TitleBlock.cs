@@ -1,13 +1,13 @@
 ﻿using Autodesk.Revit.DB;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Methods;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Sheets.Classes
 {
     public class TitleBlock(Element element, double width, double height)
     {
-        public double Width { get; } = UnitUtils.ConvertFromInternalUnits(width, ParameterMethods.GetUnitType());
-        public double Height { get; } = UnitUtils.ConvertFromInternalUnits(height, ParameterMethods.GetUnitType());
+        public double Width { get; } = width.ToMillimeters();
+        public double Height { get; } = height.ToMillimeters();
         public double OffsetX { get; set; } = 0;
         public double OffsetY { get; set; } = 0;
         public Element Element { get; } = element;

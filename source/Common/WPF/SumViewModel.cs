@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System;
 
-
 namespace BIMPlugins.Common.WPF
 {
     public partial class SumViewModel : ObservableObject
@@ -92,7 +91,7 @@ namespace BIMPlugins.Common.WPF
                     Sum += UnitUtils.ConvertFromInternalUnits((double)parameter.GetValue(), parameter.GetUnitType());
                 }
 
-                Sum = Math.Round(Sum, 3);
+                Sum = Sum.Round(3);
             }
             catch {  }; 
         }

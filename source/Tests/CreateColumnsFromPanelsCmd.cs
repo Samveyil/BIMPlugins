@@ -5,6 +5,7 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Collections.Generic;
@@ -39,7 +40,7 @@ namespace BIMPlugins.Tests
                 .Select(r => r.LinkedElementId.ToElement<Panel>(linkDoc))
                 .ToList();
 
-            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
+            var intUnit = 1d.FromMillimeters();
 
             var angles = new List<string>();
 
@@ -112,10 +113,7 @@ namespace BIMPlugins.Tests
 
                     slantedColumn.get_Parameter(new Guid("4f9a558c-61b9-4c38-a08c-a25465aa8abd")).Set(angle);
 
-                    ElementTransformUtils.RotateElement(doc, slantedColumn.Id,
-                        colAxis,
-                        angle
-                    );
+                    slantedColumn.Rotate(colAxis, angle);
                 }
 
                 t.Commit();

@@ -1,15 +1,14 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
+using BIMPlugins.ExtStorage;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using BIMPlugins.ExtStorage;
-using System.Collections.ObjectModel;
-using System.Windows;
-using BIMPlugins.ExtStorage.Methods;
-using BIMPlugins.Bars;
-using System.Linq;
 using System;
-
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
@@ -57,11 +56,11 @@ namespace BIMPlugins.Views.WPF
                 {
                     if (level.Name == BottomLevel)
                     {
-                        bottomLevel = level.ProjectElevation + UnitUtils.ConvertToInternalUnits(BottomOffset, ParameterMethods.GetUnitType());
+                        bottomLevel = level.ProjectElevation + BottomOffset.FromMillimeters();
                     }
                     if (level.Name == TopLevel)
                     {
-                        topLevel = level.ProjectElevation + UnitUtils.ConvertToInternalUnits(TopOffset, ParameterMethods.GetUnitType());
+                        topLevel = level.ProjectElevation + TopOffset.FromMillimeters();
                     }
                 }
 

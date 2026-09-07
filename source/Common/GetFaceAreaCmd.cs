@@ -3,9 +3,8 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using BIMPlugins.ExtStorage;
-using BIMPlugins.ExtStorage.Methods;
-using System;
-
+using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Common
 {
@@ -33,7 +32,7 @@ namespace BIMPlugins.Common
                     sum += face.Area;
                 }
 
-                TaskDialog.Show("Суммарная площадь", $"{Math.Round(UnitUtils.ConvertFromInternalUnits(sum, ParameterMethods.GetUnitType("m2")), 3)} м2");
+                TaskDialog.Show("Суммарная площадь", $"{sum.ToUnit("m2").Round(3)} м2");
             }
             catch { }
 

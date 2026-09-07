@@ -1,16 +1,17 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using BIMPlugins.ExtStorage.Methods;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Windows.Data;
-using BIMPlugins.ExtStorage.Methods;
 using System.Linq;
-using System.Collections.Generic;
-using System;
+using System.Windows.Data;
 
 
 namespace BIMPlugins.Views.WPF
@@ -465,7 +466,8 @@ namespace BIMPlugins.Views.WPF
                 return GeometryCreationUtilities.CreateExtrusionGeometry(
                     new List<CurveLoop> { profile },
                     XYZ.BasisZ,
-                    UnitUtils.ConvertToInternalUnits(0.00001, ParameterMethods.GetUnitType()));
+                    0.00001.FromMillimeters()
+                );
             }
 
             private OverrideGraphicSettings GetOverrideGS(Color color)

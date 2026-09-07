@@ -4,6 +4,7 @@ using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.ExtStorage.Methods;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace BIMPlugins.Tests
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             var doc = RevitAPI.Document;
-            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
+            var intUnit = 1d.FromMillimeters();
 
             var loop = new CurveLoop();
 

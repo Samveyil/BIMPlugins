@@ -10,6 +10,7 @@ using System.Windows;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -73,7 +74,7 @@ namespace BIMPlugins.Common.WPF
 
                         double angleInRadians = Angle * (Math.PI / 180);
 
-                        ElementTransformUtils.RotateElement(RevitAPI.Document, element.Id, line, angleInRadians);
+                        element.Rotate(line, angleInRadians);
                     }
 
                     t.Commit();

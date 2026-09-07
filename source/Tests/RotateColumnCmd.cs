@@ -1,14 +1,10 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
-using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Methods;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 
 #if DEBUG
 namespace BIMPlugins.Tests
@@ -21,8 +17,6 @@ namespace BIMPlugins.Tests
         {
             var doc = RevitAPI.Document;
 
-            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
-
             using (Transaction t = new Transaction(doc, "Создать фахверк"))
             {
                 t.Start();
@@ -31,7 +25,7 @@ namespace BIMPlugins.Tests
                 {
                     var colAxis = (slantedColumn.Location as LocationCurve).Curve as Line;
 
-                    ElementTransformUtils.RotateElement(doc, slantedColumn.Id,
+                    slantedColumn.Rotate(
                         colAxis,
                         slantedColumn.get_Parameter(new Guid("4f9a558c-61b9-4c38-a08c-a25465aa8abd")).AsDouble() * -2
                     );

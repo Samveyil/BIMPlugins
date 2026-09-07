@@ -1,18 +1,8 @@
-﻿using Aspose.Cells;
-using Autodesk.Revit.Attributes;
+﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
-using Autodesk.Revit.DB.Structure;
 using Autodesk.Revit.UI;
-using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.ExtStorage.Interfaces;
-using BIMPlugins.ExtStorage.Methods;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Xml.Linq;
 
 #if DEBUG
 namespace BIMPlugins.Tests
@@ -24,8 +14,6 @@ namespace BIMPlugins.Tests
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             var doc = RevitAPI.Document;
-
-            var intUnit = UnitUtils.ConvertToInternalUnits(1, ParameterMethods.GetUnitType());
 
             var botFloor = RevitAPI.UIDocument.PickObject<Floor>("");
             var topFloor = RevitAPI.UIDocument.PickObject<Floor>("");

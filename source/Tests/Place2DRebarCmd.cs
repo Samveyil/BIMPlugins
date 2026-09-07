@@ -3,6 +3,7 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.ExtStorage.Methods;
 using System.Linq;
 
@@ -16,8 +17,8 @@ namespace BIMPlugins.Tests
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             var startPoint = new XYZ();
-            var length = UnitUtils.ConvertToInternalUnits(2000, ParameterMethods.GetUnitType());
-            var offset = UnitUtils.ConvertToInternalUnits(2500, ParameterMethods.GetUnitType());
+            var length = 2000d.FromMillimeters();
+            var offset = 2500d.FromMillimeters();
 
             var i = 0;
 

@@ -1,14 +1,15 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.Bars;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.ExtStorage.Methods;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 namespace BIMPlugins.Levels.WPF
 {
@@ -19,7 +20,7 @@ namespace BIMPlugins.Levels.WPF
 
         partial void OnSelectedLevelChanged(Level value)
         {
-            Elevation = UnitUtils.ConvertFromInternalUnits(value.Elevation, ParameterMethods.GetUnitType()).Round(3);
+            Elevation = value.Elevation.ToMillimeters().Round(3);
         }
 
         private ExternalEvent ExEvent { get; set; }
@@ -67,7 +68,6 @@ namespace BIMPlugins.Levels.WPF
             var topElements = RevitAPI.Document.ToModelElements(topLevelsFilter).ToList();
 
             var projectElevationOffset = SelectedLevel.Elevation - SelectedLevel.ProjectElevation;
-            var intElevation = UnitUtils.ConvertToInternalUnits(Elevation, ParameterMethods.GetUnitType());
 
             var elementsWithNewLevel = new List<Element>();
 
@@ -75,7 +75,7 @@ namespace BIMPlugins.Levels.WPF
             {
                 t.Start();
 
-                var newLevel = Level.Create(RevitAPI.Document, intElevation - projectElevationOffset);
+                var newLevel = Level.Create(RevitAPI.Document, Elevation.FromMillimeters() - projectElevationOffset);
                 var levelOffset = newLevel.ProjectElevation - SelectedLevel.ProjectElevation;
 
                 using (var revitProgressBar = new RevitProgressBar(true))

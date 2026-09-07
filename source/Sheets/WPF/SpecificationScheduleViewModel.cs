@@ -15,6 +15,7 @@ using BIMPlugins.ExtStorage.Methods;
 using System.Collections.Generic;
 using System.Linq;
 using System;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -400,6 +401,8 @@ namespace BIMPlugins.Sheets.WPF
         }
         private ViewSchedule CreateNewSpecification()
         {
+            var intUnit = 1d.FromMillimeters();
+
             var schedule = ViewSchedule.CreateSchedule(RevitAPI.Document, ElementId.InvalidElementId);
             schedule.Name = "BIMPlugins_" + NewSpecificationName;
 
@@ -415,7 +418,7 @@ namespace BIMPlugins.Sheets.WPF
             var bodySectionData = tableData.GetSectionData(SectionType.Body);
             var headerSectionData = tableData.GetSectionData(SectionType.Header);
 
-            bodySectionData.SetColumnWidth(0, UnitUtils.ConvertToInternalUnits(185, ParameterMethods.GetUnitType()));
+            bodySectionData.SetColumnWidth(0, 185 * intUnit);
 
             headerSectionData.ClearCell(0, 0);
 
@@ -424,9 +427,9 @@ namespace BIMPlugins.Sheets.WPF
                 headerSectionData.InsertColumn(0);
             }
 
-            headerSectionData.SetColumnWidth(0, UnitUtils.ConvertToInternalUnits(15, ParameterMethods.GetUnitType()));
-            headerSectionData.SetColumnWidth(1, UnitUtils.ConvertToInternalUnits(140, ParameterMethods.GetUnitType()));
-            headerSectionData.SetColumnWidth(2, UnitUtils.ConvertToInternalUnits(30, ParameterMethods.GetUnitType()));
+            headerSectionData.SetColumnWidth(0, 15 * intUnit);
+            headerSectionData.SetColumnWidth(1, 140 * intUnit);
+            headerSectionData.SetColumnWidth(2, 30 * intUnit);
 
             var temporarySheetId = _sheetItems.FirstOrDefault().Element.Id;
 
@@ -439,13 +442,11 @@ namespace BIMPlugins.Sheets.WPF
 
                 RevitAPI.Document.Regenerate();
 
-                var height = textNote.Width > UnitUtils.ConvertToInternalUnits(140, ParameterMethods.GetUnitType())
-                    ? 12
-                    : 8;
+                var height = (textNote.Width > 140 * intUnit ? 12 : 8) * intUnit;
 
                 RevitAPI.Document.Delete(textNote.Id);
 
-                headerSectionData.SetRowHeight(0, UnitUtils.ConvertToInternalUnits(height, ParameterMethods.GetUnitType()));
+                headerSectionData.SetRowHeight(0, height);
 
                 try
                 {
@@ -460,7 +461,7 @@ namespace BIMPlugins.Sheets.WPF
             headerSectionData.SetCellText(0, 0, "Лист");
             headerSectionData.SetCellText(0, 1, "Наименование");
             headerSectionData.SetCellText(0, 2, "Примечание");
-            headerSectionData.SetRowHeight(0, UnitUtils.ConvertToInternalUnits(15, ParameterMethods.GetUnitType()));
+            headerSectionData.SetRowHeight(0, 15 * intUnit);
 
             var boldLine = new FilteredElementCollector(RevitAPI.Document)
                 .WhereElementIsNotElementType()
@@ -573,13 +574,11 @@ namespace BIMPlugins.Sheets.WPF
 
                 RevitAPI.Document.Regenerate();
 
-                var height = textNote.Width > UnitUtils.ConvertToInternalUnits(140, ParameterMethods.GetUnitType())
-                    ? 12
-                    : 8;
+                double height = textNote.Width > 140d.FromMillimeters() ? 12 : 8;
 
                 RevitAPI.Document.Delete(textNote.Id);
 
-                headerSectionData.SetRowHeight(i, UnitUtils.ConvertToInternalUnits(height, ParameterMethods.GetUnitType()));
+                headerSectionData.SetRowHeight(i, height.FromMillimeters());
 
                 try
                 {
