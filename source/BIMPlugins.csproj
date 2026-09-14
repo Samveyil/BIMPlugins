@@ -83,6 +83,7 @@
 		<Resource Include="Resources\bulb-32.png" />
 		<Resource Include="Resources\calculator-32.png" />
 		<Resource Include="Resources\changes-32.png" />
+		<Resource Include="Resources\checkFamily.tiff" />
 		<Resource Include="Resources\clashManager.tiff" />
 		<Resource Include="Resources\closeDocks.tiff" />
 		<Resource Include="Resources\colorFilter.tiff" />

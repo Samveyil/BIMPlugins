@@ -25,17 +25,8 @@ namespace BIMPlugins.Common.WPF
 
         public ViewSettingsViewModel()
         {
-            var filterHandler = new RevitAPI.MyEventHandler<ViewSettingsViewModel>(
-                this,
-                vm => vm.ChangeFilterVisibility()
-            );
-            FilterEvent = ExternalEvent.Create(filterHandler);
-
-            var worksetHandler = new RevitAPI.MyEventHandler<ViewSettingsViewModel>(
-                this,
-                vm => vm.ChangeWorksetVisibility()
-            );
-            WorksetEvent = ExternalEvent.Create(worksetHandler);
+            FilterEvent = RevitAPI.CreateExtEvent(this, vm => vm.ChangeFilterVisibility());
+            WorksetEvent = RevitAPI.CreateExtEvent(this, vm => vm.ChangeWorksetVisibility());
         }
 
         public void GetViewFilters()

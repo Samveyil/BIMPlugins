@@ -23,8 +23,8 @@ namespace BIMPlugins.Views.WPF
         [ObservableProperty] private string _filter;
         [ObservableProperty] private ICollectionView _filteredItems;
 
-        private ExternalEvent DeleteSectionPlaneExEvent { get; set; }
-        public ExternalEvent DeleteDirectShapesExEvent { get; set; }
+        private ExternalEvent DeleteSectionPlaneExEvent { get; }
+        public ExternalEvent DeleteDirectShapesExEvent { get; }
 
         partial void OnFilterChanged(string value)
         {
@@ -63,17 +63,8 @@ namespace BIMPlugins.Views.WPF
 
         public CropBoxViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<CropBoxViewModel>(
-                    this,
-                    vm => vm.DeletePlanes()
-                );
-            DeleteSectionPlaneExEvent = ExternalEvent.Create(handler);
-
-            var deleteAllHandler = new RevitAPI.MyEventHandler<CropBoxViewModel>(
-                    this,
-                    vm => vm.DeleteAllDirectShapes()
-                );
-            DeleteDirectShapesExEvent = ExternalEvent.Create(deleteAllHandler);
+            DeleteSectionPlaneExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeletePlanes());
+            DeleteDirectShapesExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeleteAllDirectShapes());
 
             GetView3D(RevitAPI.Document);
 
@@ -223,14 +214,14 @@ namespace BIMPlugins.Views.WPF
             [ObservableProperty] private Color _color;
             [ObservableProperty] private View _view;
 
-            public ExternalEvent SectionPlaneExEvent {  get; set; }
+            public ExternalEvent SectionPlaneExEvent { get; }
 
             public ElementId DirectShapeId { get; set; }
             public ElementId SectionPlaneId { get; set; }
 
-            private ExternalEvent CreateExEvent { get; set; }
-            private ExternalEvent DeleteExEvent { get; set; }
-            private ExternalEvent SectBoxExEvent { get; set; }
+            private ExternalEvent CreateExEvent { get;}
+            private ExternalEvent DeleteExEvent { get; }
+            private ExternalEvent SectBoxExEvent { get; }
 
             partial void OnIsSelectedChanging(bool value)
             {
@@ -249,29 +240,11 @@ namespace BIMPlugins.Views.WPF
 
             public ViewCropBoxItem(View view, Color color)
             {
-                var createHandler = new RevitAPI.MyEventHandler<ViewCropBoxItem>(
-                    this,
-                    vm => vm.CreateDS()
-                );
-                CreateExEvent = ExternalEvent.Create(createHandler);
+                CreateExEvent = RevitAPI.CreateExtEvent(this, vm => vm.CreateDS());
+                DeleteExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeleteDS());
 
-                var deleteHandler = new RevitAPI.MyEventHandler<ViewCropBoxItem>(
-                    this,
-                    vm => vm.DeleteDS()
-                );
-                DeleteExEvent = ExternalEvent.Create(deleteHandler);
-
-                var sectBoxHandler = new RevitAPI.MyEventHandler<ViewCropBoxItem>(
-                    this,
-                    vm => vm.SectBox()
-                );
-                SectBoxExEvent = ExternalEvent.Create(sectBoxHandler);
-
-                var sectPlaneHandler = new RevitAPI.MyEventHandler<ViewCropBoxItem>(
-                    this,
-                    vm => vm.SectionPlane()
-                );
-                SectionPlaneExEvent = ExternalEvent.Create(sectPlaneHandler);
+                SectBoxExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SectBox());
+                SectionPlaneExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SectionPlane());
 
                 View = view;
                 ViewName = view.Title.Replace("_", "__");

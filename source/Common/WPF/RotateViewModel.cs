@@ -20,15 +20,11 @@ namespace BIMPlugins.Common.WPF
         [ObservableProperty] private double _angle = 90;
 
         private List<Element> _elements = [];
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public RotateViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<RotateViewModel>(
-                this,
-                vm => vm.RotateElements()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.RotateElements());
 
             _elements = RevitAPI.UIDocument.ToSelectedElements()
                 .Where(e => e.Category.CategoryType == CategoryType.Model && e.Location is LocationPoint)

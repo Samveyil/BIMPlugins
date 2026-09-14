@@ -228,6 +228,9 @@ namespace BIMPlugins
             familyPanel.CreatePushButton<BindParametersCmd, AvailableInFamilyEditor>("Связать\nпараметры").SetShowText(true)
                 .SetLargeImage("bindFamilies.tiff")
                 .SetToolTip("Позволяет связать параметры между родительским и вложенным семействами");
+            familyPanel.CreatePushButton<FamilyCheckerCmd, NotAvailableInFamilyEditor>("Проверить\nсемейство").SetShowText(true)
+                .SetLargeImage("checkFamily.tiff")
+                .SetToolTip("Позволяет проверить работу семейства при изменении параметров");
 
             return Result.Succeeded;
         }

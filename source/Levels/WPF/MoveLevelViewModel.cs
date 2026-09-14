@@ -4,7 +4,6 @@ using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
-using BIMPlugins.ExtStorage.Methods;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -23,17 +22,13 @@ namespace BIMPlugins.Levels.WPF
             Elevation = value.Elevation.ToMillimeters().Round(3);
         }
 
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public List<Level> Levels { get; } = RevitAPI.Document.ToElements<Level>().OrderBy(l => l.Elevation).ToList();
 
         public MoveLevelViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<MoveLevelViewModel>(
-                this,
-                vm => vm.MoveLevel()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.MoveLevel());
         }
 
         [RelayCommand]

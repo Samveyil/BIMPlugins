@@ -173,15 +173,11 @@ namespace BIMPlugins.ClashViewer.WPF
         public List<string> Statuses { get; set; } = ["Активная", "Исправленная", "Не коллизия"];
         public ICollectionView FilteredClashTests { get; }
 
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public ClashViewerViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<ClashViewerViewModel>(
-                this,
-                vm => vm.SetSectionBox()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetSectionBox());
 
             FilteredClashTests = CollectionViewSource.GetDefaultView(_clashTests);
 

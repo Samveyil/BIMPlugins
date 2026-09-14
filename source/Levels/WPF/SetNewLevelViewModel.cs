@@ -19,17 +19,13 @@ namespace BIMPlugins.Levels.WPF
 
         private List<Element> _elements = [];
 
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public List<Level> Levels { get; } = RevitAPI.Document.ToElements<Level>().OrderBy(l => l.Elevation).ToList();
 
         public SetNewLevelViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<SetNewLevelViewModel>(
-                this,
-                vm => vm.SetNewLevel()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetNewLevel());
         }
 
 

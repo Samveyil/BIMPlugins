@@ -15,15 +15,11 @@ namespace BIMPlugins.Common.WPF
     {
         [ObservableProperty] private bool _currentView = true;
 
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public MirrorViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<MirrorViewModel>(
-                this,
-                vm => vm.FindMirror()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.FindMirror());
         }
 
         [RelayCommand]

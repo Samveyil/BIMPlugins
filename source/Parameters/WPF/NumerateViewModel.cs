@@ -19,15 +19,11 @@ namespace BIMPlugins.Parameters.WPF
 
         public List<Parameter> Parameters { get; set; } = [];
         
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public NumerateViewModel()
         {
-            var handler = new RevitAPI.MyEventHandler<NumerateViewModel>(
-                this,
-                vm => vm.Numerate()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.Numerate());
 
             var element = RevitAPI.UIDocument.PickObject("Выберите элемент");
             if (element == null) return;

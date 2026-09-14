@@ -19,7 +19,7 @@ namespace BIMPlugins.Views.WPF
         [ObservableProperty] private double _bottomOffset;
         [ObservableProperty] private double _topOffset;
 
-        private ExternalEvent ExEvent { get; set; }
+        private ExternalEvent ExEvent { get; }
 
         public SectionBoxViewModel()
         {
@@ -32,11 +32,7 @@ namespace BIMPlugins.Views.WPF
                 Levels.Add(level.Name);
             }
 
-            var handler = new RevitAPI.MyEventHandler<SectionBoxViewModel>(
-                this,
-                vm => vm.SetSectionBox()
-            );
-            ExEvent = ExternalEvent.Create(handler);
+            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetSectionBox());
         }
 
         public ObservableCollection<string> Levels { get; set; } = [];
