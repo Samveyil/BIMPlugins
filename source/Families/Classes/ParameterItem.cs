@@ -24,15 +24,25 @@ namespace BIMPlugins.Families.Classes
             Parameter = parameter;
             Name = def.Name;
             Group = LabelUtils.GetLabelFor(def.ParameterGroup);
-            IsYesNo = def.ParameterType == ParameterType.YesNo;
             FixedValue = IsYesNo ? 1 : 100;
 
+#if R2022_OR_GREATER
+            IsYesNo = def.GetDataType() == SpecTypeId.Boolean.YesNo;
+            if (def.GetDataType() == SpecTypeId.Angle)
+            {
+                MinValue = 5;
+                MaxValue = 87;
+                FixedValue = 30;
+            }
+#else
+            IsYesNo = def.ParameterType == ParameterType.YesNo;
             if (def.ParameterType == ParameterType.Angle)
             {
                 MinValue = 5;
                 MaxValue = 87;
                 FixedValue = 30;
             }
+#endif
         }
 
         public FamilyParameter Parameter { get; set; }
