@@ -8,14 +8,16 @@ namespace BIMPlugins.Families.Classes
         [ObservableProperty] private bool _isSelected = true;
         [ObservableProperty] private int _modeIndex = 0;
         
-        [ObservableProperty] private bool isFixed = false;
-        [ObservableProperty] private int _fixedValue = 100;
+        [ObservableProperty] private int _fixedValue;
 
         [ObservableProperty] private int _minValue = 10;
         [ObservableProperty] private int _maxValue = 1000;
         [ObservableProperty] private int _step = 10;
 
-        partial void OnModeIndexChanged(int value) => IsFixed = value == 1;
+        [ObservableProperty] private string _values;
+
+        public FamilySizeTable FamilySizeTable { get; set; }
+        public int ColumnNumber { get; set; } = 1;
 
         public ParameterItem(FamilyParameter parameter)
         {
@@ -24,7 +26,6 @@ namespace BIMPlugins.Families.Classes
             Parameter = parameter;
             Name = def.Name;
             Group = LabelUtils.GetLabelFor(def.ParameterGroup);
-            FixedValue = IsYesNo ? 1 : 100;
 
 #if R2022_OR_GREATER
             IsYesNo = def.GetDataType() == SpecTypeId.Boolean.YesNo;
@@ -43,6 +44,7 @@ namespace BIMPlugins.Families.Classes
                 FixedValue = 30;
             }
 #endif
+            FixedValue = IsYesNo ? 1 : 100;
         }
 
         public FamilyParameter Parameter { get; set; }

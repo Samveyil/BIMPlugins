@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 #if DEBUG
 namespace BIMPlugins.Tests
@@ -38,12 +39,34 @@ namespace BIMPlugins.Tests
 
             //famDoc.PurgeUnused();
 
-            var worksetFilter = new ElementWorksetFilter(new WorksetId(39741));
+            var manager = FamilySizeTableManager.GetFamilySizeTableManager(doc, new ElementId(BuiltInParameter.RBS_LOOKUP_TABLE_NAME));
+            foreach (var tableName in manager.GetAllSizeTableNames())
+            {
+                var table = manager.GetSizeTable(tableName);
+                //Debug.WriteLine( table.GetColumnHeader(1).Name);
+            }
 
-            var worksetElements = doc.ToElements(worksetFilter);
+            //var famManager = doc.FamilyManager;
+
+            //var parameters = famManager.GetParameters();
+            //foreach (var parameter in parameters.Where(p => !p.Formula.IsNullOrEmpty() && p.Formula.Contains("size_lookup")))
+            //{
+            //    var formula = parameter.Formula;
+
+            //    foreach (var paramName in parameters.Select(p => p.Definition.Name))
+            //    {
+            //        if (ContainsParameterName(formula, paramName) && !famManager.get_Parameter(paramName).IsDeterminedByFormula)
+            //        {
+            //            Debug.WriteLine(paramName);
+            //        }
+            //    }
+            //}
+
 
             return Result.Succeeded;
         }
+
+        
     }
 }
 #endif

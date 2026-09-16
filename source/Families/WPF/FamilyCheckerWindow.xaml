@@ -21,6 +21,8 @@
 
             <materialDesign:BooleanToVisibilityConverter x:Key="BoolToVis" />
             <materialDesign:BooleanToVisibilityConverter x:Key="InvertBoolToVis" TrueValue="Collapsed" FalseValue="Visible"/>
+            <materialDesign:NullableToVisibilityConverter x:Key="NullToVis" NullValue="Visible" NotNullValue="Collapsed"/>
+            <converters:IntToVisibilityConverter x:Key="IntToVis" />
 
             <CollectionViewSource x:Key="cvsItems" Source="{Binding Parameters}">
                 <CollectionViewSource.GroupDescriptions>
@@ -122,8 +124,7 @@
                                               Command="{Binding DataContext.CheckParameterCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                               CommandParameter="{Binding }"/>
                                     <TextBlock Text="{Binding Name}" Margin="5 0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="(Да/Нет)" Margin="0 0 5 0" VerticalAlignment="Center" FontSize="11" FontWeight="Light"
-                                               Visibility="{Binding IsYesNo, Converter={StaticResource BoolToVis}}"/>
+
                                     <Button Width="18" Height="18" Padding="0" Margin="5 0" VerticalAlignment="Center"
                                             Command="{Binding DataContext.RemoveParameterCommand, RelativeSource={RelativeSource AncestorType=ListBox}}" CommandParameter="{Binding}"
                                             Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Удалить">
@@ -137,11 +138,13 @@
                                               Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="5 1" Width="100" >
                                         <ComboBoxItem Content="Диапазон"/>
                                         <ComboBoxItem Content="Фикс"/>
+                                        <ComboBoxItem Content="Список"/>
+                                        <ComboBoxItem Content="Таблица"/>
                                     </ComboBox>
                                 </Border>
 
                                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsFixed, Converter={StaticResource InvertBoolToVis}}">
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=0}">
                                         <StackPanel Orientation="Horizontal" Visibility="{Binding IsYesNo, Converter={StaticResource InvertBoolToVis}}">
                                             <TextBlock Text="от" Margin="10 0 5 0" VerticalAlignment="Center"/>
                                             <TextBox Text="{Binding MinValue}" Width="60" Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -155,11 +158,35 @@
                                             <TextBox Text="{Binding Step}" Width="60" Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                      Padding="5 1" TextAlignment="Center"/>
                                         </StackPanel>
+                                        
+                                        <StackPanel Orientation="Horizontal" Visibility="{Binding IsYesNo, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="Да/Нет" Margin="10 0 5 0" VerticalAlignment="Center"/>
+                                        </StackPanel>
                                     </StackPanel>
 
-                                    <StackPanel Orientation="Horizontal" Visibility="{Binding IsFixed, Converter={StaticResource BoolToVis}}" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                                Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=1}">
+                                        <TextBlock Text="Да - 1; Нет - 0" Margin="10 0 0 0" VerticalAlignment="Center"
+                                                   Visibility="{Binding IsYesNo, Converter={StaticResource BoolToVis}}"/>
+
                                         <TextBox Text="{Binding FixedValue}" Width="60" Style="{StaticResource MaterialDesignOutlinedTextBox}" Padding="5 1"
-                                                 materialDesign:HintAssist.IsFloating="False" Margin="27 0" TextAlignment="Center" ToolTip="Значение параметра"/>
+                                                 materialDesign:HintAssist.IsFloating="False" Margin="10 0" TextAlignment="Center" ToolTip="Значение параметра"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                                Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=2}">
+                                        <TextBox Text="{Binding Values}" Width="266" Style="{StaticResource MaterialDesignOutlinedTextBox}" Padding="5 1"
+                                                 materialDesign:HintAssist.IsFloating="False" Margin="10 0" ToolTip="Значения параметов"
+                                                 Visibility="{Binding IsYesNo, Converter={StaticResource InvertBoolToVis}}"/>
+
+                                        <TextBlock Text="Не применимо!" Margin="10 0" Foreground="Red"
+                                                   Visibility="{Binding IsYesNo, Converter={StaticResource BoolToVis}}"/>
+                                    </StackPanel>
+
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                                                Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=3}">
+                                        <TextBlock Text="Отсутствует в таблице!" Margin="10 0" Foreground="Red"
+                                                   Visibility="{Binding FamilySizeTable, Converter={StaticResource NullToVis}}"/>
                                     </StackPanel>
                                 </StackPanel>
                             </Grid>
