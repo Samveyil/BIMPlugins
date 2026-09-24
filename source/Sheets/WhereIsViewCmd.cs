@@ -1,13 +1,13 @@
-﻿using Autodesk.Revit.DB;
+﻿using Autodesk.Revit.Attributes;
+using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using Autodesk.Revit.Attributes;
 using BIMPlugins.ExtStorage;
-using System.Windows;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.WPF;
 using BIMPlugins.Windows;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 
 namespace BIMPlugins.Sheets
 {
@@ -17,7 +17,8 @@ namespace BIMPlugins.Sheets
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var view = RevitAPI.Document.ActiveView;
+            var doc = RevitAPI.Document;
+            var view = doc.ActiveView;
             if (view.ViewType == ViewType.DrawingSheet)
             {
                 MessageWindow.ShowMessage("Активным видом не должен быть лист!", MessageBoxImage.Warning);
@@ -27,14 +28,14 @@ namespace BIMPlugins.Sheets
             List<ViewSheet> sheets = view.ViewType == ViewType.Schedule
                 ? view
                     .GetDependentElements(new ElementClassFilter(typeof(ScheduleSheetInstance)))
-                    .Select(id => id.ToElement<ScheduleSheetInstance>())
-                    .Select(v => v.OwnerViewId.ToElement<ViewSheet>())
+                    .Select(id => id.ToElement<ScheduleSheetInstance>(doc))
+                    .Select(v => v.OwnerViewId.ToElement<ViewSheet>(doc))
                     .ToList()
                 : view
                     .GetDependentElements(new ElementClassFilter(typeof(Viewport)))
-                    .Select(id => id.ToElement<Viewport>())
+                    .Select(id => id.ToElement<Viewport>(doc))
                     .Where(v => v.SheetId != ElementId.InvalidElementId)
-                    .Select(v => v.SheetId.ToElement<ViewSheet>())
+                    .Select(v => v.SheetId.ToElement<ViewSheet>(doc))
                     .ToList();
 
             if (sheets.Count == 0)

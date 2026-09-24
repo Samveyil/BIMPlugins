@@ -16,7 +16,9 @@ namespace BIMPlugins
 {
     public class AutoRun_Application : IExternalApplication
     {
-        public static UIControlledApplication _uiControlApp;
+        private UIControlledApplication _uiControlApp;
+        private readonly UIApplication _uiApp = RevitAPI.UIApplication;
+        private string _versionNumber;
 
         public Result OnShutdown(UIControlledApplication application)
         {
@@ -26,6 +28,7 @@ namespace BIMPlugins
         public Result OnStartup(UIControlledApplication application)
         {
             _uiControlApp = application;
+            _versionNumber = _uiApp.Application.VersionNumber;
 
             string command = Environment.GetCommandLineArgs().FirstOrDefault(arg => arg.StartsWith("/"));
 
@@ -37,7 +40,7 @@ namespace BIMPlugins
                 case "/relinquish":
                     _uiControlApp.Idling += new EventHandler<IdlingEventArgs>(Relinquish);
                     break;
-               
+
                 default:
                     break;
             }
@@ -47,35 +50,44 @@ namespace BIMPlugins
 
         private void OpenDocs(object sender, IdlingEventArgs e)
         {
-            RevitAPI.UIApplication.DialogBoxShowing += new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
+            _uiApp.DialogBoxShowing += new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
 
-            var setFile = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\BIMPlugins\openDocs.xml";
-            if (File.Exists(setFile))
+            try
             {
-                var xDoc = XDocument.Load(setFile);
+                var setFile = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\BIMPlugins\openDocs.xml";
+                if (File.Exists(setFile))
+                {
+                    var xDoc = XDocument.Load(setFile);
 
-                if (xDoc.Descendants("settings").FirstOrDefault().Attribute("isDetached").Value == "true")
-                {
-                    foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == RevitAPI.Application.VersionNumber).Elements())
+                    if (xDoc.Descendants("settings").FirstOrDefault().Attribute("isDetached").Value == "true")
                     {
-                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
-                        mPath.OpenAndActivateDetachedDocument();
+                        foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
+                        {
+                            var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
+                            mPath.OpenAndActivateDetachedDocument();
+                        }
                     }
-                }
-                else
-                {
-                    foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == RevitAPI.Application.VersionNumber).Elements())
+                    else
                     {
-                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
-                        mPath.OpenAndActivateLocalDocument(xFile.Attribute("path").Value);
+                        foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
+                        {
+                            var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
+                            mPath.OpenAndActivateLocalDocument(xFile.Attribute("path").Value);
+                        }
                     }
                 }
             }
-            
-            RevitAPI.UIApplication.DialogBoxShowing -= new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
-            _uiControlApp.Idling -= new EventHandler<IdlingEventArgs>(OpenDocs);
+            catch (Exception ex)
+            {
+                MessageWindow.ShowMessage(ex.Message + "\n\n" + ex.StackTrace);
+            }
+            finally
+            {
+                _uiApp.DialogBoxShowing -= new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
+                _uiControlApp.Idling -= new EventHandler<IdlingEventArgs>(OpenDocs);
+            }
         }
-        
+
         private void Relinquish(object sender, IdlingEventArgs e)
         {
             var setFile = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\BIMPlugins\relinquish.xml";
@@ -84,7 +96,7 @@ namespace BIMPlugins
                 var xDoc = XDocument.Load(setFile);
 
                 var toShow = new List<string>();
-                foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == RevitAPI.Application.VersionNumber).Elements())
+                foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
                 {
                     var filePath = xFile.Attribute("path").Value;
 
@@ -118,7 +130,7 @@ namespace BIMPlugins
         }
         private void RechangeBackUsername()
         {
-            string path = $@"C:\Users\{Environment.UserName}\AppData\Roaming\Autodesk\Revit\Autodesk Revit {RevitAPI.Application.VersionNumber}\Revit.ini";
+            string path = $@"C:\Users\{Environment.UserName}\AppData\Roaming\Autodesk\Revit\Autodesk Revit {_versionNumber}\Revit.ini";
 
             Encoding encoding = GetEncoding(path);
 

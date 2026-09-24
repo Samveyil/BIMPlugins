@@ -1,15 +1,15 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Data;
-using BIMPlugins.Bars;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 namespace BIMPlugins.Parameters.WPF
 {

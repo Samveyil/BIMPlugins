@@ -16,7 +16,8 @@ namespace BIMPlugins.Common
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var element = RevitAPI.UIDocument.ToSelectedElements().FirstOrDefault();
+            var element = RevitAPI.UIDocument.ToSelectedElements()
+                .FirstOrDefault();
             if (element == null)
             {
                 MessageBox.Show("Выберите элемент!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);

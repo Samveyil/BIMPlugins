@@ -1,21 +1,21 @@
 ﻿using Aspose.Cells;
 using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
-using Microsoft.Win32;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.Sheets.Classes;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using Microsoft.Win32;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Data;
-using BIMPlugins.ExtStorage.Methods;
-using System.Collections.Generic;
-using System.Linq;
-using System;
-using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -35,10 +35,11 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private bool _useTitle = false;
         [ObservableProperty] private ObservableCollection<SpecificationItem> _specificationItems = [];
 
+        private readonly Document _doc;
         private readonly ElementId _paramId;
         private readonly List<SheetScheduleItem> _sheetItems = [];
         private readonly List<SpecificationItem> _excelItems = [];
-        private readonly List<ViewSheet> _sheets = [];
+        private readonly IList<ViewSheet> _sheets = [];
 
         public List<ViewSchedule> CreatedSpecifications { get; set; } = [];
         public List<Parameter> SheetParameters { get; set; } = [];
@@ -128,13 +129,12 @@ namespace BIMPlugins.Sheets.WPF
             }
         }
 
-        public SpecificationScheduleViewModel(List<ViewSheet> sheets)
+        public SpecificationScheduleViewModel(IList<ViewSheet> sheets)
         {
+            _doc = RevitAPI.Document;
             _sheets = sheets;
 
-            CreatedSpecifications = new FilteredElementCollector(RevitAPI.Document)
-                .OfClass(typeof(ViewSchedule))
-                .Cast<ViewSchedule>()
+            CreatedSpecifications = _doc.ToElements<ViewSchedule>()
                 .Where(sc => sc.Name.Contains("BIMPlugins"))
                 .ToList();
 
@@ -144,15 +144,14 @@ namespace BIMPlugins.Sheets.WPF
                 .OrderBy(parameter => parameter.Definition.Name)
                 .ToList();
 
-            SelectedSheetNumberParameter = SheetParameters.FirstOrDefault(p => p.IsShared && p.GUID == new Guid("b4e34c05-d510-468f-bd86-e753486c8add")) ?? SheetParameters.First();
+            SelectedSheetNumberParameter = SheetParameters
+                .FirstOrDefault(p => p.IsShared && p.GUID == new Guid("b4e34c05-d510-468f-bd86-e753486c8add")) ?? SheetParameters.First();
 
-            var scheduleGraphics = new FilteredElementCollector(RevitAPI.Document)
-                .OfCategory(BuiltInCategory.OST_ScheduleGraphics)
-                .WhereElementIsNotElementType()
+            var scheduleGraphics = _doc.ToElements(BuiltInCategory.OST_ScheduleGraphics)
                 .Where(s => !s.Name.Contains("Ведомость изменений"))
                 .ToList();
 
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(RevitAPI.Document);
+            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
             FolderItemInfo folderItemInfo;
 
             try
@@ -184,7 +183,7 @@ namespace BIMPlugins.Sheets.WPF
                         var scheduleItem = new ScheduleItem(this)
                         {
                             Name = "Спецификация: " + scheduleGraphic.Name,
-                            Element = (scheduleGraphic as ScheduleSheetInstance).ScheduleId.ToElement<ViewSchedule>(),
+                            Element = (scheduleGraphic as ScheduleSheetInstance).ScheduleId.ToElement<ViewSchedule>(_doc),
                             Parent = sheetItem
                         };
 
@@ -290,7 +289,7 @@ namespace BIMPlugins.Sheets.WPF
 
             if (excelSpecifications.Count != 0)
             {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Генерация спецификаций из Excel"))
+                using (Transaction t = new Transaction(_doc, "Генерация спецификаций из Excel"))
                 {
                     t.Start();
 
@@ -301,7 +300,7 @@ namespace BIMPlugins.Sheets.WPF
                         {
                             var schedule = CreateNewExcelSpecification(specItem.Title);
 
-                            ScheduleSheetInstance.Create(RevitAPI.Document, sheet.Id, schedule.Id, new XYZ());
+                            ScheduleSheetInstance.Create(_doc, sheet.Id, schedule.Id, new XYZ());
                         }
                     }
 
@@ -311,7 +310,7 @@ namespace BIMPlugins.Sheets.WPF
 
             ViewSchedule viewSchedule = null;
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Ведомость спецификаций"))
+            using (Transaction t = new Transaction(_doc, "Ведомость спецификаций"))
             {
                 t.Start();
 
@@ -323,7 +322,7 @@ namespace BIMPlugins.Sheets.WPF
                 t.Commit();
             }
 
-            RevitAPI.UIDocument.ActiveView = RefreshExistOne
+            new UIDocument(_doc).ActiveView = RefreshExistOne
                 ? SelectedSpecification
                 : viewSchedule;
         }
@@ -380,7 +379,7 @@ namespace BIMPlugins.Sheets.WPF
 
         private ViewSchedule CreateNewExcelSpecification(string name)
         {
-            var schedule = ViewSchedule.CreateSchedule(RevitAPI.Document, ElementId.InvalidElementId);
+            var schedule = ViewSchedule.CreateSchedule(_doc, ElementId.InvalidElementId);
             try
             {
                 schedule.Name = name;
@@ -403,7 +402,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             var intUnit = 1d.FromMillimeters();
 
-            var schedule = ViewSchedule.CreateSchedule(RevitAPI.Document, ElementId.InvalidElementId);
+            var schedule = ViewSchedule.CreateSchedule(_doc, ElementId.InvalidElementId);
             schedule.Name = "BIMPlugins_" + NewSpecificationName;
 
             var textNoteType = schedule.TitleTextTypeId;
@@ -438,13 +437,13 @@ namespace BIMPlugins.Sheets.WPF
                 .ThenByDescending(s => s.Title, new NaturalComparer())
                 .ToList())
             {
-                var textNote = TextNote.Create(RevitAPI.Document, temporarySheetId, new XYZ(), specItem.Title, textNoteType);
+                var textNote = TextNote.Create(_doc, temporarySheetId, new XYZ(), specItem.Title, textNoteType);
 
-                RevitAPI.Document.Regenerate();
+                _doc.Regenerate();
 
                 var height = (textNote.Width > 140 * intUnit ? 12 : 8) * intUnit;
 
-                RevitAPI.Document.Delete(textNote.Id);
+                _doc.Delete(textNote.Id);
 
                 headerSectionData.SetRowHeight(0, height);
 
@@ -463,12 +462,14 @@ namespace BIMPlugins.Sheets.WPF
             headerSectionData.SetCellText(0, 2, "Примечание");
             headerSectionData.SetRowHeight(0, 15 * intUnit);
 
-            var boldLine = new FilteredElementCollector(RevitAPI.Document)
+            var elemenets = new FilteredElementCollector(_doc)
                 .WhereElementIsNotElementType()
+                .ToElements();
+
+            var boldLine = elemenets
                 .FirstOrDefault(l => l.Name == "ADSK_Спецификация толстая");
 
-            var thickLine = new FilteredElementCollector(RevitAPI.Document)
-                .WhereElementIsNotElementType()
+            var thickLine = elemenets
                 .FirstOrDefault(l => l.Name == "ADSK_Спецификация тонкая");
 
             var cellStyle = GetTableCellStyle(boldLine, thickLine);
@@ -531,13 +532,15 @@ namespace BIMPlugins.Sheets.WPF
             var rowNumbers = headerSectionData.NumberOfRows - 2;
             if (rowNumbers < SpecificationItems.Count)
             {
-                var boldLine = new FilteredElementCollector(RevitAPI.Document)
-                    .WhereElementIsNotElementType()
-                    .FirstOrDefault(l => l.Name == "ADSK_Cпецификация толстая");
+                var elemenets = new FilteredElementCollector(_doc)
+                .WhereElementIsNotElementType()
+                .ToElements();
 
-                var thickLine = new FilteredElementCollector(RevitAPI.Document)
-                    .WhereElementIsNotElementType()
-                    .FirstOrDefault(l => l.Name == "ADSK_Cпецификация тонкая");
+                var boldLine = elemenets
+                    .FirstOrDefault(l => l.Name == "ADSK_Спецификация толстая");
+
+                var thickLine = elemenets
+                    .FirstOrDefault(l => l.Name == "ADSK_Спецификация тонкая");
 
                 var cellStyle = headerSectionData.GetTableCellStyle(rowNumbers, 0);
                 var middleCellStyle = headerSectionData.GetTableCellStyle(rowNumbers, 1);
@@ -570,13 +573,13 @@ namespace BIMPlugins.Sheets.WPF
                 .ThenBy(s => s.Title, new NaturalComparer())
                 .ToList())
             {
-                var textNote = TextNote.Create(RevitAPI.Document, temporarySheetId, new XYZ(), specItem.Title, textNoteType);
+                var textNote = TextNote.Create(_doc, temporarySheetId, new XYZ(), specItem.Title, textNoteType);
 
-                RevitAPI.Document.Regenerate();
+                _doc.Regenerate();
 
                 double height = textNote.Width > 140d.FromMillimeters() ? 12 : 8;
 
-                RevitAPI.Document.Delete(textNote.Id);
+                _doc.Delete(textNote.Id);
 
                 headerSectionData.SetRowHeight(i, height.FromMillimeters());
 

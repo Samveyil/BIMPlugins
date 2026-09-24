@@ -1,16 +1,16 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using Autodesk.Revit.UI.Selection;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.Bars;
-using System.Windows;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
-using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using System.Windows;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -19,14 +19,18 @@ namespace BIMPlugins.Common.WPF
         [ObservableProperty] private string _count = "0";
         [ObservableProperty] private double _angle = 90;
 
+        private readonly UIDocument _uiDoc;
         private List<Element> _elements = [];
+
         private ExternalEvent ExEvent { get; }
 
         public RotateViewModel()
         {
+            _uiDoc = RevitAPI.UIDocument;
+
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.RotateElements());
 
-            _elements = RevitAPI.UIDocument.ToSelectedElements()
+            _elements = _uiDoc.ToSelectedElements()
                 .Where(e => e.Category.CategoryType == CategoryType.Model && e.Location is LocationPoint)
                 .ToList();
             Count = _elements.Count.ToString();
@@ -36,16 +40,11 @@ namespace BIMPlugins.Common.WPF
         private void SelectElems()
         {
             RevitOptionsBar.Hide(true);
-            try
-            {
-                _elements = RevitAPI.UIDocument.PickObjects(new ModelElementsFilter(), "Выберите элементы").ToList();
-                Count = _elements.Count.ToString();
-            }
-            catch { }
-            finally
-            {
-                RevitOptionsBar.Show();
-            }
+
+            _elements = _uiDoc.PickElements(new ModelElementsFilter(), "Выберите элементы").ToList();
+            Count = _elements?.Count.ToString();
+
+            RevitOptionsBar.Show();
         }
 
         [RelayCommand]
@@ -55,19 +54,13 @@ namespace BIMPlugins.Common.WPF
         {
             try
             {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Поворот элемента вокруг своей оси"))
+                using (Transaction t = new Transaction(_uiDoc.Document, "Поворот элемента вокруг своей оси"))
                 {
                     t.Start();
 
                     foreach (var element in _elements)
                     {
-                        XYZ axis = new XYZ(0, 0, 1);
-
-                        LocationPoint locationPoint = element.Location as LocationPoint;
-                        XYZ rotationPoint = locationPoint.Point;
-
-                        Line line = Line.CreateUnbound(rotationPoint, axis);
-
+                        Line line = Line.CreateUnbound(element.ToPoint(), XYZ.BasisZ);
                         double angleInRadians = Angle * (Math.PI / 180);
 
                         element.Rotate(line, angleInRadians);

@@ -1,18 +1,18 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.Classes;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Data;
-using BIMPlugins.Bars;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -83,6 +83,8 @@ namespace BIMPlugins.Sheets.WPF
             ChangeNumber();
         }
 
+        private readonly Document _doc;
+
         public const string NumberLengthName = nameof(NumberLength);
         public const string StartNumberName = nameof(StartNumber);
         public const string StepName = nameof(Step);
@@ -90,8 +92,10 @@ namespace BIMPlugins.Sheets.WPF
         public List<string> WaysToChangeNumber { get; set; } = ["Увеличить на", "Уменьшить на"];
         public List<Parameter> Parameters { get; set; }
 
-        public SheetsNumberingViewModel(List<ViewSheet> sheets)
+        public SheetsNumberingViewModel(IList<ViewSheet> sheets)
         {
+            _doc = RevitAPI.Document;
+
             Parameters = new(
                 sheets[0].Parameters.Cast<Parameter>()
                     .Where(parameter => !parameter.IsReadOnly && parameter.StorageType == StorageType.String)
@@ -100,7 +104,7 @@ namespace BIMPlugins.Sheets.WPF
 
             SelectedParameter = Parameters.FirstOrDefault(p => p.IsShared && p.GUID == new Guid("b4e34c05-d510-468f-bd86-e753486c8add")) ?? Parameters.First();
 
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(RevitAPI.Document);
+            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
 
             FolderItemInfo folderItemInfo;
             ElementId paramId;
@@ -183,7 +187,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             RaiseCloseRequest();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Нумератор листов"))
+            using (Transaction t = new Transaction(_doc, "Нумератор листов"))
             {
                 t.Start();
 

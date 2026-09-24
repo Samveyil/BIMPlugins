@@ -1,6 +1,6 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
 using BIMPlugins.ExtStorage.Extensions;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace BIMPlugins.Sheets.Classes
 {
@@ -19,7 +19,7 @@ namespace BIMPlugins.Sheets.Classes
         public ViewItem(Viewport viewport)
         {
             Viewport = viewport;
-            View = viewport.ViewId.ToElement<View>();
+            View = viewport.ViewId.ToElement<View>(viewport.Document);
 
             Name = View.Title;
             ViewType = View.ViewType;

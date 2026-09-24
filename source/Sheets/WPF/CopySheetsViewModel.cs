@@ -1,19 +1,19 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.Sheets.Classes;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Data;
-using BIMPlugins.Bars;
-using System.Collections.Generic;
-using System.Linq;
-using System;
-using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -44,6 +44,8 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private static bool _cropAnnotation = true;
         [ObservableProperty] private static bool _isSelectedAsDependent = false;
 
+        private readonly Document _doc;
+
         partial void OnFilterChanged(string value)
         {
             SheetGroups.Refresh();
@@ -57,16 +59,15 @@ namespace BIMPlugins.Sheets.WPF
         public List<string> NumberPositions { get; set; } = ["Начале", "Конце"];
         public List<string> ViewDuplicateOptions { get; set; } = ["Копировать", "Копировать с детализацией", "Создать зависимый вид"];
 
-        public CopySheetsViewModel(IList<Element> sheets)
+        public CopySheetsViewModel(IList<ViewSheet> sheets)
         {
-            var scheduleGraphics = new FilteredElementCollector(RevitAPI.Document)
-                .OfCategory(BuiltInCategory.OST_ScheduleGraphics)
-                .WhereElementIsNotElementType()
+            _doc = RevitAPI.Document;
+
+            var scheduleGraphics = _doc.ToElements<ScheduleSheetInstance>(BuiltInCategory.OST_ScheduleGraphics)
                 .Where(s => !s.Name.Contains("Ведомость изменений"))
-                .Cast<ScheduleSheetInstance>()
                 .ToList();
 
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(RevitAPI.Document);
+            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
             
             FolderItemInfo folderItemInfo;
             ElementId paramId;
@@ -98,8 +99,8 @@ namespace BIMPlugins.Sheets.WPF
 
                 foreach (var elemId in (sheet as ViewSheet).GetAllViewports())
                 {
-                    var viewport = elemId.ToElement<Viewport>(); 
-                    var view = viewport.ViewId.ToElement<View>();
+                    var viewport = elemId.ToElement<Viewport>(_doc); 
+                    var view = viewport.ViewId.ToElement<View>(_doc);
                     
                     var viewItem = new ViewItem(viewport)
                     {
@@ -138,7 +139,8 @@ namespace BIMPlugins.Sheets.WPF
                 List<SheetCopyItem> subList = [];
                 foreach (var sheetListItem in sheetListItems.OrderBy(s => s.Number, new NaturalComparer()))
                 {
-                    if (sheetListItem.GroupItemName == section) subList.Add(sheetListItem);
+                    if (sheetListItem.GroupItemName == section)
+                        subList.Add(sheetListItem);
                 }
 
                 if (subList.Count > 0)
@@ -199,7 +201,7 @@ namespace BIMPlugins.Sheets.WPF
 
             RaiseCloseRequest();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Дубликатор листов"))
+            using (Transaction t = new Transaction(_doc, "Дубликатор листов"))
             {
                 t.Start();
 
@@ -207,15 +209,12 @@ namespace BIMPlugins.Sheets.WPF
                 {
                     revitProgressBar.Run("Копирование листов...", selectedSheetItems, (sheetItem) =>
                     {
-                        var titleBlocks = new FilteredElementCollector(RevitAPI.Document, sheetItem.Element.Id)
-                            .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                            .WhereElementIsNotElementType()
-                            .ToList();
+                        var titleBlocks = _doc.ToElements(sheetItem.Element.Id, BuiltInCategory.OST_TitleBlocks);
 
                         int position = 1;
                         for (int i = 1; i < sheetItem.CopiesAmount + 1; i++)
                         {
-                            var newSheet = ViewSheet.Create(RevitAPI.Document, titleBlocks[0].GetTypeId());
+                            var newSheet = ViewSheet.Create(_doc, titleBlocks[0].GetTypeId());
 
                             var uniqueNumber = string.Empty;
                             if (SelectedNumberPosition == "Начале")
@@ -236,12 +235,10 @@ namespace BIMPlugins.Sheets.WPF
 
                             newSheet.get_Parameter(BuiltInParameter.SHEET_NUMBER).Set(uniqueNumber);
                             
-                            var newTitleBlock = new FilteredElementCollector(RevitAPI.Document, newSheet.Id)
-                                .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                                .WhereElementIsNotElementType()
+                            var newTitleBlock = _doc.ToElements(newSheet.Id, BuiltInCategory.OST_TitleBlocks)
                                 .FirstOrDefault();
 
-                            newTitleBlock.Move((titleBlocks[0].Location as LocationPoint).Point);
+                            newTitleBlock.Move(titleBlocks[0].ToPoint());
                             
                             CopySheetParameters(sheetItem.Element, newSheet);
 
@@ -251,8 +248,8 @@ namespace BIMPlugins.Sheets.WPF
                             {
                                 foreach ( var titleBlock in titleBlocks.Skip(1))
                                 {
-                                    newTitleBlock = RevitAPI.Document.Create.NewFamilyInstance(
-                                        (titleBlock.Location as LocationPoint).Point,
+                                    newTitleBlock = _doc.Create.NewFamilyInstance(
+                                        titleBlock.ToPoint(),
                                         titleBlock.ToElementType() as FamilySymbol,
                                         newSheet);
 
@@ -271,7 +268,7 @@ namespace BIMPlugins.Sheets.WPF
                                 ? NamePrefix + newSheet.Name + NameSuffix
                                 : NamePrefix + sheetItem.NewCopyName + NameSuffix;
 
-                            RevitAPI.Document.Regenerate();
+                            _doc.Regenerate();
                         }
                     });
 
@@ -349,12 +346,12 @@ namespace BIMPlugins.Sheets.WPF
                     if (viewItem.ViewType == ViewType.DraftingView)
                     {
                         newViewId = viewItem.View.Duplicate(ViewDuplicateOption.WithDetailing);
-                        newView = newViewId.ToElement<View>();
+                        newView = newViewId.ToElement<View>(_doc);
                     }
                     else
                     {
                         newViewId = viewItem.View.Duplicate(SelectedViewDuplicateOption);
-                        newView = newViewId.ToElement<View>();
+                        newView = newViewId.ToElement<View>(_doc);
                         if (SelectedViewDuplicateOption == ViewDuplicateOption.AsDependent)
                         {
                             newView.CropBoxActive = CropBoxActive;
@@ -363,7 +360,7 @@ namespace BIMPlugins.Sheets.WPF
                         }
                     }
                     
-                    Viewport.Create(RevitAPI.Document, targetSheet.Id, newViewId, viewItem.Viewport.GetBoxCenter());
+                    Viewport.Create(_doc, targetSheet.Id, newViewId, viewItem.Viewport.GetBoxCenter());
                 }
                 catch { }
             }
@@ -378,16 +375,16 @@ namespace BIMPlugins.Sheets.WPF
                 {
                     try
                     {
-                        var schedule = viewItem.ScheduleSheetInstance.ScheduleId.ToElement<View>();
+                        var schedule = viewItem.ScheduleSheetInstance.ScheduleId.ToElement<View>(_doc);
                         var newScheduleId = schedule.Duplicate(ViewDuplicateOption.Duplicate);
 
-                        ScheduleSheetInstance.Create(RevitAPI.Document, targetSheet.Id, newScheduleId, viewItem.CenterPoint);
+                        ScheduleSheetInstance.Create(_doc, targetSheet.Id, newScheduleId, viewItem.CenterPoint);
                     }
                     catch { }
                 }
                 else
                 {
-                    ScheduleSheetInstance.Create(RevitAPI.Document, targetSheet.Id, viewItem.ScheduleSheetInstance.ScheduleId, viewItem.CenterPoint);
+                    ScheduleSheetInstance.Create(_doc, targetSheet.Id, viewItem.ScheduleSheetInstance.ScheduleId, viewItem.CenterPoint);
                 }
             }
         }
@@ -402,13 +399,13 @@ namespace BIMPlugins.Sheets.WPF
                     try
                     {
                         var newLegendId = viewItem.View.Duplicate(ViewDuplicateOption.WithDetailing);
-                        Viewport.Create(RevitAPI.Document, targetSheet.Id, newLegendId, viewItem.Viewport.GetBoxCenter());
+                        Viewport.Create(_doc, targetSheet.Id, newLegendId, viewItem.Viewport.GetBoxCenter());
                     }
                     catch { }
                 }
                 else
                 {
-                    Viewport.Create(RevitAPI.Document, targetSheet.Id, viewItem.View.Id, viewItem.Viewport.GetBoxCenter());
+                    Viewport.Create(_doc, targetSheet.Id, viewItem.View.Id, viewItem.Viewport.GetBoxCenter());
                 }
             }
         }
@@ -416,11 +413,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             try
             {
-                var annotationIds = new FilteredElementCollector(RevitAPI.Document, sheetItem.Element.Id)
-                    .OfCategory(BuiltInCategory.OST_GenericAnnotation)
-                    .WhereElementIsNotElementType()
-                    .ToElementIds();
-
+                var annotationIds = _doc.ToElementIds(sheetItem.Element.Id, BuiltInCategory.OST_GenericAnnotation);
                 annotationIds.CopyElements(sheetItem.Element, targetSheet);
             }
             catch { }
@@ -429,11 +422,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             try
             {
-                var textNotesIds = new FilteredElementCollector(RevitAPI.Document, sheetItem.Element.Id)
-                    .OfCategory(BuiltInCategory.OST_TextNotes)
-                    .WhereElementIsNotElementType()
-                    .ToElementIds();
-
+                var textNotesIds = _doc.ToElementIds(sheetItem.Element.Id, BuiltInCategory.OST_TextNotes);
                 textNotesIds.CopyElements(sheetItem.Element, targetSheet);
             }
             catch { }
@@ -442,11 +431,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             try
             {
-                var lineIds = new FilteredElementCollector(RevitAPI.Document, sheetItem.Element.Id)
-                    .OfClass(typeof(CurveElement))
-                    .WhereElementIsNotElementType()
-                    .ToElementIds();
-                
+                var lineIds = _doc.ToElementIds<CurveElement>(sheetItem.Element.Id); 
                 lineIds.CopyElements(sheetItem.Element, targetSheet);
             }
             catch { }

@@ -1,16 +1,18 @@
 ﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
+using BIMPlugins.ExtStorage;
+using BIMPlugins.ExtStorage.Extensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using BIMPlugins.ExtStorage;
-using System.Windows;
-using BIMPlugins.Bars;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
+using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
-    public partial class ImageFromLegendViewModel : ObservableObject
+    public partial class ImageFromLegendViewModel(List<View> legends) : ObservableObject
     {
         [ObservableProperty] private bool _zoom = true;
         [ObservableProperty] private bool _fitToPage = false;
@@ -19,20 +21,11 @@ namespace BIMPlugins.Views.WPF
         [ObservableProperty] private bool _horizontalFit = true;
         [ObservableProperty] private int _selectedResolution = 600;
 
-        partial void OnZoomChanged(bool value)
-        {
-            FitToPage = !value;
-        }
+        partial void OnZoomChanged(bool value) => FitToPage = !value;
 
-        private readonly List<View> _legends = [];
+        private readonly List<View> _legends = legends;
 
         public List<int> Resolutions { get; set; } = [72, 150, 300, 600];
-
-        public ImageFromLegendViewModel(List<View> legends)
-        {
-            _legends = legends;
-        }
-
 
         [RelayCommand]
         private void Run()
@@ -41,9 +34,7 @@ namespace BIMPlugins.Views.WPF
 
             var doc = RevitAPI.Document;
 
-            var imageViews = new FilteredElementCollector(doc)
-                .OfClass(typeof(ImageView))
-                .ToList();
+            var imageViews = doc.ToElements<ImageView>();
 
             ImageExportOptions exportOptions = new ImageExportOptions();
             exportOptions.ExportRange = ExportRange.CurrentView;
@@ -86,9 +77,10 @@ namespace BIMPlugins.Views.WPF
                 {
                     tGroup.Start();
 
+                    var uiDoc = new UIDocument(doc);
                     revitProgressBar.Run("Генерация изображений...", _legends, (legend) =>
                     {
-                        RevitAPI.UIDocument.ActiveView = legend;
+                        uiDoc.ActiveView = legend;
 
                         exportOptions.ViewName = legend.Name;
 
@@ -108,7 +100,7 @@ namespace BIMPlugins.Views.WPF
                             
                             try
                             {
-                                RevitAPI.UIDocument.GetOpenUIViews().FirstOrDefault(v => v.ViewId == legend.Id)?.Close();
+                                legend.ToUIView()?.Close();
                             }
                             catch { }
 

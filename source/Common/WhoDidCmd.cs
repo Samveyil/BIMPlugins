@@ -2,7 +2,7 @@
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
-using System.Collections.Generic;
+using BIMPlugins.ExtStorage.Extensions;
 using System.Linq;
 
 namespace BIMPlugins.Common
@@ -13,23 +13,26 @@ namespace BIMPlugins.Common
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            try
-            {
-                ICollection<ElementId> ids = RevitAPI.UIDocument.Selection.GetElementIds();
+            var uiDoc = RevitAPI.UIDocument;
+            var doc = uiDoc.Document;
 
-                var workInfo = WorksharingUtils.GetWorksharingTooltipInfo(RevitAPI.Document, ids.First());
-                
-                string creator = workInfo.Creator;
-                string owner = workInfo.Owner;
-                string lastChange = workInfo.LastChangedBy;
-                string to_print = "Создатель: " + creator + "\n" + "Владелец: " + owner + "\n" + "Последнее изменение: " + lastChange;
-                
-                TaskDialog.Show("Кто сделал это?", to_print); 
-            }
-            catch
+            var selectedElement = uiDoc.ToSelectedElements()
+                .FirstOrDefault();
+
+            if (selectedElement == null)
             {
                 TaskDialog.Show("Ошибка", "Сначала выберите элемент");
+                return Result.Failed;
             }
+
+            var workInfo = WorksharingUtils.GetWorksharingTooltipInfo(doc, selectedElement.Id);
+
+            string creator = workInfo.Creator;
+            string owner = workInfo.Owner;
+            string lastChange = workInfo.LastChangedBy;
+            string to_print = "Создатель: " + creator + "\n" + "Владелец: " + owner + "\n" + "Последнее изменение: " + lastChange;
+
+            TaskDialog.Show("Кто сделал это?", to_print);
 
             return Result.Succeeded;
         }

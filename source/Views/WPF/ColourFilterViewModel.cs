@@ -1,16 +1,16 @@
-﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Windows.Data;
-using System.Windows.Forms;
-using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+﻿using Autodesk.Revit.DB;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
-using System.Collections.Generic;
-using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows.Data;
+using System.Windows.Forms;
 
 namespace BIMPlugins.Views.WPF
 {
@@ -25,29 +25,18 @@ namespace BIMPlugins.Views.WPF
 
         [ObservableProperty] private ObservableCollection<ValueItem> _values = [];
 
+        private readonly Document _doc = RevitAPI.Document;
         private readonly Dictionary<string, ElementId> _parametersDict = [];
         private readonly ObservableCollection<CategoryItem> _selectedCategories = [];
         private const double GoldenRatioConjugate = 0.618033988749895;
         private static double _currentHue = 0;
         private static readonly ColorDialog _colorDialog = new ColorDialog() { FullOpen = true};
 
-        partial void OnFilterChanged(string value)
-        {
-            Categories.Refresh();
-        }
-        partial void OnHideUncheckedChanged(bool value)
-        {
-            Categories.Refresh();
-        }
+        partial void OnFilterChanged(string value) => Categories.Refresh();
+        partial void OnHideUncheckedChanged(bool value) => Categories.Refresh();
 
-        partial void OnSelectedParameterNameChanged(string value)
-        {
-            GetValues();
-        }
-        partial void OnSelectedOptionChanged(string value)
-        {
-            GetValues();
-        }
+        partial void OnSelectedParameterNameChanged(string value) => GetValues();
+        partial void OnSelectedOptionChanged(string value) => GetValues();
 
         public ICollectionView Categories { get; }
         public List<string> SelectionOptions { get; } = ["Со всей модели", "С текущего вида"];
@@ -55,7 +44,7 @@ namespace BIMPlugins.Views.WPF
 
         public ColourFilterViewModel()
         {
-            var categories = RevitAPI.Document.Settings.Categories
+            var categories = _doc.Settings.Categories
                 .Cast<Category>()
 #if R2020_OR_GREATER
                 .Where(c => c.IsVisibleInUI)
@@ -96,10 +85,10 @@ namespace BIMPlugins.Views.WPF
             if (_selectedCategories.Count == 0)
                 return;
 
-            var ids = ParameterFilterUtilities.GetFilterableParametersInCommon(RevitAPI.Document, _selectedCategories.Select(c => c.Id).ToList());
+            var ids = ParameterFilterUtilities.GetFilterableParametersInCommon(_doc, _selectedCategories.Select(c => c.Id).ToList());
             foreach (var id in ids)
             {
-                var parameter = id.ToElement<ParameterElement>();
+                var parameter = id.ToElement<ParameterElement>(_doc);
                 string parameterName = parameter?.Name ?? LabelUtils.GetLabelFor((BuiltInParameter)id.GetValue());
 
                 Parameters.Add(parameterName);
@@ -113,7 +102,7 @@ namespace BIMPlugins.Views.WPF
         [RelayCommand]
         private void SelectVisible()
         {
-            var visibleCategoriesNames = new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id)
+            var visibleCategoriesNames = new FilteredElementCollector(_doc, _doc.ActiveView.Id)
                 .Where(c => c.Category != null)
                 .Where(c => c.Category.CategoryType == CategoryType.Model)
                 .Select(c => c.Category.Name)
@@ -164,17 +153,13 @@ namespace BIMPlugins.Views.WPF
         {
             RaiseCloseRequest();
 
-            var patternId = new FilteredElementCollector(RevitAPI.Document)
-                .OfClass(typeof(FillPatternElement))
+            var patternId = _doc.ToElements<FillPatternElement>()
                 .FirstOrDefault(e => e.Name == "<Сплошная заливка>")
                 .Id;
 
-            var filters = new FilteredElementCollector(RevitAPI.Document)
-                .OfClass(typeof(ParameterFilterElement))
-                .Cast<ParameterFilterElement>()
-                .ToList();
+            var filters = _doc.ToElements<ParameterFilterElement>();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Цветные фильтры"))
+            using (Transaction t = new Transaction(_doc, "Цветные фильтры"))
             {
                 t.Start();
 
@@ -199,14 +184,14 @@ namespace BIMPlugins.Views.WPF
                     else
                     {
                         parameterFilterElement = ParameterFilterElement.Create(
-                            RevitAPI.Document,
-                            $"SEPlugins_{SelectedParameterName}_{valueItem.ValueString}",
+                            _doc,
+                            $"BIMPlugins_{SelectedParameterName}_{valueItem.ValueString}",
                             _selectedCategories.Select(c => c.Id).ToList(),
                             paramFilter
                         );
                     }
 
-                    var activeView = RevitAPI.ActiveView;
+                    var activeView = _doc.ActiveView;
                     if (activeView.ViewTemplateId == ElementId.InvalidElementId)
                     {
                         if (!activeView.IsFilterApplied(parameterFilterElement.Id))
@@ -218,7 +203,7 @@ namespace BIMPlugins.Views.WPF
                     }
                     else
                     {
-                        var template = activeView.ViewTemplateId.ToElement<Autodesk.Revit.DB.View>();
+                        var template = activeView.ViewTemplateId.ToElement<Autodesk.Revit.DB.View>(_doc);
                         if (!template.IsFilterApplied(parameterFilterElement.Id))
                         {
                             template.AddFilter(parameterFilterElement.Id);
@@ -237,8 +222,8 @@ namespace BIMPlugins.Views.WPF
             var multicategoryFilter = new ElementMulticategoryFilter(_selectedCategories.Select(c => (BuiltInCategory)c.Id.GetValue()).ToList());
 
             var elements = SelectedOption == "Со всей модели"
-                ? new FilteredElementCollector(RevitAPI.Document).WherePasses(multicategoryFilter).WhereElementIsNotElementType().ToList()
-                : new FilteredElementCollector(RevitAPI.Document, RevitAPI.ActiveView.Id).WherePasses(multicategoryFilter).WhereElementIsNotElementType().ToList();
+                ? new FilteredElementCollector(_doc).WherePasses(multicategoryFilter).WhereElementIsNotElementType().ToList()
+                : new FilteredElementCollector(_doc, _doc.ActiveView.Id).WherePasses(multicategoryFilter).WhereElementIsNotElementType().ToList();
 
             Values.Clear();
             foreach (var element in elements)

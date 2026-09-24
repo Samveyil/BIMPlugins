@@ -44,7 +44,7 @@ namespace BIMPlugins
 
             _uiControlApp.FindOrCreateRibbonTab(tabName);
             InitializeDlls();
-            
+
             try
             {
                 var viewModel = new ViewSettingsViewModel();

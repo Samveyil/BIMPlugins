@@ -1,18 +1,18 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.Classes;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Windows;
 using System.Windows.Data;
-using BIMPlugins.Bars;
-using System.Collections.Generic;
-using System.Linq;
-using System;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -23,12 +23,16 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private ICollectionView _sheetSectionsForBaseSheet;
         [ObservableProperty] private ICollectionView _sheetSectionsForCopySheet;
 
+        private readonly Document _doc;
+
         partial void OnFilterForBaseSheetChanged(string value) => SheetSectionsForBaseSheet.Refresh();
         partial void OnFilterForCopySheetChanged(string value) => SheetSectionsForCopySheet.Refresh();
 
-        public CopyStampViewModel(List<ViewSheet> sheets)
+        public CopyStampViewModel(IList<ViewSheet> sheets)
         {
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(RevitAPI.Document);
+            _doc = RevitAPI.Document;
+
+            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
 
             FolderItemInfo folderItemInfo;
             ElementId paramId;
@@ -159,12 +163,10 @@ namespace BIMPlugins.Sheets.WPF
 
             RaiseCloseRequest();
 
-            var titleBlock = new FilteredElementCollector(RevitAPI.Document, baseSheet.Element.Id)
-                .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                .WhereElementIsNotElementType()
+            var titleBlock = _doc.ToElements(baseSheet.Element.Id, BuiltInCategory.OST_TitleBlocks)
                 .FirstOrDefault();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Копировать штамп"))
+            using (Transaction t = new Transaction(_doc, "Копировать штамп"))
             {
                 t.Start();
 
@@ -181,10 +183,8 @@ namespace BIMPlugins.Sheets.WPF
                             }
                         }
 
-                        var titleBlockToCopy = new FilteredElementCollector(RevitAPI.Document, sheetToCopy.Id)
-                            .OfCategory(BuiltInCategory.OST_TitleBlocks)
-                            .WhereElementIsNotElementType()
-                            .FirstOrDefault();
+                        var titleBlockToCopy = _doc.ToElements(sheetToCopy.Id, BuiltInCategory.OST_TitleBlocks)
+                        .FirstOrDefault();
 
                         foreach (var parameter in titleBlock.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly).ToList())
                         {

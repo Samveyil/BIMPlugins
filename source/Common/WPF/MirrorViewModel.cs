@@ -1,13 +1,12 @@
 ﻿using Autodesk.Revit.DB;
-using System.Windows;
 using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
+using BIMPlugins.ExtStorage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using BIMPlugins.ExtStorage;
-using BIMPlugins.Bars;
-using System.Collections.Generic;
-using System.Linq;
 using System;
+using System.Linq;
+using System.Windows;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -35,16 +34,16 @@ namespace BIMPlugins.Common.WPF
                 ? new FilteredElementCollector(doc, doc.ActiveView.Id)
                 : new FilteredElementCollector(doc);
 
-                ICollection<ElementId> mirroredElems = collector
+                var mirroredElems = collector
                     .OfClass(typeof(FamilyInstance))
                     .Cast<FamilyInstance>()
                     .Where(f => f.Mirrored)
                     .Select(f => f.Id)
                     .ToList();
 
-                if (mirroredElems.Count > 0)
+                if (mirroredElems.Any())
                 {
-                    RevitAPI.UIDocument.Selection.SetElementIds(mirroredElems);
+                    new UIDocument(doc).Selection.SetElementIds(mirroredElems);
                 }
                 else
                 {
@@ -60,7 +59,7 @@ namespace BIMPlugins.Common.WPF
                 RevitOptionsBar.Hide();
             }
         }
-        
+
         [RelayCommand]
         private void Close() => RevitOptionsBar.Hide();
     }

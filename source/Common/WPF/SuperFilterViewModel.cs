@@ -1,15 +1,16 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Windows.Data;
-using System.Collections.Generic;
 using System.Linq;
-using System;
+using System.Windows.Data;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -40,13 +41,18 @@ namespace BIMPlugins.Common.WPF
         }
 
         private List<Element> _elements;
+        private readonly UIDocument _uiDoc;
+        private readonly Document _doc;
 
         public List<string> FilterOptions { get; } = ["Выборка по всем элементам", "Выборка по текущему виду", "Выборка по выделенным элементам"];
         public List<string> FilterRules { get; } = ["И", "Или"];
 
         public SuperFilterViewModel()
         {
-            if (RevitAPI.UIDocument.ToSelectedElements().Count() != 0)
+            _uiDoc = RevitAPI.UIDocument;
+            _doc = _uiDoc.Document;
+
+            if (_uiDoc.ToSelectedElements().Count() != 0)
                 SelectedOption = "Выборка по выделенным элементам";
 
             GetCategoriesItems();
@@ -60,7 +66,7 @@ namespace BIMPlugins.Common.WPF
                 if (categoryItem.Parameters != null)
                     return;
 
-                var elements = new FilteredElementCollector(RevitAPI.Document, _elements.Select(e => e.Id).ToList())
+                var elements = new FilteredElementCollector(_doc, _elements.Select(e => e.Id).ToList())
                     .OfCategory(categoryItem.BuiltInCategory)
                     .WhereElementIsNotElementType()
                     .ToList();
@@ -104,7 +110,7 @@ namespace BIMPlugins.Common.WPF
                 if (parameterItem.Values.Count != 0 || parameterItem.Name == "Все")
                     return;
 
-                var elements = new FilteredElementCollector(RevitAPI.Document, _elements.Select(e => e.Id).ToList())
+                var elements = new FilteredElementCollector(_doc, _elements.Select(e => e.Id).ToList())
                     .OfCategory(parameterItem.Parent.BuiltInCategory)
                     .WhereElementIsNotElementType()
                     .ToElements();
@@ -302,7 +308,7 @@ namespace BIMPlugins.Common.WPF
                 {
                     if (categoryItem.Parameters.OfType<ParameterItem>().FirstOrDefault(p => p.Name == "Все") != null)
                     {
-                        filteredElementsIds.AddRange(new FilteredElementCollector(RevitAPI.Document, _elements.Select(e => e.Id).ToList())
+                        filteredElementsIds.AddRange(new FilteredElementCollector(_doc, _elements.Select(e => e.Id).ToList())
                             .OfCategory(categoryItem.BuiltInCategory)
                             .WhereElementIsNotElementType()
                             .Select(e => e.Id)
@@ -348,27 +354,27 @@ namespace BIMPlugins.Common.WPF
             }
 
             if (option == "Выделить")
-                RevitAPI.UIDocument.Selection.SetElementIds(filteredElementsIds);
+                _uiDoc.Selection.SetElementIds(filteredElementsIds);
             else if (option == "Исключить")
-                RevitAPI.UIDocument.Selection.SetElementIds(_elements.Select(e => e.Id).Except(filteredElementsIds).ToList());
+                _uiDoc.Selection.SetElementIds(_elements.Select(e => e.Id).Except(filteredElementsIds).ToList());
             else if (option == "Изолировать")
             {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Изолировать выбранные элементы"))
+                using (Transaction t = new Transaction(_doc, "Изолировать выбранные элементы"))
                 {
                     t.Start();
 
-                    RevitAPI.ActiveView.IsolateElementsTemporary(filteredElementsIds);
+                    _doc.ActiveView.IsolateElementsTemporary(filteredElementsIds);
 
                     t.Commit();
                 }
             }
             else
             {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Скрыть выбранные элементы"))
+                using (Transaction t = new Transaction(_doc, "Скрыть выбранные элементы"))
                 {
                     t.Start();
 
-                    RevitAPI.ActiveView.HideElementsTemporary(filteredElementsIds);
+                    _doc.ActiveView.HideElementsTemporary(filteredElementsIds);
 
                     t.Commit();
                 }
@@ -378,14 +384,14 @@ namespace BIMPlugins.Common.WPF
         private void GetCategoriesItems()
         {
             if (SelectedOption == "Выборка по выделенным элементам")
-                _elements = RevitAPI.UIDocument.ToSelectedElements()
+                _elements = _uiDoc.ToSelectedElements()
                     .Where(e => e.Category != null)
                     .ToList();
             else
             {
                 var collector = SelectedOption == "Выборка по всем элементам"
-                    ? new FilteredElementCollector(RevitAPI.Document)
-                    : new FilteredElementCollector(RevitAPI.Document, RevitAPI.ActiveView.Id);
+                    ? new FilteredElementCollector(_doc)
+                    : new FilteredElementCollector(_doc, _doc.ActiveView.Id);
 
                 _elements = collector
                     .WhereElementIsNotElementType()

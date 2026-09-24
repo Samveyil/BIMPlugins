@@ -14,9 +14,10 @@ namespace BIMPlugins.Parameters
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var doc = RevitAPI.Document;
+            var uiDoc = RevitAPI.UIDocument;
+            var doc = uiDoc.Document;
 
-            var hostElement = RevitAPI.UIDocument.PickObject("Выберите элемент, с которого нужно копировать свойства");
+            var hostElement = uiDoc.PickElement("Выберите элемент, с которого нужно копировать свойства");
             if (hostElement == null) return Result.Cancelled;
 
             var familyId = hostElement.get_Parameter(BuiltInParameter.ELEM_FAMILY_AND_TYPE_PARAM).AsElementId();
@@ -28,7 +29,7 @@ namespace BIMPlugins.Parameters
 
                 while (true)
                 {
-                    var element = RevitAPI.UIDocument.PickObject(hostElement.GetBuiltInCategory(), "Выберите элемент для копирования свойств");
+                    var element = uiDoc.PickElement(hostElement.GetBuiltInCategory(), "Выберите элемент для копирования свойств");
                     if (element == null) break;
 
                     using (Transaction t = new Transaction(doc, "Копирование свойств"))

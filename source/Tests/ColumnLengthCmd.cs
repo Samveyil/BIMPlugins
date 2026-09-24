@@ -15,10 +15,10 @@ namespace BIMPlugins.Tests
         {
             var doc = RevitAPI.Document;
 
-            var botFloor = RevitAPI.UIDocument.PickObject<Floor>("");
-            var topFloor = RevitAPI.UIDocument.PickObject<Floor>("");
+            var botFloor = RevitAPI.UIDocument.PickElement<Floor>("");
+            var topFloor = RevitAPI.UIDocument.PickElement<Floor>("");
 
-            var columns = RevitAPI.UIDocument.PickObjects<FamilyInstance>("");
+            var columns = RevitAPI.UIDocument.PickElements<FamilyInstance>("");
 
             var botZ = botFloor.get_BoundingBox(null).Max.Z;
             var topZ = topFloor.get_BoundingBox(null).Min.Z;

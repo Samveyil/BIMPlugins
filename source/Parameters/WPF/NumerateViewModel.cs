@@ -17,15 +17,21 @@ namespace BIMPlugins.Parameters.WPF
         [ObservableProperty] private bool _isNotNumbering = true;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Parameter _selectedParameter;
 
+        private readonly UIDocument _uiDoc;
+        private readonly Document _doc;
+
         public List<Parameter> Parameters { get; set; } = [];
         
         private ExternalEvent ExEvent { get; }
 
         public NumerateViewModel()
         {
+            _uiDoc = RevitAPI.UIDocument;
+            _doc = _uiDoc.Document;
+
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.Numerate());
 
-            var element = RevitAPI.UIDocument.PickObject("Выберите элемент");
+            var element = _uiDoc.PickElement("Выберите элемент");
             if (element == null) return;
 
             Parameters = element.Parameters
@@ -39,7 +45,7 @@ namespace BIMPlugins.Parameters.WPF
         private void Run() => ExEvent.Raise();
         private void Numerate()
         {
-            using (TransactionGroup tGroup = new TransactionGroup(RevitAPI.Document, "Нумеровать элементы"))
+            using (TransactionGroup tGroup = new TransactionGroup(_doc, "Нумеровать элементы"))
             {
                 tGroup.Start();
                 
@@ -47,13 +53,13 @@ namespace BIMPlugins.Parameters.WPF
                 {
                     IsNotNumbering = false;
 
-                    using (Transaction t = new Transaction(RevitAPI.Document, "Нумерация элеметов"))
+                    using (Transaction t = new Transaction(_doc, "Нумерация элеметов"))
                     {
                         t.Start();
 
                         try
                         {
-                            var element = RevitAPI.UIDocument.PickObject($"Выберите {Number} элемент. Нажмите Esc для завершения нумерации!");
+                            var element = _uiDoc.PickElement($"Выберите {Number} элемент. Нажмите Esc для завершения нумерации!");
                             if (element == null) break;
 
                             var parameter = element.LookupParameter(SelectedParameter.Definition.Name);

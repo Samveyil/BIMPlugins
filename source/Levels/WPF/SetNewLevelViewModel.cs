@@ -1,13 +1,13 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.Bars;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System;
 
 namespace BIMPlugins.Levels.WPF
 {
@@ -17,29 +17,37 @@ namespace BIMPlugins.Levels.WPF
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SelectAllCommand))] private Level _oldLevel;
         [ObservableProperty] private Level _newLevel;
 
-        private List<Element> _elements = [];
+        private readonly Document _doc;
+        private readonly List<Element> _elements = [];
 
         private ExternalEvent ExEvent { get; }
 
-        public List<Level> Levels { get; } = RevitAPI.Document.ToElements<Level>().OrderBy(l => l.Elevation).ToList();
+        public List<Level> Levels { get; }
 
         public SetNewLevelViewModel()
         {
+            _doc = RevitAPI.Document;
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetNewLevel());
+
+            Levels = _doc.ToElements<Level>()
+                .OrderBy(l => l.Elevation)
+                .ToList();
         }
 
 
         [RelayCommand]
         private void SelectElems()
         {
+            var uiDoc = new UIDocument(_doc);
+
             RevitOptionsBar.Hide(true);
             try
             {
-                var selectedElems = RevitAPI.UIDocument.ToSelectedElements().ToList();
+                var selectedElems = uiDoc.ToSelectedElements().ToList();
 
                 var elems = selectedElems.Count != 0
                     ? selectedElems
-                    : RevitAPI.UIDocument.PickObjects("Выберите элементы").ToList();
+                    : uiDoc.PickElements("Выберите элементы").ToList();
                 
                 Count = elems.Count;
 
@@ -49,7 +57,7 @@ namespace BIMPlugins.Levels.WPF
                     if (elem.GroupId != ElementId.InvalidElementId)
                     {
                         if (_uniqueIds.Add(elem.GroupId))
-                            _elements.Add(elem.GroupId.ToElement());
+                            _elements.Add(elem.GroupId.ToElement(_doc));
                     }
                     else if (_uniqueIds.Add(elem.Id))
                         _elements.Add(elem);
@@ -83,7 +91,7 @@ namespace BIMPlugins.Levels.WPF
 
             var levelsFilter = new LogicalOrFilter(filtersList);
 
-            var elems = RevitAPI.Document.ToModelElements(levelsFilter).ToList();
+            var elems = _doc.ToModelElements(levelsFilter).ToList();
             Count = elems.Count;
 
             var _uniqueIds = new HashSet<ElementId>();
@@ -92,7 +100,7 @@ namespace BIMPlugins.Levels.WPF
                 if (elem.GroupId != ElementId.InvalidElementId)
                 {
                     if (_uniqueIds.Add(elem.GroupId))
-                        _elements.Add(elem.GroupId.ToElement());
+                        _elements.Add(elem.GroupId.ToElement(_doc));
                 }
                 else if (_uniqueIds.Add(elem.Id))
                     _elements.Add(elem);
@@ -105,7 +113,7 @@ namespace BIMPlugins.Levels.WPF
         {
             RevitOptionsBar.Hide();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Назначить уровень"))
+            using (Transaction t = new Transaction(_doc, "Назначить уровень"))
             {
                 t.Start();
 
@@ -120,11 +128,11 @@ namespace BIMPlugins.Levels.WPF
 
                             var memberIds = group.UngroupMembers();
                             foreach (var memberId in memberIds)
-                                SetLevel(memberId.ToElement());
+                                SetLevel(memberId.ToElement(_doc));
 
-                            RevitAPI.Document.Regenerate();
+                            _doc.Regenerate();
 
-                            var grpNew = RevitAPI.Document.Create.NewGroup(memberIds);
+                            var grpNew = _doc.Create.NewGroup(memberIds);
                             var grpTypeNew = grpNew.GroupType;
 
                             //foreach (var oldGroup in RevitAPI.Document.ToElements<Group>().Where(g => g.GroupType.Name == groupName))
@@ -185,7 +193,7 @@ namespace BIMPlugins.Levels.WPF
                 var offsetParameter = GetOffsetParameter(element);
                 if (offsetParameter == null) return;
 
-                var levelOffset = NewLevel.ProjectElevation - levelParameter.AsElementId().ToElement<Level>().ProjectElevation;
+                var levelOffset = NewLevel.ProjectElevation - levelParameter.AsElementId().ToElement<Level>(_doc).ProjectElevation;
                 var offset = offsetParameter.AsDouble() - levelOffset;
 
                 levelParameter.Set(NewLevel.Id);

@@ -36,6 +36,7 @@ namespace BIMPlugins.Views
 
             return Result.Succeeded;
         }
+
         private bool IsLegend(Element element)
         {
             if (element.GetBuiltInCategory() == BuiltInCategory.OST_Views)

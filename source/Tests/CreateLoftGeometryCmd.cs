@@ -23,7 +23,7 @@ namespace BIMPlugins.Tests
 
             var bottomLoop = new CurveLoop();
 
-            var elems = RevitAPI.UIDocument.PickObjects("Выбрать нижние линии")
+            var elems = RevitAPI.UIDocument.PickElements("Выбрать нижние линии")
                 .OrderBy(e => e.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).AsString())
                 .ToList();
             
@@ -43,7 +43,7 @@ namespace BIMPlugins.Tests
 
             var topLoop = new CurveLoop();
 
-            var topElems = RevitAPI.UIDocument.PickObjects("Выбрать верхние линии")
+            var topElems = RevitAPI.UIDocument.PickElements("Выбрать верхние линии")
                 .OrderBy(e => e.get_Parameter(BuiltInParameter.ALL_MODEL_INSTANCE_COMMENTS).AsString())
                 .ToList();
 

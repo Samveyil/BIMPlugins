@@ -13,7 +13,6 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows.Data;
 
-
 namespace BIMPlugins.Views.WPF
 {
     public partial class CropBoxViewModel : ObservableObject
@@ -26,10 +25,7 @@ namespace BIMPlugins.Views.WPF
         private ExternalEvent DeleteSectionPlaneExEvent { get; }
         public ExternalEvent DeleteDirectShapesExEvent { get; }
 
-        partial void OnFilterChanged(string value)
-        {
-            FilteredItems.Refresh();
-        }
+        partial void OnFilterChanged(string value) => FilteredItems.Refresh();
         partial void OnShowSectionPlaneChanging(bool value)
         {
             foreach (var viewCropBox in ViewCropBoxItems.Where(v => v.IsSelected).ToList())
@@ -45,6 +41,7 @@ namespace BIMPlugins.Views.WPF
             }
         }
 
+        private readonly Document _doc = RevitAPI.Document;
         private const double GoldenRatioConjugate = 0.618033988749895;
         private static double _currentHue = 0;
 
@@ -66,17 +63,14 @@ namespace BIMPlugins.Views.WPF
             DeleteSectionPlaneExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeletePlanes());
             DeleteDirectShapesExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeleteAllDirectShapes());
 
-            GetView3D(RevitAPI.Document);
+            _view3D = GetView3D();
 
-            _patternId = new FilteredElementCollector(RevitAPI.Document)
-                .OfClass(typeof(FillPatternElement))
+            _patternId = _doc.ToElements<FillPatternElement>()
                 .FirstOrDefault(p => p.Name == "<Сплошная заливка>")
                 .Id;
 
             var filter = new ElementMulticlassFilter(new List<Type> { typeof(ViewPlan), typeof(ViewSection)});
-            var views = new FilteredElementCollector(RevitAPI.Document)
-                .WherePasses(filter)
-                .Cast<View>()
+            var views = _doc.ToElements<View>(filter)
                 .Where(v => !v.IsTemplate)
                 .OrderBy(x => x.Title)
                 .ToList();
@@ -92,13 +86,13 @@ namespace BIMPlugins.Views.WPF
 
         private void DeletePlanes()
         {
-            using (Transaction t = new Transaction(RevitAPI.Document, "Скрыть секущую плоскость диапазона видимости"))
+            using (Transaction t = new Transaction(_doc, "Скрыть секущую плоскость диапазона видимости"))
             {
                 t.Start();
 
                 foreach (var viewCropBox in ViewCropBoxItems.Where(v => v.SectionPlaneId != null).ToList())
                 {
-                    RevitAPI.Document.Delete(viewCropBox.SectionPlaneId);
+                    _doc.Delete(viewCropBox.SectionPlaneId);
                     viewCropBox.SectionPlaneId = null;
                 }
 
@@ -107,15 +101,16 @@ namespace BIMPlugins.Views.WPF
         }
         private void DeleteAllDirectShapes()
         {
-            using (Transaction t = new Transaction(RevitAPI.Document, "Удаление всех диапазонов видимости"))
+            using (Transaction t = new Transaction(_doc, "Удаление всех диапазонов видимости"))
             {
                 t.Start();
 
                 foreach (var viewCropBox in ViewCropBoxItems.Where(v => v.IsSelected).ToList())
                 {
-                    RevitAPI.Document.Delete(viewCropBox.DirectShapeId);
+                    _doc.Delete(viewCropBox.DirectShapeId);
 
-                    if (viewCropBox.SectionPlaneId != null) RevitAPI.Document.Delete(viewCropBox.SectionPlaneId);
+                    if (viewCropBox.SectionPlaneId != null)
+                        _doc.Delete(viewCropBox.SectionPlaneId);
                 }
 
                 t.Commit();
@@ -123,59 +118,21 @@ namespace BIMPlugins.Views.WPF
         }
 
 
-        private void GetView3D(Document doc)
+        private View3D GetView3D()
         {
-            if (doc.ActiveView is View3D)
+            if (_doc.ActiveView is View3D view3D)
             {
-                _view3D = doc.ActiveView as View3D;
+                return view3D;
             }
             else
             {
-                if (doc.IsWorkshared)
-                {
-                    _view3D = new FilteredElementCollector(doc)
-                        .OfClass(typeof(View3D))
-                        .ToElements()
-                        .Where(e => e.Name == "{3D - " + RevitAPI.Application.Username + "}")
-                        .FirstOrDefault() as View3D;
-                }
-                else
-                {
-                    _view3D = new FilteredElementCollector(doc)
-                        .OfClass(typeof(View3D))
-                        .ToElements()
-                        .Where(e => e.Name == "{3D}")
-                        .FirstOrDefault() as View3D;
-                }
-                
-                if (_view3D == null) _view3D = Create3DView(doc);
+                var viewName = _doc.IsWorkshared
+                    ? "{3D - " + RevitAPI.Application.Username + "}"
+                    : "{3D}";
 
-                UIDocument uidoc = new UIDocument(doc);
-                uidoc.ActiveView = _view3D;
+                return _doc.GetView3D(viewName);
             }
         }
-        private View3D Create3DView(Document doc)
-        {
-            var viewTypeId = new FilteredElementCollector(doc)
-                .OfClass(typeof(ViewFamilyType))
-                .Cast<ViewFamilyType>()
-                .FirstOrDefault(v => v.ViewFamily == ViewFamily.ThreeDimensional)
-                .Id;
-
-            View3D view3D;
-            using (Transaction t = new Transaction(doc, "Создание 3D вида"))
-            {
-                t.Start();
-
-                view3D = View3D.CreateIsometric(doc, viewTypeId);
-                view3D.Name = "3D";
-
-                t.Commit();
-            }
-
-            return view3D;
-        }
-
 
         private Color GenerateDistinctColor()
         {
@@ -214,6 +171,9 @@ namespace BIMPlugins.Views.WPF
             [ObservableProperty] private Color _color;
             [ObservableProperty] private View _view;
 
+            private readonly UIDocument _uiDoc;
+            private readonly Document _doc;
+
             public ExternalEvent SectionPlaneExEvent { get; }
 
             public ElementId DirectShapeId { get; set; }
@@ -225,7 +185,7 @@ namespace BIMPlugins.Views.WPF
 
             partial void OnIsSelectedChanging(bool value)
             {
-                RevitAPI.UIDocument.ActiveView = _view3D;
+                _uiDoc.ActiveView = _view3D;
 
                 if (value)
                 {
@@ -240,6 +200,9 @@ namespace BIMPlugins.Views.WPF
 
             public ViewCropBoxItem(View view, Color color)
             {
+                _doc = view.Document;
+                _uiDoc = new UIDocument(_doc);
+
                 CreateExEvent = RevitAPI.CreateExtEvent(this, vm => vm.CreateDS());
                 DeleteExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeleteDS());
 
@@ -255,7 +218,7 @@ namespace BIMPlugins.Views.WPF
             [RelayCommand]
             private void OpenView()
             {
-                RevitAPI.UIDocument.ActiveView = View;
+                _uiDoc.ActiveView = View;
                 View.ToUIView()?.ZoomToFit();
             }
 
@@ -263,21 +226,18 @@ namespace BIMPlugins.Views.WPF
             private void SectionBox() => SectBoxExEvent.Raise();
 
             [RelayCommand]
-            private void Select()
-            {
-                RevitAPI.UIDocument.Selection.SetElementIds([DirectShapeId]);
-            }
+            private void Select() => _uiDoc.Selection.SetElementIds([DirectShapeId]);
 
             private void CreateDS()
             {
                 var minPoint = new XYZ();
                 var maxPoint = new XYZ();
 
-                using (TransactionGroup tGroup = new TransactionGroup(RevitAPI.Document, "Создание диапазона видимости"))
+                using (TransactionGroup tGroup = new TransactionGroup(_doc, "Создание диапазона видимости"))
                 {
                     tGroup.Start();
 
-                    using (Transaction t = new Transaction(RevitAPI.Document, "Создание диапазона видимости"))
+                    using (Transaction t = new Transaction(_doc, "Создание диапазона видимости"))
                     {
                         t.Start();
 
@@ -285,7 +245,7 @@ namespace BIMPlugins.Views.WPF
                         {
                             var viewRange = viewPlan.GetViewRange();
 
-                            var depthLevel = viewRange.GetLevelId(PlanViewPlane.ViewDepthPlane).ToElement<Level>();
+                            var depthLevel = viewRange.GetLevelId(PlanViewPlane.ViewDepthPlane).ToElement<Level>(_doc);
                             var depthOffset = viewRange.GetOffset(PlanViewPlane.ViewDepthPlane);
 
                             viewPlan.CropBoxVisible = true;
@@ -295,7 +255,7 @@ namespace BIMPlugins.Views.WPF
 
                             if (viewPlan.GetUnderlayOrientation() == UnderlayOrientation.LookingDown)
                             {
-                                var topLevel = viewRange.GetLevelId(PlanViewPlane.TopClipPlane).ToElement<Level>();
+                                var topLevel = viewRange.GetLevelId(PlanViewPlane.TopClipPlane).ToElement<Level>(_doc);
                                 var topOffset = viewRange.GetOffset(PlanViewPlane.TopClipPlane);
 
                                 var minElevation = depthLevel != null
@@ -310,7 +270,7 @@ namespace BIMPlugins.Views.WPF
                             }
                             else
                             {
-                                var cutLevel = viewRange.GetLevelId(PlanViewPlane.CutPlane).ToElement<Level>();
+                                var cutLevel = viewRange.GetLevelId(PlanViewPlane.CutPlane).ToElement<Level>(_doc);
                                 var cutOffset = viewRange.GetOffset(PlanViewPlane.CutPlane);
 
                                 var minElevation = cutLevel != null
@@ -351,16 +311,16 @@ namespace BIMPlugins.Views.WPF
             }
             private void DeleteDS()
             {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Удаление диапазона видимости"))
+                using (Transaction t = new Transaction(_doc, "Удаление диапазона видимости"))
                 {
                     t.Start();
 
-                    RevitAPI.Document.Delete(DirectShapeId);
+                    _doc.Delete(DirectShapeId);
                     DirectShapeId = null;
 
                     if (SectionPlaneId != null)
                     {
-                        RevitAPI.Document.Delete(SectionPlaneId);
+                        _doc.Delete(SectionPlaneId);
                         SectionPlaneId = null;
                     }
 
@@ -370,9 +330,9 @@ namespace BIMPlugins.Views.WPF
 
             private void SectBox()
             {
-                var bbox = DirectShapeId.ToElement().get_BoundingBox(_view3D);
+                var bbox = DirectShapeId.ToElement(_doc).get_BoundingBox(_view3D);
 
-                using (Transaction t = new Transaction(RevitAPI.Document, "Обрезка вида по диапазону видимости"))
+                using (Transaction t = new Transaction(_doc, "Обрезка вида по диапазону видимости"))
                 {
                     t.Start();
 
@@ -381,7 +341,7 @@ namespace BIMPlugins.Views.WPF
                     t.Commit();
                 }
 
-                RevitAPI.UIDocument.ActiveView = _view3D;
+                _uiDoc.ActiveView = _view3D;
                 _view3D.ToUIView()?.ZoomToFit();
             }
 
@@ -391,7 +351,7 @@ namespace BIMPlugins.Views.WPF
                 {
                     var viewRange = viewPlan.GetViewRange();
 
-                    var cutLevel = viewRange.GetLevelId(PlanViewPlane.CutPlane).ToElement<Level>();
+                    var cutLevel = viewRange.GetLevelId(PlanViewPlane.CutPlane).ToElement<Level>(_doc);
                     var cutOffset = viewRange.GetOffset(PlanViewPlane.CutPlane);
 
                     var cutElevation = cutLevel.ProjectElevation + cutOffset;
@@ -402,7 +362,7 @@ namespace BIMPlugins.Views.WPF
 
                     var ogs = GetOverrideGS(Color);
 
-                    using (Transaction t = new Transaction(RevitAPI.Document, "Показать секущую плоскость диапазона видимости"))
+                    using (Transaction t = new Transaction(_doc, "Показать секущую плоскость диапазона видимости"))
                     {
                         t.Start();
 

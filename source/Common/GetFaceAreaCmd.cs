@@ -17,24 +17,20 @@ namespace BIMPlugins.Common
             Document doc = RevitAPI.Document;
             UIDocument uidoc = RevitAPI.UIDocument;
 
-            try
+            var elementRefs = uidoc.PickObjects(ObjectType.Face, "Выберите грани");
+            if (elementRefs == null)
+                return Result.Cancelled;
+
+            double sum = 0;
+            foreach (Reference reference in elementRefs)
             {
-                var references = uidoc.Selection.PickObjects(ObjectType.Face, "Выберите грани");
+                GeometryObject geometryObject = reference.ToElement(doc).GetGeometryObjectFromReference(reference);
+                Face face = geometryObject as Face;
 
-                double sum = 0;
-                foreach (Reference reference in references)
-                {
-                    Element element = doc.GetElement(reference);
-
-                    GeometryObject geometryObject = element.GetGeometryObjectFromReference(reference);
-                    Face face = geometryObject as Face;
-
-                    sum += face.Area;
-                }
-
-                TaskDialog.Show("Суммарная площадь", $"{sum.ToUnit("m2").Round(3)} м2");
+                sum += face.Area;
             }
-            catch { }
+
+            TaskDialog.Show("Суммарная площадь", $"{sum.ToUnit("m2").Round(3)} м2");
 
             return Result.Succeeded;
         }

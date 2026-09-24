@@ -1,13 +1,14 @@
 ﻿using Autodesk.Revit.DB;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
+using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.Bars;
-using System.Collections.ObjectModel;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
-using System;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -19,10 +20,13 @@ namespace BIMPlugins.Common.WPF
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SumUpCommand))] private Parameter _selectedParameter;
 
         private List<Element> _elements = [];
+        private readonly UIDocument _uiDoc;
 
         public SumViewModel()
         {
-            _elements = RevitAPI.UIDocument.ToSelectedElements().ToList();
+            _uiDoc = RevitAPI.UIDocument;
+            
+            _elements = _uiDoc.ToSelectedElements().ToList();
             Count = _elements.Count;
 
             if (Count != 0)
@@ -50,11 +54,11 @@ namespace BIMPlugins.Common.WPF
             RevitOptionsBar.Hide(true);
             try
             {
-                var selectedElems = RevitAPI.UIDocument.ToSelectedElements().ToList();
+                var selectedElems = _uiDoc.ToSelectedElements().ToList();
 
                 var elements = selectedElems.Count != 0
                     ? selectedElems
-                    : RevitAPI.UIDocument.PickObjects("Выберите элементы").ToList();
+                    : _uiDoc.PickElements("Выберите элементы").ToList();
                 Count = elements.Count;
 
                 _elements = elements;
@@ -86,9 +90,12 @@ namespace BIMPlugins.Common.WPF
             {
                 foreach (var elem in _elements)
                 {
-                    var parameter = elem.Parameters.Cast<Parameter>().FirstOrDefault(p => SelectedParameter.Definition.Name == p.Definition.Name);
+                    var parameter = elem.Parameters.Cast<Parameter>()
+                        .FirstOrDefault(p => SelectedParameter.Definition.Name == p.Definition.Name);
 
-                    Sum += UnitUtils.ConvertFromInternalUnits((double)parameter.GetValue(), parameter.GetUnitType());
+                    Sum += parameter.GetValue()
+                        .To<double>()
+                        .ToUnit(parameter.GetUnitType());
                 }
 
                 Sum = Sum.Round(3);

@@ -15,17 +15,18 @@ namespace BIMPlugins.Views
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             var uiDoc = RevitAPI.UIDocument;
+            var doc = uiDoc.Document;
 
             var selectedElem = uiDoc.ToSelectedElements().FirstOrDefault();
             if (selectedElem != null && selectedElem.OwnerViewId != ElementId.InvalidElementId)
             {
-                var ownerView = selectedElem.OwnerViewId.ToElement<View>();
+                var ownerView = selectedElem.OwnerViewId.ToElement<View>(doc);
                 uiDoc.ActiveView = ownerView;
                 ownerView.ToUIView()?.ZoomToFit();
             }
             else if (int.TryParse(Clipboard.GetText(), out int id))
             {
-                var element = new ElementId(id).ToElement();
+                var element = new ElementId(id).ToElement(doc);
                 if (element is View view)
                 {
                     uiDoc.ActiveView = view;
@@ -35,7 +36,7 @@ namespace BIMPlugins.Views
                 {
                     if (element.OwnerViewId != ElementId.InvalidElementId)
                     {
-                        var ownerView = element.OwnerViewId.ToElement<View>();
+                        var ownerView = element.OwnerViewId.ToElement<View>(doc);
                         uiDoc.ActiveView = ownerView;
                         ownerView.ToUIView()?.ZoomToFit();
                         

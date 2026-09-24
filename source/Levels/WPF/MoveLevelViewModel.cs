@@ -17,6 +17,8 @@ namespace BIMPlugins.Levels.WPF
         [ObservableProperty] private Level _selectedLevel;
         [ObservableProperty] private double _elevation;
 
+        private readonly Document _doc;
+
         partial void OnSelectedLevelChanged(Level value)
         {
             Elevation = value.Elevation.ToMillimeters().Round(3);
@@ -24,11 +26,16 @@ namespace BIMPlugins.Levels.WPF
 
         private ExternalEvent ExEvent { get; }
 
-        public List<Level> Levels { get; } = RevitAPI.Document.ToElements<Level>().OrderBy(l => l.Elevation).ToList();
+        public List<Level> Levels { get; }
 
         public MoveLevelViewModel()
         {
+            _doc = RevitAPI.Document;
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.MoveLevel());
+
+            Levels = _doc.ToElements<Level>()
+                .OrderBy(l => l.Elevation)
+                .ToList();
         }
 
         [RelayCommand]
@@ -59,18 +66,18 @@ namespace BIMPlugins.Levels.WPF
             var bottomLevelsFilter = new LogicalOrFilter(bottomFiltersList);
             var topLevelsFilter = new LogicalOrFilter(topFiltersList);
             
-            var bottomElements = RevitAPI.Document.ToModelElements(bottomLevelsFilter).ToList();
-            var topElements = RevitAPI.Document.ToModelElements(topLevelsFilter).ToList();
+            var bottomElements = _doc.ToModelElements(bottomLevelsFilter);
+            var topElements = _doc.ToModelElements(topLevelsFilter);
 
             var projectElevationOffset = SelectedLevel.Elevation - SelectedLevel.ProjectElevation;
 
             var elementsWithNewLevel = new List<Element>();
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Переместить уровень"))
+            using (Transaction t = new Transaction(_doc, "Переместить уровень"))
             {
                 t.Start();
 
-                var newLevel = Level.Create(RevitAPI.Document, Elevation.FromMillimeters() - projectElevationOffset);
+                var newLevel = Level.Create(_doc, Elevation.FromMillimeters() - projectElevationOffset);
                 var levelOffset = newLevel.ProjectElevation - SelectedLevel.ProjectElevation;
 
                 using (var revitProgressBar = new RevitProgressBar(true))
@@ -119,7 +126,7 @@ namespace BIMPlugins.Levels.WPF
                     levelParameter.Set(SelectedLevel.Id);
                 }
 
-                RevitAPI.Document.Delete(newLevel.Id);
+                _doc.Delete(newLevel.Id);
 
                 using (var revitProgressBar = new RevitProgressBar(true))
                 {

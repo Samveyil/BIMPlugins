@@ -14,10 +14,12 @@ namespace BIMPlugins.Families
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var selectedInstance = RevitAPI.UIDocument.ToSelectedElements().FirstOrDefault();
+            var uiDoc = RevitAPI.UIDocument;
+
+            var selectedInstance = uiDoc.ToSelectedElements().FirstOrDefault();
             if (selectedInstance is not FamilyInstance instance)
             {
-                selectedInstance = RevitAPI.UIDocument.PickObject<FamilyInstance>("Выберите экземпляр семейства");
+                selectedInstance = uiDoc.PickElement<FamilyInstance>("Выберите экземпляр семейства");
                 if (selectedInstance == null) { return Result.Cancelled; }
             }
 

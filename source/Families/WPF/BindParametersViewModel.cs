@@ -1,5 +1,4 @@
 ﻿using Autodesk.Revit.DB;
-using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,10 +13,16 @@ namespace BIMPlugins.Families.WPF
     {
         [ObservableProperty] private ObservableCollection<BindParameterItem> _parameters = [];
 
+        private readonly Document _doc;
+
         public BindParametersViewModel(FamilyInstance familyInstance)
         {
-            var famManager = RevitAPI.Document.FamilyManager;
-            var famParameters = famManager.Parameters.Cast<FamilyParameter>().OrderBy(p => p.Definition.Name).ToList();
+            _doc = familyInstance.Document;
+            var famManager = _doc.FamilyManager;
+            var famParameters = famManager.Parameters
+                .Cast<FamilyParameter>()
+                .OrderBy(p => p.Definition.Name)
+                .ToList();
 
             foreach (Parameter parameter in familyInstance.GetOrderedParameters().Cast<Parameter>().Where(p => famManager.CanElementParameterBeAssociated(p)))
             {
@@ -57,7 +62,8 @@ namespace BIMPlugins.Families.WPF
         {
             foreach (var bindParamItem in Parameters.Where(p => p.BindParameter == null))
             {
-                bindParamItem.BindParameter = bindParamItem.FamilyParameters.FirstOrDefault(p => p.Definition.Name == bindParamItem.Parameter.Definition.Name);
+                bindParamItem.BindParameter = bindParamItem.FamilyParameters
+                    .FirstOrDefault(p => p.Definition.Name == bindParamItem.Parameter.Definition.Name);
             }
         }
 
@@ -73,9 +79,9 @@ namespace BIMPlugins.Families.WPF
         [RelayCommand]
         private void Run()
         {
-            var famManager = RevitAPI.Document.FamilyManager;
+            var famManager = _doc.FamilyManager;
 
-            using (Transaction t = new Transaction(RevitAPI.Document, "Связать параметры"))
+            using (Transaction t = new Transaction(_doc, "Связать параметры"))
             {
                 t.Start();
 

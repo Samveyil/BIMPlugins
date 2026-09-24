@@ -1,25 +1,20 @@
 ﻿using Autodesk.Revit.DB;
+using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
+using BIMPlugins.ExtStorage.Extensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using BIMPlugins.ExtStorage;
-using BIMPlugins.ExtStorage.Extensions;
-using BIMPlugins.Bars;
-using System.Windows;
 using System.Linq;
+using System.Windows;
 
 namespace BIMPlugins.Common.WPF
 {
-    public partial class FastSelectViewModel : ObservableObject
+    public partial class FastSelectViewModel(Element element) : ObservableObject
     {
         [ObservableProperty] private bool _wholeModel = true;
 
-        private Element _selectedElement {  get; set; }
-
-        public FastSelectViewModel(Element element)
-        {
-            _selectedElement = element;
-        }
-
+        private readonly Document _doc = element.Document;
+        private readonly Element _selectedElement = element;
 
         [RelayCommand]
         private void Category()
@@ -27,15 +22,15 @@ namespace BIMPlugins.Common.WPF
             var category = _selectedElement.GetBuiltInCategory();
 
             var collector = WholeModel
-                ? new FilteredElementCollector(RevitAPI.Document)
-                : new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id);
+                ? new FilteredElementCollector(_doc)
+                : new FilteredElementCollector(_doc, _doc.ActiveView.Id);
 
             var elementIds = collector
                 .OfCategory(category)
                 .WhereElementIsNotElementType()
                 .ToElementIds();
 
-            RevitAPI.UIDocument.Selection.SetElementIds(elementIds);
+            new UIDocument(_doc).Selection.SetElementIds(elementIds);
 
             RevitOptionsBar.Hide();
         }
@@ -48,8 +43,8 @@ namespace BIMPlugins.Common.WPF
                 var familyName = familyInstance.Symbol.FamilyName;
 
                 var collector = WholeModel
-                    ? new FilteredElementCollector(RevitAPI.Document)
-                    : new FilteredElementCollector(RevitAPI.Document, RevitAPI.Document.ActiveView.Id);
+                    ? new FilteredElementCollector(_doc)
+                    : new FilteredElementCollector(_doc, _doc.ActiveView.Id);
 
                 var elementIds = collector
                     .OfClass(typeof(FamilyInstance))
@@ -58,7 +53,7 @@ namespace BIMPlugins.Common.WPF
                     .Select(e => e.Id)
                     .ToList();
 
-                RevitAPI.UIDocument.Selection.SetElementIds(elementIds);
+                new UIDocument(_doc).Selection.SetElementIds(elementIds);
 
                 RevitOptionsBar.Hide();
             }

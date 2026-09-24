@@ -23,6 +23,8 @@ namespace BIMPlugins.Docs.WPF
         [RelayCommand]
         private void ChooseFromExplorer()
         {
+            var version = RevitAPI.Application.VersionNumber;
+
             var openFileDialog = new OpenFileDialog();
             openFileDialog.Multiselect = true;
             openFileDialog.DefaultExt = ".rvt";
@@ -33,7 +35,7 @@ namespace BIMPlugins.Docs.WPF
             {
                 foreach (var file in openFileDialog.FileNames)
                 {
-                    var fileItem = new FileItem(Path.GetFileName(file)) { FilePath = file, Version = RevitAPI.Application.VersionNumber};
+                    var fileItem = new FileItem(Path.GetFileName(file)) { FilePath = file, Version = version };
 
                     if (!Files.Contains(fileItem))
                         Files.Add(fileItem);

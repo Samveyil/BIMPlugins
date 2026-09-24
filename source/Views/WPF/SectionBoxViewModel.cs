@@ -2,6 +2,7 @@
 using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
+using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -14,28 +15,26 @@ namespace BIMPlugins.Views.WPF
 {
     public partial class SectionBoxViewModel : ObservableObject
     {
-        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private string _topLevel;
-        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private string _bottomLevel;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Level _topLevel;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Level _bottomLevel;
         [ObservableProperty] private double _bottomOffset;
         [ObservableProperty] private double _topOffset;
+
+        private readonly Document _doc = RevitAPI.Document;
 
         private ExternalEvent ExEvent { get; }
 
         public SectionBoxViewModel()
         {
-            foreach (Level level in new FilteredElementCollector(RevitAPI.Document)
-                .OfClass(typeof(Level))
-                .Cast<Level>()
+            Levels = new (_doc.ToElements<Level>()
                 .OrderBy(x => x.Elevation)
-                .ToList())
-            {
-                Levels.Add(level.Name);
-            }
+                .ToList()
+            );
 
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetSectionBox());
         }
 
-        public ObservableCollection<string> Levels { get; set; } = [];
+        public ObservableCollection<Level> Levels { get; set; } = [];
 
         [RelayCommand(CanExecute = nameof(CanSet))]
         private void Run() => ExEvent.Raise();
@@ -44,62 +43,30 @@ namespace BIMPlugins.Views.WPF
         {
             try
             {
-                var doc = RevitAPI.Document;
+                var bottomElev = BottomLevel.ProjectElevation + BottomOffset.FromMillimeters();
+                var topElev = TopLevel.ProjectElevation + TopOffset.FromMillimeters();
 
-                double bottomLevel = 0;
-                double topLevel = 1;
-                foreach (Level level in new FilteredElementCollector(doc).OfClass(typeof(Level)).ToElements().Cast<Level>())
-                {
-                    if (level.Name == BottomLevel)
-                    {
-                        bottomLevel = level.ProjectElevation + BottomOffset.FromMillimeters();
-                    }
-                    if (level.Name == TopLevel)
-                    {
-                        topLevel = level.ProjectElevation + TopOffset.FromMillimeters();
-                    }
-                }
-
-                if (bottomLevel >= topLevel)
+                if (bottomElev >= topElev)
                 {
                     MessageBox.Show("Отметка низа выше отметки верха!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 View3D defaultView3D = null;
-
-                if (doc.ActiveView is View3D)
+                if (_doc.ActiveView is View3D view3D)
                 {
-                    defaultView3D = doc.ActiveView as View3D;
+                    defaultView3D = view3D;
                 }
                 else
                 {
-                    if (doc.IsWorkshared)
-                    {
-                        defaultView3D = new FilteredElementCollector(doc).OfClass(typeof(View3D)).ToElements()
-                            .Where(e => e.Name == "{3D - " + RevitAPI.Application.Username + "}").FirstOrDefault() as View3D;
+                    var viewName = _doc.IsWorkshared
+                        ? "{3D - " + RevitAPI.Application.Username + "}"
+                        : "{3D}";
 
-                        if (defaultView3D == null)
-                        {
-                            defaultView3D = Create3DView(doc);
-                        }
-                    }
-                    else
-                    {
-                        defaultView3D = new FilteredElementCollector(doc).OfClass(typeof(View3D)).ToElements()
-                            .Where(e => e.Name == "{3D}").FirstOrDefault() as View3D;
-
-                        if (defaultView3D == null)
-                        {
-                            defaultView3D = Create3DView(doc);
-                        }
-                    }
-
-                    UIDocument uidoc = new UIDocument(doc);
-                    uidoc.ActiveView = defaultView3D;
+                    defaultView3D = _doc.GetView3D(viewName);
                 }
 
-                using (Transaction t = new Transaction(doc, "Граница 3Д вида"))
+                using (Transaction t = new Transaction(_doc, "Граница 3Д вида"))
                 {
                     t.Start();
 
@@ -107,8 +74,8 @@ namespace BIMPlugins.Views.WPF
 
                     var bb = defaultView3D.GetSectionBox();
 
-                    bb.Min = new XYZ(bb.Min.X, bb.Min.Y, bottomLevel - bb.Transform.Origin.Z);
-                    bb.Max = new XYZ(bb.Max.X, bb.Max.Y, topLevel - bb.Transform.Origin.Z);
+                    bb.Min = bb.Min.SetZ(bottomElev - bb.Transform.Origin.Z);
+                    bb.Max = bb.Max.SetZ(topElev - bb.Transform.Origin.Z);
 
                     defaultView3D.SetSectionBox(bb);
 
@@ -120,32 +87,10 @@ namespace BIMPlugins.Views.WPF
                 TaskDialog.Show("Error", ex.Message + ex.StackTrace);
             }
         }
-        
+
         [RelayCommand]
         private void Close() => RevitOptionsBar.Hide();
 
-        private static View3D Create3DView(Document doc)
-        {
-            var viewTypeId = new FilteredElementCollector(doc)
-                .OfClass(typeof(ViewFamilyType))
-                .Cast<ViewFamilyType>()
-                .FirstOrDefault(v => v.ViewFamily == ViewFamily.ThreeDimensional)
-                .Id;
-
-            View3D view3D;
-            using (Transaction t = new Transaction(doc, "Создание 3D вида"))
-            {
-                t.Start();
-
-                view3D = View3D.CreateIsometric(doc, viewTypeId);
-                view3D.Name = "3D";
-
-                t.Commit();
-            }
-
-            return view3D;
-        }
-
-        private bool CanSet() => !string.IsNullOrEmpty(BottomLevel) && !string.IsNullOrEmpty(TopLevel);
+        private bool CanSet() => BottomLevel != null && TopLevel != null;
     }
 }
