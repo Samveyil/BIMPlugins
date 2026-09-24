@@ -5,8 +5,8 @@ using Nuke.Common.ProjectModel;
 public class Build : BIMPluginsBuild
 {
     protected override int MajorVersion => 3;
-    protected override int MinorVersion => 1;
-    protected override int MaintenanceVersion => 9;
+    protected override int MinorVersion => 2;
+    protected override int MaintenanceVersion => 0;
 
 
     [Solution("BIMPlugins.sln")]
