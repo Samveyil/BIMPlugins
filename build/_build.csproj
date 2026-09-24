@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -12,8 +12,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BIMPlugins.Nuke" Version="*" />
     <PackageReference Include="Nuke.Common" Version="9.0.4" />
-	<PackageReference Include="BIMPlugins.Nuke" Version="*" />
   </ItemGroup>
 
 </Project>

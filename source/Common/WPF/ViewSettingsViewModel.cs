@@ -14,9 +14,6 @@ namespace BIMPlugins.Common.WPF
         [ObservableProperty] private ObservableCollection<ViewFilter> _viewFilters = [];
         [ObservableProperty] private ObservableCollection<ViewWorkset> _viewWorksets = [];
 
-        private readonly UIDocument _uiDoc;
-        private readonly Document _doc;
-
         private static ExternalEvent WorksetEvent { get; set; }
         private static ExternalEvent FilterEvent { get; set; }
 
@@ -28,9 +25,6 @@ namespace BIMPlugins.Common.WPF
 
         public ViewSettingsViewModel()
         {
-            _uiDoc = RevitAPI.UIDocument;
-            _doc = _uiDoc.Document;
-
             FilterEvent = RevitAPI.CreateExtEvent(this, vm => vm.ChangeFilterVisibility());
             WorksetEvent = RevitAPI.CreateExtEvent(this, vm => vm.ChangeWorksetVisibility());
         }
@@ -41,10 +35,10 @@ namespace BIMPlugins.Common.WPF
             try
             {
                 List<ViewFilter> viewFilters = [];
-                var activeView = _uiDoc.ActiveView;
+                var activeView = RevitAPI.UIDocument.ActiveView;
                 foreach (ElementId filterId in activeView.GetFilters())
                 {
-                    Element filter = filterId.ToElement(_doc);
+                    Element filter = filterId.ToElement();
                     ViewFilter viewFilter = new ViewFilter
                     {
                         Name = filter.Name,
@@ -66,7 +60,7 @@ namespace BIMPlugins.Common.WPF
             ViewWorksets.Clear();
             try
             {
-                var worksets = new FilteredWorksetCollector(_doc)
+                var worksets = new FilteredWorksetCollector(RevitAPI.Document)
                     .OfKind(WorksetKind.UserWorkset)
                     .ToWorksets()
                     .ToList();
@@ -96,7 +90,7 @@ namespace BIMPlugins.Common.WPF
 
         private string GetWorksetVisibility(Workset workset)
         {
-            WorksetVisibility worksetVisibility = _uiDoc.ActiveView.GetWorksetVisibility(workset.Id);
+            WorksetVisibility worksetVisibility = RevitAPI.UIDocument.ActiveView.GetWorksetVisibility(workset.Id);
             if (worksetVisibility == WorksetVisibility.Visible)
             {
                 return "Показать";
@@ -135,11 +129,11 @@ namespace BIMPlugins.Common.WPF
 
         private void ChangeFilterVisibility()
         {
-            var view = _uiDoc.ActiveView;
+            var view = RevitAPI.UIDocument.ActiveView;
             var prefVisibility = view.GetFilterVisibility(SelectedFilterId);
             if (prefVisibility != SelectedFilterMode)
             {
-                using (Transaction t = new Transaction(_doc, "Изменить видимость фильтра"))
+                using (Transaction t = new Transaction(RevitAPI.Document, "Изменить видимость фильтра"))
                 {
                     t.Start();
 
@@ -161,13 +155,13 @@ namespace BIMPlugins.Common.WPF
         }
         private void ChangeWorksetVisibility()
         {
-            var view = _uiDoc.ActiveView;
+            var view = RevitAPI.UIDocument.ActiveView;
 
             WorksetVisibility worksetVisibility = ConvertStringToWorksetVisibility(SelectedWorksetVisibility);
             var prefVisibility = view.GetWorksetVisibility(SelectedWorksetId);
             if (prefVisibility != worksetVisibility)
             {
-                using (Transaction t = new Transaction(_doc, "Изменить видимость рабочего набора"))
+                using (Transaction t = new Transaction(RevitAPI.Document, "Изменить видимость рабочего набора"))
                 {
                     t.Start();
 

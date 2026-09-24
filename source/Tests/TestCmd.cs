@@ -9,6 +9,7 @@ using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 
@@ -39,34 +40,65 @@ namespace BIMPlugins.Tests
 
             //famDoc.PurgeUnused();
 
-            var manager = FamilySizeTableManager.GetFamilySizeTableManager(doc, new ElementId(BuiltInParameter.RBS_LOOKUP_TABLE_NAME));
-            foreach (var tableName in manager.GetAllSizeTableNames())
+            var dllFolderPath = @"D:\BIM-Плагины\BIMPlugins\source\bin\Release\2019";
+
+            foreach (string file in Directory.GetFiles(dllFolderPath, "*.*", SearchOption.AllDirectories))
             {
-                var table = manager.GetSizeTable(tableName);
-                //Debug.WriteLine( table.GetColumnHeader(1).Name);
+                string relativePath = GetRelativePath(dllFolderPath, file);
+
+
+                Debug.WriteLine(relativePath);
             }
 
-            //var famManager = doc.FamilyManager;
+                //var famManager = doc.FamilyManager;
 
-            //var parameters = famManager.GetParameters();
-            //foreach (var parameter in parameters.Where(p => !p.Formula.IsNullOrEmpty() && p.Formula.Contains("size_lookup")))
-            //{
-            //    var formula = parameter.Formula;
+                //var parameters = famManager.GetParameters();
+                //foreach (var parameter in parameters.Where(p => !p.Formula.IsNullOrEmpty() && p.Formula.Contains("size_lookup")))
+                //{
+                //    var formula = parameter.Formula;
 
-            //    foreach (var paramName in parameters.Select(p => p.Definition.Name))
-            //    {
-            //        if (ContainsParameterName(formula, paramName) && !famManager.get_Parameter(paramName).IsDeterminedByFormula)
-            //        {
-            //            Debug.WriteLine(paramName);
-            //        }
-            //    }
-            //}
+                //    foreach (var paramName in parameters.Select(p => p.Definition.Name))
+                //    {
+                //        if (ContainsParameterName(formula, paramName) && !famManager.get_Parameter(paramName).IsDeterminedByFormula)
+                //        {
+                //            Debug.WriteLine(paramName);
+                //        }
+                //    }
+                //}
 
 
-            return Result.Succeeded;
+                return Result.Succeeded;
         }
 
-        
+        public static string GetRelativePath(
+        string relativeTo,
+        string path)
+        {
+            string basePath = Path.GetFullPath(relativeTo);
+
+            if (!basePath.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                basePath += Path.DirectorySeparatorChar;
+
+            string targetPath = Path.GetFullPath(path);
+
+            var baseUri = new Uri(basePath);
+            var targetUri = new Uri(targetPath);
+
+            if (!string.Equals(
+                baseUri.Scheme,
+                targetUri.Scheme,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                return path;
+            }
+
+            string relativePath = Uri.UnescapeDataString(
+                baseUri.MakeRelativeUri(targetUri).ToString());
+
+            return relativePath.Replace(
+                Path.AltDirectorySeparatorChar,
+                Path.DirectorySeparatorChar);
+        }
     }
 }
 #endif

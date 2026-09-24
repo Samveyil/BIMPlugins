@@ -108,6 +108,10 @@
             "type": "string"
           }
         },
+        "FolderName": {
+          "type": "string",
+          "description": "Имя папки для копирования"
+        },
         "ProjectName": {
           "type": "string",
           "description": "Имя проекта для сборки"
