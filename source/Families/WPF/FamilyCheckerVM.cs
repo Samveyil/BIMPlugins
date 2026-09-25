@@ -195,7 +195,7 @@ namespace BIMPlugins.Families.WPF
 
                     var value = table.AsValueString(rowNumber, paramItem.ColumnNumber);
                     if (value.IsNullOrEmpty())
-                        table.AsValueString(rowNumber + 1, paramItem.ColumnNumber);
+                        value = table.AsValueString(rowNumber + 1, paramItem.ColumnNumber);
 
                     testSet.ParameterValues[paramItem.Name] = value;
                 }

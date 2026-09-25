@@ -44,7 +44,7 @@ namespace BIMPlugins.Tests
 
             foreach (string file in Directory.GetFiles(dllFolderPath, "*.*", SearchOption.AllDirectories))
             {
-                string relativePath = GetRelativePath(dllFolderPath, file);
+                string relativePath = dllFolderPath.GetRelativePath(file);
 
 
                 Debug.WriteLine(relativePath);
@@ -68,36 +68,6 @@ namespace BIMPlugins.Tests
 
 
                 return Result.Succeeded;
-        }
-
-        public static string GetRelativePath(
-        string relativeTo,
-        string path)
-        {
-            string basePath = Path.GetFullPath(relativeTo);
-
-            if (!basePath.EndsWith(Path.DirectorySeparatorChar.ToString()))
-                basePath += Path.DirectorySeparatorChar;
-
-            string targetPath = Path.GetFullPath(path);
-
-            var baseUri = new Uri(basePath);
-            var targetUri = new Uri(targetPath);
-
-            if (!string.Equals(
-                baseUri.Scheme,
-                targetUri.Scheme,
-                StringComparison.OrdinalIgnoreCase))
-            {
-                return path;
-            }
-
-            string relativePath = Uri.UnescapeDataString(
-                baseUri.MakeRelativeUri(targetUri).ToString());
-
-            return relativePath.Replace(
-                Path.AltDirectorySeparatorChar,
-                Path.DirectorySeparatorChar);
         }
     }
 }
