@@ -105,15 +105,15 @@ namespace BIMPlugins
 
                     var elements = WorksharingUtils.RelinquishOwnership(doc, new RelinquishOptions(true), null);
                     if (elements.GetRelinquishedWorksets().Count != 0 || elements.GetRelinquishedElements().Count != 0)
-                        toShow.Add("Элементы освобождены!");
+                        toShow.Add($"{RevitAPI.Application.Username} - элементы освобождены!");
                     else
                     {
                         doc.SynchronizeWithCentral("Освобождение элементов за пользователя");
-                        toShow.Add("Элементы освобождены при помощи синхронизации!");
+                        toShow.Add($"{RevitAPI.Application.Username} - элементы освобождены при помощи синхронизации!");
                     }
 
                     if (doc.Close(false))
-                        toShow.Add($"{filePath} закрыт\n");
+                        toShow.Add($"{Path.GetFileName(filePath)} закрыт.\n");
                 }
 
                 RechangeBackUsername();

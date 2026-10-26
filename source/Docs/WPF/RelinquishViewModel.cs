@@ -114,16 +114,31 @@ namespace BIMPlugins.Docs.WPF
 
             Encoding encoding = GetEncoding(path);
 
-            var lines = File.ReadAllLines(path, encoding);
+            var lines = File.ReadAllLines(path, encoding).ToList();
 
-            string projectPath = string.Empty;
-            for (int i = 0; i < lines.Length; i++)
+            int usernameIndex = lines.FindIndex(line =>
+                line.TrimStart().StartsWith(
+                    "Username=",
+                    StringComparison.OrdinalIgnoreCase));
+
+            if (usernameIndex >= 0)
             {
-                if (lines[i].StartsWith("Username="))
+                lines[usernameIndex] = $"Username={Username}";
+            }
+            else
+            {
+                int frequencyIndex = lines.FindIndex(line =>
+                    line.TrimStart().StartsWith(
+                        "WorksharingDisplayFrequency=",
+                        StringComparison.OrdinalIgnoreCase));
+
+                if (frequencyIndex < 0)
                 {
-                    lines[i] = $"Username={Username}";
-                    break;
+                    throw new InvalidOperationException(
+                        "WorksharingDisplayFrequency was not found in Revit.ini.");
                 }
+
+                lines.Insert(frequencyIndex + 1, $"Username={Username}");
             }
 
             File.WriteAllLines(path, lines, encoding);

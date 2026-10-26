@@ -1,17 +1,23 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using Autodesk.Revit.UI.Events;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.ExtStorage.FailuresProcessing;
+using BIMPlugins.ExtStorage.Interfaces;
 using BIMPlugins.ExtStorage.Methods;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 
 #if DEBUG
 namespace BIMPlugins.Tests
@@ -38,36 +44,65 @@ namespace BIMPlugins.Tests
             //    t.Commit();
             //}
 
-            //famDoc.PurgeUnused();
+            var rebarFolder = @"\\Diskstation\производство\Ревит\FAMILIES\2019\ОСК\280_2D_Арматура";
 
-            var dllFolderPath = @"D:\BIM-Плагины\BIMPlugins\source\bin\Release\2019";
-
-            foreach (string file in Directory.GetFiles(dllFolderPath, "*.*", SearchOption.AllDirectories))
+            var saveOpt = new SaveAsOptions()
             {
-                string relativePath = dllFolderPath.GetRelativePath(file);
+                MaximumBackups = 1
+            };
 
+            foreach (var famPath in Directory.GetFiles(@"\\Diskstation\производство\Ревит\FAMILIES\2019\ОСК\285_2D_Армирование стен"))
+            {
+                var famDoc = RevitAPI.Application.OpenDocumentFile(famPath);
 
-                Debug.WriteLine(relativePath);
+                if (famDoc.ToElements<LinePatternElement>().FirstOrDefault(n => n.Name == "01_Штриховая_ш3 п2") != null)
+                {
+                    famDoc.Close(false);
+                    continue;
+                }
+
+                var linePattern = famDoc.ToElements<LinePatternElement>()
+                    .FirstOrDefault(n => n.Name == "Линия выравнивания");
+
+                var viewId = famDoc.ToElementIds<ViewPlan>()
+                    .FirstOrDefault();
+
+                using (Transaction t = new Transaction(famDoc, "test"))
+                {
+                    t.Start();
+
+                    linePattern.Name = "01_Штриховая_ш3 п2";
+
+                    var pattern = linePattern.GetLinePattern();
+                    var segments = pattern.GetSegments();
+
+                    segments.First().Length = 3d.FromMillimeters();
+                    segments.Last().Length = 2d.FromMillimeters();
+
+                    pattern.SetSegments(segments);
+
+                    linePattern.SetLinePattern(pattern);
+
+                    foreach (var nestedFamilyName in famDoc.ToElements<Family>().Select(f => f.Name).Where(n => n.StartsWith("280_")))
+                    {
+                        famDoc.LoadFamily(rebarFolder.AppendPath(nestedFamilyName) + ".rfa", new FamilyLoadOptions(true), out var family);
+                    }
+
+                    t.Commit();
+                }
+
+                saveOpt.PreviewViewId = viewId;
+
+                var newPath = famPath.Replace(".rfa", "1.rfa");
+                famDoc.SaveAs(newPath, saveOpt);
+
+                famDoc.Close(false);
+
+                File.Delete(famPath);
+                File.Move(newPath, famPath);
             }
 
-                //var famManager = doc.FamilyManager;
-
-                //var parameters = famManager.GetParameters();
-                //foreach (var parameter in parameters.Where(p => !p.Formula.IsNullOrEmpty() && p.Formula.Contains("size_lookup")))
-                //{
-                //    var formula = parameter.Formula;
-
-                //    foreach (var paramName in parameters.Select(p => p.Definition.Name))
-                //    {
-                //        if (ContainsParameterName(formula, paramName) && !famManager.get_Parameter(paramName).IsDeterminedByFormula)
-                //        {
-                //            Debug.WriteLine(paramName);
-                //        }
-                //    }
-                //}
-
-
-                return Result.Succeeded;
+            return Result.Succeeded;
         }
     }
 }
