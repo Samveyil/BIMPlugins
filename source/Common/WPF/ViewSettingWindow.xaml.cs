@@ -15,12 +15,16 @@ namespace BIMPlugins.Common.WPF
     {
         private readonly UIControlledApplication uiControlApp;
 
-        public ViewSettingWindow(ViewSettingsViewModel viewModel, UIControlledApplication uIApp)
+        public static readonly DockablePaneId PaneId = new DockablePaneId(new Guid("7C1430C2-03B8-4026-826A-DC542003CD8E"));
+
+        public const string Title = "Управление видимостью";
+
+        public ViewSettingWindow(UIControlledApplication application)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = new ViewSettingsViewModel();
 
-            uiControlApp = uIApp;
+            uiControlApp = application;
             uiControlApp.DockableFrameVisibilityChanged += new EventHandler<DockableFrameVisibilityChangedEventArgs>(UIApp_DockableFrameVisibilityChanged);
         }
 
@@ -41,6 +45,12 @@ namespace BIMPlugins.Common.WPF
             }
         }
 
+        public static void Register(UIControlledApplication application)
+        {
+            application.RegisterDockablePane(PaneId, Title, new ViewSettingWindow(application));
+        }
+
+
         public void SetupDockablePane(DockablePaneProviderData data)
         {
             data.FrameworkElement = this;
@@ -50,13 +60,6 @@ namespace BIMPlugins.Common.WPF
                 DockPosition = DockPosition.Right,
                 TabBehind = DockablePanes.BuiltInDockablePanes.ProjectBrowser
             };
-        }
-        public static DockablePaneId PaneId
-        {
-            get
-            {
-                return new DockablePaneId(new Guid("7C1430C2-03B8-4026-826A-DC542003CD8E"));
-            }
         }
 
         private void SubscribeToViewEvents()

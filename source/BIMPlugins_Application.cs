@@ -47,15 +47,11 @@ namespace BIMPlugins
 
             try
             {
-                var viewModel = new ViewSettingsViewModel();
-                var window = new ViewSettingWindow(viewModel, _uiControlApp);
-
-                _uiControlApp.RegisterDockablePane(ViewSettingWindow.PaneId, "Управление видимостью", window);
+                ViewSettingWindow.Register(_uiControlApp);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace);
-                return Result.Failed;
             }
 
             //Утилиты

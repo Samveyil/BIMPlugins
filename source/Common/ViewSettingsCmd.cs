@@ -18,14 +18,8 @@ namespace BIMPlugins.Common
             if (DockablePane.PaneIsRegistered(ViewSettingWindow.PaneId))
             {
                 DockablePane myPane = uiapp.GetDockablePane(ViewSettingWindow.PaneId);
-                if (myPane.IsShown())
-                {
-                    myPane.Hide();
-                }
-                else
-                {
-                    myPane.Show();
-                }
+                if (myPane.IsShown()) myPane.Hide();
+                else myPane.Show();
             }
 
             return Result.Succeeded;

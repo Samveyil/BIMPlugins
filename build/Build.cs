@@ -12,8 +12,11 @@ public class Build : BIMPluginsBuild
     [Solution("BIMPlugins.sln")]
     protected override Solution Solution { get; }
 
-    [Parameter("Имя проекта для сборки")]
+    [Parameter("Name of the project to build")]
     protected override string ProjectName { get; } = "BIMPlugins";
+
+    [Parameter("Configurations to build")]
+    protected override string[] Configurations { get; } = new[] { "R2019", "R2020", "R2021", "R2022", "R2023" };
 
     public static int Main() => Execute<Build>(x => x.Compile);
 }
