@@ -100,7 +100,7 @@ namespace BIMPlugins.Docs
                     foreach (var file in sameVersionGroup)
                     {
                         var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.FilePath);
-                        mPath.OpenAndActivateLocalDocument(file.FilePath);
+                        mPath.OpenAndActivateLocalDocument();
                     }
                 }
 

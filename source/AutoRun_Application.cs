@@ -72,7 +72,7 @@ namespace BIMPlugins
                         foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
                         {
                             var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
-                            mPath.OpenAndActivateLocalDocument(xFile.Attribute("path").Value);
+                            mPath.OpenAndActivateLocalDocument();
                         }
                     }
                 }
@@ -101,7 +101,12 @@ namespace BIMPlugins
                     var filePath = xFile.Attribute("path").Value;
 
                     var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(filePath);
-                    var doc = mPath.OpenLocalDocument(filePath);
+                    var doc = mPath.OpenLocalDocument(out var error);
+                    if (doc == null)
+                    {
+                        toShow.Add(error);
+                        continue;
+                    }
 
                     var elements = WorksharingUtils.RelinquishOwnership(doc, new RelinquishOptions(true), null);
                     if (elements.GetRelinquishedWorksets().Count != 0 || elements.GetRelinquishedElements().Count != 0)
