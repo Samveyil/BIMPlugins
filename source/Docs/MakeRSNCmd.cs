@@ -1,7 +1,7 @@
 ﻿using Autodesk.Revit.Attributes;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Windows.RevitServer;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -63,10 +63,9 @@ namespace BIMPlugins.Docs
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var directoryPath = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\BIMPlugins";
-            Directory.CreateDirectory(directoryPath);
-
-            string xmlOutputPath = directoryPath.AppendPath("Структура RevitServer.xml");
+            // The file the Revit Server pickers of BIMPlugins.Windows read.
+            string xmlOutputPath = RSN.StructureFilePath;
+            Directory.CreateDirectory(Path.GetDirectoryName(xmlOutputPath));
             
             XDocument doc = new XDocument(new XElement("RevitServer"));
             foreach (KeyValuePair<string, List<string>> kvp in serverIPDict)

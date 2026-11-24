@@ -5,8 +5,7 @@ using Autodesk.Revit.UI.Events;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Windows;
-using BIMPlugins.Windows.RevitServer.ViewModels;
-using BIMPlugins.Windows.RevitServer.Windows;
+using BIMPlugins.Windows.RevitServer;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -20,21 +19,15 @@ namespace BIMPlugins.Docs
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var vm = new MultiFilesViewModel();
-            var window = new MultiFilesWindow(vm);
-
-            vm.CloseRequest += (s, e) => window.Close();
-
-            window.ShowDialog();
-
-            if (vm.IsCancelled)
+            var files = RSN.SelectFiles();
+            if (files == null || files.Count == 0)
                 return Result.Cancelled;
 
-            var isDetached = MessageWindow.ShowMessage("Отсоединить модель?", System.Windows.MessageBoxImage.Question, false) == System.Windows.MessageBoxResult.Yes;
+            var isDetached = MessageWindow.ShowMessage("Отсоединить модель?", buttons: System.Windows.MessageBoxButton.YesNo, icon: System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes;
 
             var setFile = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\BIMPlugins\openDocs.xml";
 
-            var groupedFiles = vm.Projects
+            var groupedFiles = files
                 .GroupBy(f => f.Version)
                 .OrderBy(g => g.Key)
                 .ToList();
@@ -44,7 +37,7 @@ namespace BIMPlugins.Docs
             var sameVersionGroup = groupedFiles.FirstOrDefault(g => g.Key == RevitAPI.Application.VersionNumber);
             if (sameVersionGroup != null)
             {
-                if (MessageWindow.ShowMessage("Открыть в текущем сеансе?", System.Windows.MessageBoxImage.Question, false) == System.Windows.MessageBoxResult.Yes)
+                if (MessageWindow.ShowMessage("Открыть в текущем сеансе?", buttons: System.Windows.MessageBoxButton.YesNo, icon: System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes)
                 {
                     groupedFiles.Remove(sameVersionGroup);
                     openInSameSession = true;
@@ -58,7 +51,7 @@ namespace BIMPlugins.Docs
                         new XAttribute("name", versionGroup.Key),
                         from file in versionGroup
                         select new XElement("filePath",
-                            new XAttribute("path", file.FilePath)
+                            new XAttribute("path", file.Path)
                         )
                     ),
                     new XElement("settings",
@@ -91,7 +84,7 @@ namespace BIMPlugins.Docs
                 {
                     foreach (var file in sameVersionGroup)
                     {
-                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.FilePath);
+                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.Path);
                         mPath.OpenAndActivateDetachedDocument();
                     }
                 }
@@ -99,7 +92,7 @@ namespace BIMPlugins.Docs
                 {
                     foreach (var file in sameVersionGroup)
                     {
-                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.FilePath);
+                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.Path);
                         mPath.OpenAndActivateLocalDocument();
                     }
                 }

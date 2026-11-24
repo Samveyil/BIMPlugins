@@ -247,7 +247,7 @@ namespace BIMPlugins.ClashViewer.WPF
 
                 if (elements.Count == 0)
                 {
-                    MessageWindow.ShowMessage("В открытом проекте отсутствуют элементы из этой проверки!", MessageBoxImage.Warning);
+                    MessageWindow.ShowMessage("В открытом проекте отсутствуют элементы из этой проверки!", icon: MessageBoxImage.Warning);
                     return;
                 }
 
@@ -428,7 +428,7 @@ namespace BIMPlugins.ClashViewer.WPF
                         {
                             if (userSelection == null)
                             {
-                                if (MessageWindow.ShowMessage("Перезаписать существующий комментарий?", MessageBoxImage.Question, false) == MessageBoxResult.Yes)
+                                if (MessageWindow.ShowMessage("Перезаписать существующий комментарий?", buttons: MessageBoxButton.YesNo, icon: MessageBoxImage.Question) == MessageBoxResult.Yes)
                                 {
                                     userSelection = true;
                                     historyItem.Comment = NewCommentText;
@@ -457,7 +457,7 @@ namespace BIMPlugins.ClashViewer.WPF
                     {
                         if (userSelection == null && clashResult.IsModified)
                         {
-                            if (MessageWindow.ShowMessage("Добавить комментарий к ответственному?", MessageBoxImage.Question, false) == MessageBoxResult.Yes)
+                            if (MessageWindow.ShowMessage("Добавить комментарий к ответственному?", buttons: MessageBoxButton.YesNo, icon: MessageBoxImage.Question) == MessageBoxResult.Yes)
                             {
                                 userSelection = true;
                                 historyItem.Comment = historyItem.Comment.Split('\n').First() + "\n" + NewCommentText;
@@ -532,7 +532,7 @@ namespace BIMPlugins.ClashViewer.WPF
 
             if (ids.Select(id => id.ToElement()).All(e => e == null))
             {
-                MessageWindow.ShowMessage("В проекте отсутствуют элементы!", MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("В проекте отсутствуют элементы!", icon: MessageBoxImage.Warning);
                 return;
             }
 
@@ -576,7 +576,7 @@ namespace BIMPlugins.ClashViewer.WPF
 
             if (elements.Count == 0)
             {
-                MessageWindow.ShowMessage("В проекте отсутствуют элементы для проверки!", MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("В проекте отсутствуют элементы для проверки!", icon: MessageBoxImage.Warning);
                 return;
             }    
 
@@ -603,14 +603,14 @@ namespace BIMPlugins.ClashViewer.WPF
                         MessageWindow.ShowMessage("Невозможно проверить данные элементы на пересечение!\n" +
                             "Это может быть связано с геометрическими неточностями в твердых телах, такими как слегка неровные грани или ребра.\n" +
                             "Также проблема может возникать из-за сложной геометрии одного или обоих тел, например, когда более двух граней сходятся вдоль одного ребра, или присутствуют совпадающие ребра и т. д.",
-                            MessageBoxImage.Warning);
+                            icon: MessageBoxImage.Warning);
 
                         return;
                     }
                 }
                 else
                 {
-                    MessageWindow.ShowMessage("В проекте отсутствует один из элементов конфликта", MessageBoxImage.Warning);
+                    MessageWindow.ShowMessage("В проекте отсутствует один из элементов конфликта", icon: MessageBoxImage.Warning);
 
                     return;
                 }
@@ -1071,7 +1071,7 @@ namespace BIMPlugins.ClashViewer.WPF
 
             if (!acquired)
             {
-                MessageWindow.ShowMessage("Превышено время ожидания.\nПовторите попытку позже", MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("Превышено время ожидания.\nПовторите попытку позже", icon: MessageBoxImage.Warning);
 
                 return;
             }
@@ -1080,7 +1080,7 @@ namespace BIMPlugins.ClashViewer.WPF
             {
                 xDoc.Save(_syncXDocPath);
             }
-            catch { MessageWindow.ShowMessage("Ошибка при синхронизации!\nПовторите попытку позже", MessageBoxImage.Warning); }
+            catch { MessageWindow.ShowMessage("Ошибка при синхронизации!\nПовторите попытку позже", icon: MessageBoxImage.Warning); }
             finally { _mutex.ReleaseMutex(); }
         }
         private void ArchivateHistory()

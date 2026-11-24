@@ -12,8 +12,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <converters:RevitColorToSolidColorBrushConverter x:Key="RevitColorToBrushConverter" />
@@ -43,7 +42,7 @@
                 </Button>
             </StackPanel>
 
-            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="#f88518">
+            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}">
                 <ListBox ItemsSource="{Binding Categories}" MinHeight="440" MaxHeight="440" Padding="0">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
@@ -84,7 +83,7 @@
                           materialDesign:HintAssist.Hint="Укажите параметр для фильтрации" materialDesign:HintAssist.IsFloating="False"/>
             </StackPanel>
 
-            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="#f88518">
+            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}">
                 <ListBox ItemsSource="{Binding Values}" MinHeight="325" MaxHeight="325" Padding="0" ScrollViewer.VerticalScrollBarVisibility="Visible">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">

@@ -13,8 +13,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="Lime"/>
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <converters:ViewDuplicateOptionToStringConverter x:Key="ViewDuplicateOptionConverter"/>
@@ -151,7 +150,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <Separator Margin=" -10 5" Background="#f88518"/>
+                    <Separator Margin=" -10 5" Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
 
                     <TextBlock Text="Дополнительно:" FontWeight="SemiBold" />
 
@@ -162,7 +161,7 @@
                                   Padding="2 0" Margin="10 5 5 5"/>
                     </StackPanel>
 
-                    <Separator Margin=" -10 5" Background="#f88518"/>
+                    <Separator Margin=" -10 5" Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
 
                     <TextBlock Text="Нумерация:" FontWeight="SemiBold" />
                     <StackPanel Orientation="Horizontal">

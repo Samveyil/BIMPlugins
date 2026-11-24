@@ -21,7 +21,7 @@ namespace BIMPlugins.Sheets
             var view = doc.ActiveView;
             if (view.ViewType == ViewType.DrawingSheet)
             {
-                MessageWindow.ShowMessage("Активным видом не должен быть лист!", MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("Активным видом не должен быть лист!", icon: MessageBoxImage.Warning);
                 return Result.Succeeded;
             }
 
@@ -40,7 +40,7 @@ namespace BIMPlugins.Sheets
 
             if (sheets.Count == 0)
             {
-                MessageWindow.ShowMessage($"Вид: {view.Name} не размещен ни на одном листе!", MessageBoxImage.Information);
+                MessageWindow.ShowMessage($"Вид: {view.Name} не размещен ни на одном листе!", icon: MessageBoxImage.Information);
                 return Result.Succeeded;
             }
 

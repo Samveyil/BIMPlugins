@@ -13,8 +13,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <converters:EscapeUnderscoreConverter x:Key="EscapeUnderscoreConverter" />
@@ -39,7 +38,7 @@
                     Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
                 <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
             </Button>
-            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="#f88518">
+            <Border Margin="5" Padding="0" BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}">
                 <TreeView Panel.ZIndex="0" ItemsSource="{Binding CategoryItems, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="520" MaxHeight="520"
                           VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0" Padding="0" 
                           ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Visible">
@@ -140,7 +139,7 @@
                 </Button>
             </StackPanel>
 
-            <Border Margin="5 0 0 5" Padding="0" BorderThickness="1" BorderBrush="#f88518">
+            <Border Margin="5 0 0 5" Padding="0" BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}">
                 <TreeView Panel.ZIndex="0" ItemsSource="{Binding SelectedCategoryItems, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                           Height="450" MaxHeight="450"
                           VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0" Padding="0">

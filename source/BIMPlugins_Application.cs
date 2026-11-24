@@ -13,7 +13,7 @@ using BIMPlugins.Sheets;
 using BIMPlugins.UI;
 using BIMPlugins.UI.Utils;
 using BIMPlugins.Views;
-using BIMPlugins.Windows.ViewModels;
+using BIMPlugins.Windows;
 using MaterialDesignColors;
 using MaterialDesignThemes.Wpf;
 using System;
@@ -245,7 +245,7 @@ namespace BIMPlugins
             new Card();
             new Hue("Dammy", Colors.Black, Colors.White);
 
-            new MessageViewModel("1", MessageBoxImage.None, true);
+            _ = typeof(MessageWindow).Assembly;
         }
     }
 

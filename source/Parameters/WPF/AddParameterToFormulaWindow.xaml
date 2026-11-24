@@ -11,8 +11,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
@@ -20,7 +19,7 @@
     <Border Padding="3">
         <StackPanel>
             <TextBlock Text="Выберите параметр, который будет&#x0a;добавлен в формулу" Margin="0 2 0 2"/>
-            <Border BorderThickness="1" BorderBrush="#f88518" Margin="0 5">
+            <Border BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}" Margin="0 5">
                 <ListBox ItemsSource="{Binding Parameters}" SelectedItem="{Binding SelectedParameter}" SelectionMode="Single" Height="285" Padding="0" DisplayMemberPath="Definition.Name">
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">

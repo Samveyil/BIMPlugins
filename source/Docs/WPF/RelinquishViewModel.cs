@@ -1,7 +1,5 @@
 ﻿using BIMPlugins.ExtStorage;
-using BIMPlugins.Windows.RevitServer.Classes;
-using BIMPlugins.Windows.RevitServer.ViewModels;
-using BIMPlugins.Windows.RevitServer.Windows;
+using BIMPlugins.Windows.RevitServer;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Win32;
@@ -18,7 +16,7 @@ namespace BIMPlugins.Docs.WPF
     public partial class RelinquishViewModel : ObservableObject
     {
         [ObservableProperty] private string _username = RevitAPI.Application.Username;
-        [ObservableProperty] private ObservableCollection<FileItem> _files = [];
+        [ObservableProperty] private ObservableCollection<RelinquishFile> _files = [];
 
         [RelayCommand]
         private void ChooseFromExplorer()
@@ -35,7 +33,7 @@ namespace BIMPlugins.Docs.WPF
             {
                 foreach (var file in openFileDialog.FileNames)
                 {
-                    var fileItem = new FileItem(Path.GetFileName(file)) { FilePath = file, Version = version };
+                    var fileItem = new RelinquishFile(file, version);
 
                     if (!Files.Contains(fileItem))
                         Files.Add(fileItem);
@@ -46,23 +44,20 @@ namespace BIMPlugins.Docs.WPF
         [RelayCommand]
         private void ChooseFromRSN()
         {
-            var vm = new MultiFilesViewModel();
-            var window = new MultiFilesWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
+            var files = RSN.SelectFiles();
+            if (files == null) return;
 
-            window.ShowDialog();
-
-            if (vm.IsCancelled) return;
-
-            foreach (var file in vm.Projects)
+            foreach (var file in files)
             {
-                if (!Files.Contains(file))
-                    Files.Add(file);
+                var fileItem = new RelinquishFile(file.Path, file.Version);
+
+                if (!Files.Contains(fileItem))
+                    Files.Add(fileItem);
             }
         }
 
         [RelayCommand]
-        private void RemoveProject(FileItem fileItem) => Files.Remove(fileItem);
+        private void RemoveProject(RelinquishFile fileItem) => Files.Remove(fileItem);
 
         [RelayCommand]
         private void Run()
@@ -157,5 +152,18 @@ namespace BIMPlugins.Docs.WPF
         {
             CloseRequest?.Invoke(this, EventArgs.Empty);
         }
+    }
+
+    /// <summary>A project to relinquish: its path, local or RSN://, and the Revit version to open it in.</summary>
+    public sealed class RelinquishFile(string filePath, string version) : IEquatable<RelinquishFile>
+    {
+        public string FilePath { get; } = filePath;
+        public string Version { get; } = version;
+
+        public bool Equals(RelinquishFile other) =>
+            other != null && string.Equals(FilePath, other.FilePath, StringComparison.OrdinalIgnoreCase);
+
+        public override bool Equals(object obj) => Equals(obj as RelinquishFile);
+        public override int GetHashCode() => StringComparer.OrdinalIgnoreCase.GetHashCode(FilePath);
     }
 }

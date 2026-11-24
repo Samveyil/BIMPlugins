@@ -123,8 +123,7 @@ namespace BIMPlugins
 
                 RechangeBackUsername();
 
-                var reportWindow = new ReportWindow(toShow);
-                reportWindow.ShowDialog();
+                ReportWindow.ShowReport(toShow, "Освобождение элементов");
 
                 int intRevitProcID = Process.GetCurrentProcess().Id;
                 Process prs = Process.GetProcessById(intRevitProcID);

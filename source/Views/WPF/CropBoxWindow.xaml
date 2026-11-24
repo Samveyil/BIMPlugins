@@ -13,8 +13,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="Lime"/>
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <converters:RevitColorToSolidColorBrushConverter x:Key="RevitColorToBrushConverter" />
@@ -29,7 +28,7 @@
                      materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
         </StackPanel>
 
-        <Border BorderBrush="#f88518" BorderThickness="1" Margin="5 10">
+        <Border BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}" BorderThickness="1" Margin="5 10">
             <ListBox ItemsSource="{Binding FilteredItems}" ScrollViewer.VerticalScrollBarVisibility="Visible" Height="610" MaxHeight="610">
                 <ListBox.ItemTemplate>
                     <DataTemplate>

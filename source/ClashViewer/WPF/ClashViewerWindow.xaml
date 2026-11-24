@@ -15,8 +15,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <Style TargetType="{x:Type Image}" x:Key="ScaleImage">
@@ -70,7 +69,7 @@
                 </StackPanel>
             </StackPanel>
 
-            <Separator Margin="-3 2 -3 5" Background="#f88518"/>
+            <Separator Margin="-3 2 -3 5" Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
 
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -168,7 +167,7 @@
                 </Grid.ColumnDefinitions>
 
                 <StackPanel>
-                    <Border BorderBrush="#f88518" BorderThickness="1" Margin="5 15 5 5">
+                    <Border BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}" BorderThickness="1" Margin="5 15 5 5">
                         <DataGrid ItemsSource="{Binding SelectedClashTest.FilteredClashResults, UpdateSourceTrigger=PropertyChanged}"
                                   AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False" 
                                   CanUserReorderColumns="False" Background="White" SelectionUnit="FullRow" SelectionMode="Extended"
@@ -421,7 +420,7 @@
                                        Style="{StaticResource ScaleImage}" Width="150" Height="120" Margin="5" Stretch="Fill" />
                             </Grid>
 
-                            <Separator BorderThickness="1" BorderBrush="#f88518"/>
+                            <Separator BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}"/>
 
                             <Grid Panel.ZIndex="0">
                                 <Grid.ColumnDefinitions>
@@ -540,7 +539,7 @@
                                                 <ColumnDefinition Width="auto"/>
                                                 <ColumnDefinition />
                                             </Grid.ColumnDefinitions>
-                                            <materialDesign:Chip Style="{StaticResource MaterialDesignOutlineChip}" BorderBrush="#f88518"
+                                            <materialDesign:Chip Style="{StaticResource MaterialDesignOutlineChip}" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}"
                                                                  Width="33" IconBackground="Transparent">
                                                 <materialDesign:Chip.Icon>
                                                     <TextBlock Text="{Binding ChipIcon}" TextAlignment="Center" FontWeight="SemiBold"/>

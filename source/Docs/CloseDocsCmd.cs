@@ -28,10 +28,7 @@ namespace BIMPlugins.Docs
 
             if (toShow.Count > 0)
             {
-                toShow.Insert(0, "Закрытые документы:");
-
-                var reportWindow = new ReportWindow(toShow);
-                reportWindow.ShowDialog();
+                ReportWindow.ShowReport(toShow, "Закрытые документы");
             }
 
             return Result.Succeeded;

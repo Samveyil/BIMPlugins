@@ -18,7 +18,7 @@ namespace BIMPlugins.Parameters
             var elems = RevitAPI.UIDocument.ToSelectedElements().ToList();
             if (elems.Count == 0)
             {
-                MessageWindow.ShowMessage("Выберите элементы!", System.Windows.MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("Выберите элементы!", icon: System.Windows.MessageBoxImage.Warning);
                 return Result.Cancelled;
             }
 

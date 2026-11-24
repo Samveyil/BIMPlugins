@@ -15,14 +15,13 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <materialDesign:BooleanToVisibilityConverter x:Key="BoolToVis" />
             <materialDesign:BooleanToVisibilityConverter x:Key="InvertBoolToVis" TrueValue="Collapsed" FalseValue="Visible"/>
             <materialDesign:NullableToVisibilityConverter x:Key="NullToVis" NullValue="Visible" NotNullValue="Collapsed"/>
-            <converters:IntToVisibilityConverter x:Key="IntToVis" />
+            <converters:EqualsToVisibilityConverter x:Key="EqualsToVis" />
 
             <CollectionViewSource x:Key="cvsItems" Source="{Binding Parameters}">
                 <CollectionViewSource.GroupDescriptions>
@@ -33,7 +32,7 @@
     </Window.Resources>
 
     <StackPanel>
-        <Border BorderBrush="#f88518" BorderThickness="1" Padding="0" Margin="5">
+        <Border BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}" BorderThickness="1" Padding="0" Margin="5">
             <Grid Grid.IsSharedSizeScope="True">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -144,7 +143,7 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                    <StackPanel Orientation="Horizontal" Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=0}">
+                                    <StackPanel Orientation="Horizontal" Visibility="{Binding ModeIndex, Converter={StaticResource EqualsToVis}, ConverterParameter=0}">
                                         <StackPanel Orientation="Horizontal" Visibility="{Binding IsYesNo, Converter={StaticResource InvertBoolToVis}}">
                                             <TextBlock Text="от" Margin="10 0 5 0" VerticalAlignment="Center"/>
                                             <TextBox Text="{Binding MinValue}" Width="60" Style="{StaticResource MaterialDesignOutlinedTextBox}"
@@ -165,7 +164,7 @@
                                     </StackPanel>
 
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                                Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=1}">
+                                                Visibility="{Binding ModeIndex, Converter={StaticResource EqualsToVis}, ConverterParameter=1}">
                                         <TextBlock Text="Да - 1; Нет - 0" Margin="10 0 0 0" VerticalAlignment="Center"
                                                    Visibility="{Binding IsYesNo, Converter={StaticResource BoolToVis}}"/>
 
@@ -174,7 +173,7 @@
                                     </StackPanel>
 
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                                Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=2}">
+                                                Visibility="{Binding ModeIndex, Converter={StaticResource EqualsToVis}, ConverterParameter=2}">
                                         <TextBox Text="{Binding Values}" Width="266" Style="{StaticResource MaterialDesignOutlinedTextBox}" Padding="5 1"
                                                  materialDesign:HintAssist.IsFloating="False" Margin="10 0" ToolTip="Значения параметов"
                                                  Visibility="{Binding IsYesNo, Converter={StaticResource InvertBoolToVis}}"/>
@@ -184,7 +183,7 @@
                                     </StackPanel>
 
                                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
-                                                Visibility="{Binding ModeIndex, Converter={StaticResource IntToVis}, ConverterParameter=3}">
+                                                Visibility="{Binding ModeIndex, Converter={StaticResource EqualsToVis}, ConverterParameter=3}">
                                         <TextBlock Text="Отсутствует в таблице!" Margin="10 0" Foreground="Red"
                                                    Visibility="{Binding FamilySizeTable, Converter={StaticResource NullToVis}}"/>
                                     </StackPanel>

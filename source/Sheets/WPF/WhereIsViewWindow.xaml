@@ -12,13 +12,12 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="Lime" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </Window.Resources>
 
-    <Border Margin="5" BorderThickness="1" BorderBrush="#f88518">
+    <Border Margin="5" BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}">
         <ListView ItemsSource="{Binding ViewSheets}" materialDesign:ListViewAssist.ListViewItemPadding="0 2"
                   SelectionMode="Single" MaxHeight="600">
             <ListView.ItemContainerStyle>

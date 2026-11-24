@@ -14,8 +14,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="Lime"/>
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml"/>
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <materialDesign:InvertBooleanConverter x:Key="InvertBooleanConverter" />
@@ -160,7 +159,7 @@
                                  Style="{StaticResource TextBoxWithButtons}"  HorizontalAlignment="Left"/>
                     </StackPanel>
 
-                    <Separator Background="#f88518"/>
+                    <Separator Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
 
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <RadioButton Content="Увеличить/уменьшить на заданное значение номера листов в группе " Padding="2 0" GroupName="NumberingType" />
@@ -175,7 +174,7 @@
                                  Style="{StaticResource TextBoxWithButtons}" />
                     </StackPanel>
 
-                    <Separator Background="#f88518"/>
+                    <Separator Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
 
                     <StackPanel Orientation="Horizontal">
                         <CheckBox Content="Записать значение части номера в параметр" Margin="5" Padding="2 0" IsChecked="{Binding WriteNumberToParameter}"/>

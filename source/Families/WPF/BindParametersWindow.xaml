@@ -11,8 +11,7 @@
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <materialDesign:CustomColorTheme BaseTheme="Light" PrimaryColor="#f88518" SecondaryColor="#FF0052A5" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                <materialDesign:BIMPluginsTheme BaseTheme="Light" />
             </ResourceDictionary.MergedDictionaries>
 
             <materialDesign:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
@@ -29,7 +28,7 @@
             </Button>
         </StackPanel>
 
-        <Border Margin="5" BorderThickness="1" BorderBrush="#f88518">
+        <Border Margin="5" BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}">
             <ListView ItemsSource="{Binding Parameters}" materialDesign:ListViewAssist.ListViewItemPadding="0 2" MaxHeight="570" SelectionMode="Single">
                 <ListView.ItemContainerStyle>
                     <Style TargetType="ListViewItem" BasedOn="{StaticResource MaterialDesignGridViewItem}">
