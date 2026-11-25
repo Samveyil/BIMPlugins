@@ -143,7 +143,6 @@ namespace BIMPlugins.Classes
         private Document _builtDocument;
         private List<Batch> _lines = [];
         private List<Batch> _faces = [];
-        private Outline _bounds;
 
         /// <summary>Called once at start-up.</summary>
         public static void Register()
@@ -187,17 +186,13 @@ namespace BIMPlugins.Classes
         // Shapes are drawn in the 3D views of their document only.
         public bool CanExecute(View view) => view is View3D && TemporaryGraphics.HasShapes(view.Document);
 
-        public Outline GetBoundingBox(View view)
-        {
-            Build(view.Document);
-            return _bounds;
-        }
+        // GetBoundingBox and UseInTransparentPass answer from the points of the shapes. They are called outside rendering,
+        // where Revit does not let an EffectInstance be created: building the buffers there failed, Revit took that for
+        // "no transparent pass", and the faces were never asked for. The buffers are built in RenderScene alone.
+        public Outline GetBoundingBox(View view) => Bounds(TemporaryGraphics.Snapshot(view.Document));
 
-        public bool UseInTransparentPass(View view)
-        {
-            Build(view.Document);
-            return _faces.Count > 0;
-        }
+        public bool UseInTransparentPass(View view) =>
+            TemporaryGraphics.Snapshot(view.Document).Any(s => s.Triangles.Count != 0);
 
         public void RenderScene(View view, DisplayStyle displayStyle)
         {
@@ -218,9 +213,10 @@ namespace BIMPlugins.Classes
             catch { } // Drawing must never break the view.
         }
 
+        // Revit may give a new Document object for the same document on every call, so it is compared with Equals.
         private void Build(Document document)
         {
-            if (_builtVersion == TemporaryGraphics.Version && ReferenceEquals(_builtDocument, document)) return;
+            if (_builtVersion == TemporaryGraphics.Version && _builtDocument != null && _builtDocument.Equals(document)) return;
 
             lock (_sync)
             {
@@ -234,7 +230,6 @@ namespace BIMPlugins.Classes
                     _faces.AddRange(FaceBatches(shape));
                 }
 
-                _bounds = Bounds(shapes);
                 _builtVersion = version;
                 _builtDocument = document;
             }
@@ -245,7 +240,6 @@ namespace BIMPlugins.Classes
             foreach (var batch in _lines.Concat(_faces)) batch.Dispose();
             _lines = [];
             _faces = [];
-            _bounds = null;
         }
 
         private static IEnumerable<Batch> LineBatches(TemporaryShape shape)
