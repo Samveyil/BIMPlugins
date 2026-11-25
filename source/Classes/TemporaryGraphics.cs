@@ -132,8 +132,9 @@ namespace BIMPlugins.Classes
         // Of 65 536 a buffer may index; lines and triangles both end on a whole primitive within it.
         private const int MaxVertices = 65000;
 
-        // 0 opaque, 255 invisible: faces let the model show through, as the 70 % transparency of the old shapes did.
-        private const uint FaceTransparency = 180;
+        // 0 opaque, 1 invisible: faces let the model show through. Set on the effect alone, with opaque vertex colours:
+        // given on both, the two multiply and the faces all but vanish.
+        private const double FaceTransparency = 0.6;
 
         private static TemporaryGraphicsServer _instance;
 
@@ -276,7 +277,7 @@ namespace BIMPlugins.Classes
 
         private static IEnumerable<Batch> FaceBatches(TemporaryShape shape)
         {
-            var color = new ColorWithTransparency(shape.Color.Red, shape.Color.Green, shape.Color.Blue, FaceTransparency);
+            var color = new ColorWithTransparency(shape.Color.Red, shape.Color.Green, shape.Color.Blue, 0);
             var step = MaxVertices - MaxVertices % 3;
             for (var start = 0; start < shape.Triangles.Count; start += step)
             {
@@ -309,7 +310,7 @@ namespace BIMPlugins.Classes
                 indices.Unmap();
 
                 yield return new Batch(vertices, count, indices, triangles * IndexTriangle.GetSizeInShortInts(), VertexFormatBits.PositionNormalColored,
-                    PrimitiveType.TriangleList, triangles, FaceTransparency / 255.0);
+                    PrimitiveType.TriangleList, triangles, FaceTransparency);
             }
         }
 
