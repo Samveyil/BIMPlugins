@@ -1,7 +1,10 @@
 ﻿using Autodesk.Revit.DB;
+using BIMPlugins.Classes;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Views.Classes;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -9,42 +12,59 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
+using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Forms;
+using View = Autodesk.Revit.DB.View;
 
 namespace BIMPlugins.Views.WPF
 {
+    public enum ValuesScope { WholeModel, ActiveView }
+
+    public enum ColoringArea { SurfacesAndLines, LinesOnly, SurfacesOnly }
+
     public partial class ColourFilterVM : ObservableObject
     {
+        private const string Title = "Цветные фильтры";
+
+        // The choices of the last window are kept for the next one.
+        private static ValuesScope _lastScope = ValuesScope.WholeModel;
+        private static ColoringArea _lastColoringArea = ColoringArea.SurfacesAndLines;
+        private static readonly ColorDialog _colorDialog = new ColorDialog { FullOpen = true };
+
         [ObservableProperty] private string _filter;
-        [ObservableProperty] private bool _hideUnchecked = false;
-        [ObservableProperty] private ObservableCollection<string> _parameters = [];
-        [ObservableProperty] private string _selectedParameterName;
-        [ObservableProperty] static private string _selectedOption = "Со всей модели";
-        [ObservableProperty] static private string _selectedColoringOption = "Поверхности и линии";
+        [ObservableProperty] private bool _hideUnchecked;
+        [ObservableProperty] private List<string> _parameters = [];
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private string _selectedParameterName;
+        [ObservableProperty] private ValuesScope _selectedScope = _lastScope;
+        [ObservableProperty] private ColoringArea _selectedColoringArea = _lastColoringArea;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private List<ValueItem> _values = [];
 
-        [ObservableProperty] private ObservableCollection<ValueItem> _values = [];
-
-        private readonly Document _doc = RevitAPI.Document;
-        private readonly Dictionary<string, ElementId> _parametersDict = [];
-        private readonly ObservableCollection<CategoryItem> _selectedCategories = [];
-        private const double GoldenRatioConjugate = 0.618033988749895;
-        private static double _currentHue = 0;
-        private static readonly ColorDialog _colorDialog = new ColorDialog() { FullOpen = true};
-
-        partial void OnFilterChanged(string value) => Categories.Refresh();
-        partial void OnHideUncheckedChanged(bool value) => Categories.Refresh();
-
-        partial void OnSelectedParameterNameChanged(string value) => GetValues();
-        partial void OnSelectedOptionChanged(string value) => GetValues();
+        private readonly Document _doc;
+        private readonly List<CategoryItem> _selectedCategories = [];
+        private Dictionary<string, ElementId> _parameterIds = [];
 
         public ICollectionView Categories { get; }
-        public List<string> SelectionOptions { get; } = ["Со всей модели", "С текущего вида"];
-        public List<string> ColoringOptions { get; } = ["Поверхности и линии", "Только линии", "Только поверхности"];
+
+        public IReadOnlyList<Option<ValuesScope>> Scopes { get; } =
+        [
+            new(ValuesScope.WholeModel, "Со всей модели"),
+            new(ValuesScope.ActiveView, "С текущего вида")
+        ];
+
+        public IReadOnlyList<Option<ColoringArea>> ColoringAreas { get; } =
+        [
+            new(ColoringArea.SurfacesAndLines, "Поверхности и линии"),
+            new(ColoringArea.LinesOnly, "Только линии"),
+            new(ColoringArea.SurfacesOnly, "Только поверхности")
+        ];
 
         public ColourFilterVM()
         {
-            var categories = _doc.Settings.Categories
+            _doc = RevitAPI.Document;
+
+            var categoryIds = _doc.Settings.Categories
                 .Cast<Category>()
 #if R2020_OR_GREATER
                 .Where(c => c.IsVisibleInUI)
@@ -52,70 +72,63 @@ namespace BIMPlugins.Views.WPF
                 .Select(c => c.Id)
                 .ToList();
 
-            var filteredCategories = ParameterFilterUtilities
-                .RemoveUnfilterableCategories(categories)
-                .Select(id => new CategoryItem(id))
-                .OrderBy(c => c.Name)
+            var categories = ParameterFilterUtilities
+                .RemoveUnfilterableCategories(categoryIds)
+                .Select(id => new CategoryItem(_doc, id))
+                .OrderBy(c => c.Name, NaturalComparer.CurrentCultureIgnoreCase)
                 .ToList();
 
-            Categories = CollectionViewSource.GetDefaultView(filteredCategories);
+            Categories = CollectionViewSource.GetDefaultView(categories);
             Categories.Filter = item =>
             {
                 var categoryItem = (CategoryItem)item;
 
-                bool nameFilter = Filter.IsNullOrEmpty() || categoryItem.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase);
-                bool selectionFilter = !HideUnchecked || categoryItem.IsSelected;
-
-                return nameFilter && selectionFilter;
+                return (Filter.IsNullOrEmpty() || categoryItem.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase))
+                    && (!HideUnchecked || categoryItem.IsSelected);
             };
         }
 
+        partial void OnFilterChanged(string value) => Categories.Refresh();
+        partial void OnHideUncheckedChanged(bool value) => Categories.Refresh();
+        partial void OnSelectedParameterNameChanged(string value) => LoadValues();
+
+        partial void OnSelectedScopeChanged(ValuesScope value)
+        {
+            _lastScope = value;
+            LoadValues();
+        }
+
+        partial void OnSelectedColoringAreaChanged(ColoringArea value) => _lastColoringArea = value;
 
         [RelayCommand]
         private void CategoryChecked(CategoryItem categoryItem)
         {
-            var selectedParameter = SelectedParameterName;
-            Parameters.Clear();
-
             if (categoryItem.IsSelected)
                 _selectedCategories.Add(categoryItem);
             else
                 _selectedCategories.Remove(categoryItem);
 
-            if (_selectedCategories.Count == 0)
-                return;
-
-            var ids = ParameterFilterUtilities.GetFilterableParametersInCommon(_doc, _selectedCategories.Select(c => c.Id).ToList());
-            foreach (var id in ids)
-            {
-                var parameter = id.ToElement<ParameterElement>(_doc);
-                string parameterName = parameter?.Name ?? LabelUtils.GetLabelFor((BuiltInParameter)id.GetValue());
-
-                Parameters.Add(parameterName);
-                _parametersDict[parameterName] = id;
-            }
-            
-            Parameters = new (Parameters.OrderBy(p => p).ToList());
-            SelectedParameterName = Parameters.FirstOrDefault(p => p == selectedParameter);
+            LoadParameters();
         }
 
         [RelayCommand]
         private void SelectVisible()
         {
-            var visibleCategoriesNames = new FilteredElementCollector(_doc, _doc.ActiveView.Id)
-                .Where(c => c.Category != null)
-                .Where(c => c.Category.CategoryType == CategoryType.Model)
-                .Select(c => c.Category.Name)
+            var visibleCategoryIds = new FilteredElementCollector(_doc, _doc.ActiveView.Id)
+                .WhereElementIsNotElementType()
+                .Where(e => e.Category?.CategoryType == CategoryType.Model)
+                .Select(e => e.Category.Id)
                 .ToHashSet();
 
-            foreach (var categoryItem in Categories.OfType<CategoryItem>().ToList())
+            // Categories already ticked are not added a second time.
+            foreach (var categoryItem in Categories.OfType<CategoryItem>().Where(c => !c.IsSelected && visibleCategoryIds.Contains(c.Id)))
             {
-                if (visibleCategoriesNames.Contains(categoryItem.Name))
-                {
-                    categoryItem.IsSelected = true;
-                    CategoryChecked(categoryItem);
-                }
+                categoryItem.IsSelected = true;
+                _selectedCategories.Add(categoryItem);
             }
+
+            // The parameters common to the categories are asked from Revit once, not for each category.
+            LoadParameters();
         }
 
         [RelayCommand]
@@ -125,16 +138,14 @@ namespace BIMPlugins.Views.WPF
                 categoryItem.IsSelected = false;
 
             _selectedCategories.Clear();
-            Parameters.Clear();
+            LoadParameters();
         }
 
         [RelayCommand]
         private void SetRandomColors()
         {
-            foreach (var value in Values)
-            {
-                value.Color = GenerateDistinctColor();
-            }
+            foreach (var valueItem in Values)
+                valueItem.Color = ViewGraphics.NextDistinctColor();
         }
 
         [RelayCommand]
@@ -143,21 +154,101 @@ namespace BIMPlugins.Views.WPF
             _colorDialog.Color = System.Drawing.Color.FromArgb(valueItem.Color.Red, valueItem.Color.Green, valueItem.Color.Blue);
 
             if (_colorDialog.ShowDialog() == DialogResult.OK)
-            {
-                valueItem.Color = new (_colorDialog.Color.R, _colorDialog.Color.G, _colorDialog.Color.B);
-            }
+                valueItem.Color = new Color(_colorDialog.Color.R, _colorDialog.Color.G, _colorDialog.Color.B);
         }
 
-        [RelayCommand]
+        // The parameters of all the ticked categories; the chosen one stays chosen if they still have it.
+        private void LoadParameters()
+        {
+            var selectedParameterName = SelectedParameterName;
+
+            _parameterIds = _selectedCategories.Count == 0
+                ? []
+                : ParameterFilterUtilities.GetFilterableParametersInCommon(_doc, _selectedCategories.Select(c => c.Id).ToList())
+                    .GroupBy(GetParameterName)
+                    .ToDictionary(g => g.Key, g => g.First());
+
+            Parameters = _parameterIds.Keys
+                .OrderBy(name => name, NaturalComparer.CurrentCultureIgnoreCase)
+                .ToList();
+
+            // With the same parameter the values still change: they come from other categories now.
+            var parameterName = Parameters.FirstOrDefault(p => p == selectedParameterName);
+            if (parameterName == SelectedParameterName)
+                LoadValues();
+            else
+                SelectedParameterName = parameterName;
+        }
+
+        private string GetParameterName(ElementId parameterId) =>
+            parameterId.ToElement<ParameterElement>(_doc)?.Name ?? LabelUtils.GetLabelFor((BuiltInParameter)parameterId.GetValue());
+
+        private void LoadValues()
+        {
+            // The combo box is editable: a typed name may be no parameter at all.
+            if (_selectedCategories.Count == 0 || SelectedParameterName == null || !_parameterIds.TryGetValue(SelectedParameterName, out var parameterId))
+            {
+                Values = [];
+                return;
+            }
+
+            var categoriesFilter = new ElementMulticategoryFilter(_selectedCategories.Select(c => c.Id).ToList());
+
+            var elements = SelectedScope == ValuesScope.WholeModel
+                ? _doc.ToElements(categoriesFilter)
+                : new FilteredElementCollector(_doc, _doc.ActiveView.Id).WherePasses(categoriesFilter).WhereElementIsNotElementType().ToElements();
+
+            // The value is taken from the element, or from its type if the element has none; each type is read once.
+            var typeParameters = new Dictionary<ElementId, Parameter>();
+            var values = new Dictionary<string, ValueItem>();
+
+            foreach (var element in elements)
+            {
+                var parameter = element.ToParameter(parameterId);
+                if (parameter == null || !parameter.HasValue)
+                {
+                    var typeId = element.GetTypeId();
+                    if (!typeParameters.TryGetValue(typeId, out parameter))
+                    {
+                        parameter = typeId.ToElement(_doc)?.ToParameter(parameterId);
+                        typeParameters[typeId] = parameter;
+                    }
+                }
+
+                if (parameter == null || !parameter.HasValue)
+                    continue;
+
+                var text = parameter.AsString().IsNullOrEmpty() ? parameter.AsValueString() : parameter.AsString();
+                if (text != null && !values.ContainsKey(text))
+                    values[text] = new ValueItem(parameter, text, ViewGraphics.NextDistinctColor());
+            }
+
+            Values = values.Values
+                .OrderBy(v => v.ValueString, NaturalComparer.CurrentCultureIgnoreCase)
+                .ToList();
+        }
+
+        [RelayCommand(CanExecute = nameof(CanRun))]
         private void Run()
         {
+            var patternId = ViewGraphics.GetSolidFillPatternId(_doc);
+            if (patternId == null)
+            {
+                MessageWindow.ShowMessage("В проекте нет образца сплошной заливки!", Title, icon: MessageBoxImage.Warning);
+                return;
+            }
+
             RaiseCloseRequest();
 
-            var patternId = _doc.ToElements<FillPatternElement>()
-                .FirstOrDefault(e => e.Name == "<Сплошная заливка>")
-                .Id;
-
+            var parameterId = _parameterIds[SelectedParameterName];
+            var categoryIds = _selectedCategories.Select(c => c.Id).ToList();
             var filters = _doc.ToElements<ParameterFilterElement>();
+
+            // A view under a template is coloured through the template.
+            var activeView = _doc.ActiveView;
+            var targetView = activeView.ViewTemplateId == ElementId.InvalidElementId
+                ? activeView
+                : activeView.ViewTemplateId.ToElement<View>(_doc);
 
             using (Transaction t = new Transaction(_doc, "Цветные фильтры"))
             {
@@ -165,150 +256,66 @@ namespace BIMPlugins.Views.WPF
 
                 foreach (var valueItem in Values)
                 {
-                    var parameterId = _parametersDict[SelectedParameterName];
-                    var value = valueItem.Value;
+                    var filterName = ToValidFilterName($"BIMPlugins_{SelectedParameterName}_{valueItem.ValueString}");
 
-                    var paramFilter = value switch
+                    var filterElement = filters.FirstOrDefault(f => f.Name == filterName);
+                    if (filterElement != null)
                     {
-                        ElementId id => parameterId.CreateEqualsFilter(id),
-                        int intValue => parameterId.CreateEqualsFilter(intValue),
-                        double doubleValue => parameterId.CreateEqualsFilter(doubleValue),
-                        _ => parameterId.CreateEqualsFilter(value.ToString())
-                    };
-
-                    var parameterFilterElement = filters.FirstOrDefault(f => f.Name == $"BIMPlugins_{SelectedParameterName}_{valueItem.ValueString}");
-                    if (parameterFilterElement != null)
-                    {
-                        parameterFilterElement.SetCategories(_selectedCategories.Select(c => c.Id).ToList());
+                        filterElement.SetCategories(categoryIds);
                     }
                     else
                     {
-                        parameterFilterElement = ParameterFilterElement.Create(
-                            _doc,
-                            $"BIMPlugins_{SelectedParameterName}_{valueItem.ValueString}",
-                            _selectedCategories.Select(c => c.Id).ToList(),
-                            paramFilter
-                        );
-                    }
-
-                    var activeView = _doc.ActiveView;
-                    if (activeView.ViewTemplateId == ElementId.InvalidElementId)
-                    {
-                        if (!activeView.IsFilterApplied(parameterFilterElement.Id))
+                        var rule = valueItem.Value switch
                         {
-                            activeView.AddFilter(parameterFilterElement.Id);
-                        }
+                            ElementId id => parameterId.CreateEqualsFilter(id),
+                            int intValue => parameterId.CreateEqualsFilter(intValue),
+                            double doubleValue => parameterId.CreateEqualsFilter(doubleValue),
+                            _ => parameterId.CreateEqualsFilter(valueItem.Value.ToString())
+                        };
 
-                        activeView.SetFilterOverrides(parameterFilterElement.Id, SetPatternColor(valueItem.Color, patternId));
+                        filterElement = ParameterFilterElement.Create(_doc, filterName, categoryIds, rule);
                     }
-                    else
-                    {
-                        var template = activeView.ViewTemplateId.ToElement<Autodesk.Revit.DB.View>(_doc);
-                        if (!template.IsFilterApplied(parameterFilterElement.Id))
-                        {
-                            template.AddFilter(parameterFilterElement.Id);
-                        }
 
-                        template.SetFilterOverrides(parameterFilterElement.Id, SetPatternColor(valueItem.Color, patternId));
-                    }
+                    if (!targetView.IsFilterApplied(filterElement.Id))
+                        targetView.AddFilter(filterElement.Id);
+
+                    targetView.SetFilterOverrides(filterElement.Id, GetOverrides(valueItem.Color, patternId));
                 }
 
                 t.Commit();
             }
         }
 
-        private void GetValues()
+        private bool CanRun() => SelectedParameterName != null && Values.Count != 0;
+
+        // Revit does not take these characters in the name of a filter.
+        private static string ToValidFilterName(string name) =>
+            Regex.Replace(name, @"[\\:\{\}\[\]\|;<>\?`~]", "_");
+
+        private OverrideGraphicSettings GetOverrides(Color color, ElementId patternId)
         {
-            var multicategoryFilter = new ElementMulticategoryFilter(_selectedCategories.Select(c => (BuiltInCategory)c.Id.GetValue()).ToList());
+            var overrides = new OverrideGraphicSettings();
 
-            var elements = SelectedOption == "Со всей модели"
-                ? new FilteredElementCollector(_doc).WherePasses(multicategoryFilter).WhereElementIsNotElementType().ToList()
-                : new FilteredElementCollector(_doc, _doc.ActiveView.Id).WherePasses(multicategoryFilter).WhereElementIsNotElementType().ToList();
-
-            Values.Clear();
-            foreach (var element in elements)
+            if (SelectedColoringArea != ColoringArea.LinesOnly)
             {
-                var parameter = SelectNonNullParameter(element, SelectedParameterName);
-                if (parameter == null) continue;
+                overrides.SetCutForegroundPatternColor(color);
+                overrides.SetCutForegroundPatternId(patternId);
+                overrides.SetCutBackgroundPatternColor(color);
+                overrides.SetCutBackgroundPatternId(patternId);
 
-                var value = parameter.AsString().IsNullOrEmpty() ? parameter.AsValueString() : parameter.AsString();
-
-                if (!Values.Select(v => v.ValueString).Contains(value))
-                    Values.Add(new ValueItem(parameter, value, GenerateDistinctColor()));
+                overrides.SetSurfaceForegroundPatternColor(color);
+                overrides.SetSurfaceForegroundPatternId(patternId);
+                overrides.SetSurfaceBackgroundPatternColor(color);
+                overrides.SetSurfaceBackgroundPatternId(patternId);
             }
 
-            Values = new (Values.OrderBy(v => v.ValueString, new NaturalComparer()).ToList());
-        }
-        private Parameter SelectNonNullParameter(Element element, string parameterName)
-        {
-            Parameter param = element.LookupParameter(parameterName);
-            if (param != null && param.HasValue)
+            if (SelectedColoringArea != ColoringArea.SurfacesOnly)
             {
-                return param;
+                overrides.SetProjectionLineColor(color);
+                overrides.SetCutLineColor(color);
             }
 
-            Parameter paramType = element.ToElementType().LookupParameter(parameterName);
-            if (paramType != null && paramType.HasValue)
-            {
-                return paramType;
-            }
-
-            return null;
-        }
-        private Color GenerateDistinctColor()
-        {
-            _currentHue += GoldenRatioConjugate;
-            _currentHue %= 1.0;
-
-            double hue = _currentHue * 360;
-
-            double saturation = 0.7;
-            double value = 0.9;
-
-            double c = value * saturation;
-            double x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
-            double m = value - c;
-
-            double r, g, b;
-
-            if (hue < 60) { r = c; g = x; b = 0; }
-            else if (hue < 120) { r = x; g = c; b = 0; }
-            else if (hue < 180) { r = 0; g = c; b = x; }
-            else if (hue < 240) { r = 0; g = x; b = c; }
-            else if (hue < 300) { r = x; g = 0; b = c; }
-            else { r = c; g = 0; b = x; }
-
-            return new Color(
-                (byte)((r + m) * 255),
-                (byte)((g + m) * 255),
-                (byte)((b + m) * 255)
-            );
-        }
-
-        private OverrideGraphicSettings SetPatternColor(Color color, ElementId patternId)
-        {
-            var graphicSettings = new OverrideGraphicSettings();
-
-            if (SelectedColoringOption != "Только линии")
-            {
-                graphicSettings.SetCutForegroundPatternColor(color);
-                graphicSettings.SetCutForegroundPatternId(patternId);
-                graphicSettings.SetCutBackgroundPatternColor(color);
-                graphicSettings.SetCutBackgroundPatternId(patternId);
-
-                graphicSettings.SetSurfaceForegroundPatternColor(color);
-                graphicSettings.SetSurfaceForegroundPatternId(patternId);
-                graphicSettings.SetSurfaceBackgroundPatternColor(color);
-                graphicSettings.SetSurfaceBackgroundPatternId(patternId);
-            }
-
-            if (SelectedColoringOption != "Только поверхности")
-            {
-                graphicSettings.SetProjectionLineColor(color);
-                graphicSettings.SetCutLineColor(color);
-            }
-
-            return graphicSettings;
+            return overrides;
         }
 
         public event EventHandler CloseRequest;
@@ -318,23 +325,29 @@ namespace BIMPlugins.Views.WPF
         }
     }
 
-    public partial class CategoryItem(ElementId id) : ObservableObject
+    public partial class CategoryItem : ObservableObject
     {
-        [ObservableProperty] private bool _isSelected = false;
+        [ObservableProperty] private bool _isSelected;
 
-        public ElementId Id { get; set; } = id;
+        public CategoryItem(Document doc, ElementId id)
+        {
+            Id = id;
 #if R2020_OR_GREATER
-        public string Name { get; set; } = LabelUtils.GetLabelFor((BuiltInCategory)id.GetValue());
+            Name = LabelUtils.GetLabelFor((BuiltInCategory)id.GetValue());
 #else
-        public string Name { get; set; } = Category.GetCategory(RevitAPI.Document, (BuiltInCategory)id.GetValue()).Name;
+            Name = Category.GetCategory(doc, (BuiltInCategory)id.GetValue()).Name;
 #endif
+        }
+
+        public ElementId Id { get; }
+        public string Name { get; }
     }
 
     public partial class ValueItem(Parameter parameter, string value, Color color) : ObservableObject
     {
         [ObservableProperty] private Color _color = color;
 
-        public string ValueString { get; set; } = value;
-        public object Value { get; set; } = parameter.GetValue();
+        public string ValueString { get; } = value;
+        public object Value { get; } = parameter.GetValue();
     }
 }

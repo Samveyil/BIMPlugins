@@ -3,7 +3,6 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.Views.WPF;
 
-
 namespace BIMPlugins.Views
 {
     [Transaction(TransactionMode.Manual)]
@@ -12,10 +11,7 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var vm = new CropBoxVM();
-            var window = new CropBoxWindow(vm);
-
-            window.Show();
+            new CropBoxWindow().Show();
 
             return Result.Succeeded;
         }

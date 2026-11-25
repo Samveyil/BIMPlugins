@@ -16,6 +16,7 @@
             </ResourceDictionary.MergedDictionaries>
 
             <converters:RevitColorToSolidColorBrushConverter x:Key="RevitColorToBrushConverter" />
+            <converters:EscapeUnderscoreConverter x:Key="EscapeUnderscoreConverter" />
         </ResourceDictionary>
     </Window.Resources>
 
@@ -52,7 +53,7 @@
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal">
-                                <CheckBox Padding="2 0" Content="{Binding Name}" MinWidth="385"
+                                <CheckBox Padding="2 0" Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" MinWidth="385"
                                           IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           Command="{Binding DataContext.CategoryCheckedCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
                                           CommandParameter="{Binding}"/>
@@ -66,7 +67,7 @@
         <StackPanel Grid.Column="1">
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Получить значения:" Margin="5 0 0 0" VerticalAlignment="Center"/>
-                <ComboBox ItemsSource="{Binding SelectionOptions}" SelectedItem="{Binding SelectedOption}" Margin="5 0"
+                <ComboBox ItemsSource="{Binding Scopes}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding SelectedScope}" Margin="5 0"
                           Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="5 3" Width="225"/>
 
                 <Button Width="25" Height="25" Padding="0" Margin="5 0 0 0" Command="{Binding SetRandomColorsCommand}" HorizontalAlignment="Right"
@@ -98,7 +99,7 @@
                                     <ColumnDefinition Width="auto"/>
                                 </Grid.ColumnDefinitions>
                                 
-                                <TextBlock Text="{Binding ValueString}" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding ValueString}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding ValueString}"/>
 
                                 <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                                     <Button Width="25" Height="25" Padding="0" ToolTip="Цвет фильтра"
@@ -116,7 +117,7 @@
 
             <StackPanel Orientation="Horizontal">
                 <TextBlock Text="Область раскраски элементов:" Margin="5 0 0 0" VerticalAlignment="Center"/>
-                <ComboBox ItemsSource="{Binding ColoringOptions}" SelectedItem="{Binding SelectedColoringOption}" Margin="5 0"
+                <ComboBox ItemsSource="{Binding ColoringAreas}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding SelectedColoringArea}" Margin="5 0"
                           Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="5 3" Width="200"/>
             </StackPanel>
             

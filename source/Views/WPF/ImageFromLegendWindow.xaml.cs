@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 
-
 namespace BIMPlugins.Views.WPF
 {
     /// <summary>
@@ -11,6 +10,8 @@ namespace BIMPlugins.Views.WPF
         public ImageFromLegendWindow(ImageFromLegendVM vm)
         {
             InitializeComponent();
+
+            vm.CloseRequest += (s, e) => Close();
             DataContext = vm;
         }
     }

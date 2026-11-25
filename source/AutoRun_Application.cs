@@ -58,23 +58,25 @@ namespace BIMPlugins
                 if (File.Exists(setFile))
                 {
                     var xDoc = XDocument.Load(setFile);
+                    var isDetached = xDoc.Descendants("settings").FirstOrDefault().Attribute("isDetached").Value == "true";
 
-                    if (xDoc.Descendants("settings").FirstOrDefault().Attribute("isDetached").Value == "true")
+                    // A file that cannot be opened does not stop the others; why it failed is shown at the end.
+                    var errors = new List<string>();
+                    foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
                     {
-                        foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
-                        {
-                            var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
-                            mPath.OpenAndActivateDetachedDocument();
-                        }
+                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
+
+                        string error;
+                        var uiDoc = isDetached
+                            ? mPath.OpenAndActivateDetachedDocument(out error)
+                            : mPath.OpenAndActivateLocalDocument(out error);
+
+                        if (uiDoc == null)
+                            errors.Add(error);
                     }
-                    else
-                    {
-                        foreach (var xFile in xDoc.Descendants("version").FirstOrDefault(v => v.Attribute("name").Value == _versionNumber).Elements())
-                        {
-                            var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(xFile.Attribute("path").Value);
-                            mPath.OpenAndActivateLocalDocument();
-                        }
-                    }
+
+                    if (errors.Count != 0)
+                        ReportWindow.ShowReport(errors, "Не удалось открыть");
                 }
             }
             catch (Exception ex)

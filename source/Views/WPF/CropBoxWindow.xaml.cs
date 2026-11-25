@@ -1,8 +1,4 @@
-﻿using Autodesk.Revit.DB;
-using BIMPlugins.ExtStorage;
-using System;
-using System.Windows;
-
+﻿using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
@@ -11,17 +7,15 @@ namespace BIMPlugins.Views.WPF
     /// </summary>
     public partial class CropBoxWindow : Window
     {
-        public CropBoxWindow(CropBoxVM vm)
+        public CropBoxWindow()
         {
             InitializeComponent();
+
+            var vm = new CropBoxVM();
             DataContext = vm;
 
-            Closed += CropBoxWindow_Closed;
-        }
-
-        private void CropBoxWindow_Closed(object sender, EventArgs e)
-        {
-            (DataContext as CropBoxVM).DeleteDirectShapesExEvent.Raise();
+            // The ranges are shown while the window is open.
+            Closed += (s, e) => vm.HideAll();
         }
     }
 }

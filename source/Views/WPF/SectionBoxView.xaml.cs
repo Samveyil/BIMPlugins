@@ -1,14 +1,14 @@
 ﻿namespace BIMPlugins.Views.WPF
 {
     /// <summary>
-    /// Логика взаимодействия для OVVKWorksetView.xaml
+    /// Логика взаимодействия для SectionBoxView.xaml
     /// </summary>
     public partial class SectionBoxView
     {
-        public SectionBoxView(SectionBoxVM vm)
+        public SectionBoxView()
         {
             InitializeComponent();
-            DataContext = vm;
+            DataContext = new SectionBoxVM();
         }
     }
 }

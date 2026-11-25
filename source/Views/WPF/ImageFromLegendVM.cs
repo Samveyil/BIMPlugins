@@ -1,8 +1,8 @@
 ﻿using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -25,79 +25,60 @@ namespace BIMPlugins.Views.WPF
 
         private readonly List<View> _legends = legends;
 
-        public List<int> Resolutions { get; set; } = [72, 150, 300, 600];
+        public List<int> Resolutions { get; } = [72, 150, 300, 600];
 
         [RelayCommand]
         private void Run()
         {
             RaiseCloseRequest();
 
-            var doc = RevitAPI.Document;
+            var uiDoc = RevitAPI.UIDocument;
+            var doc = uiDoc.Document;
 
             var imageViews = doc.ToElements<ImageView>();
 
-            ImageExportOptions exportOptions = new ImageExportOptions();
-            exportOptions.ExportRange = ExportRange.CurrentView;
-            
-            exportOptions.ZoomType = Zoom
-                ? ZoomFitType.Zoom
-                : ZoomFitType.FitToPage;
-            exportOptions.FitDirection = HorizontalFit
-                ? FitDirectionType.Horizontal
-                : FitDirectionType.Vertical;
-            
-            exportOptions.PixelSize = PixelSize;
-            exportOptions.Zoom = ZoomNumber;
-
-            ImageResolution resolution;
-            switch (SelectedResolution)
+            var exportOptions = new ImageExportOptions
             {
-                case 72:
-                    resolution = ImageResolution.DPI_72;
-                    break;
-                
-                case 150:
-                    resolution = ImageResolution.DPI_150;
-                    break;
-                
-                case 300:
-                    resolution = ImageResolution.DPI_300;
-                    break;
-                
-                default:
-                    resolution = ImageResolution.DPI_600;
-                    break;
-            }
-            exportOptions.ImageResolution = resolution;
+                ExportRange = ExportRange.CurrentView,
+                ZoomType = Zoom ? ZoomFitType.Zoom : ZoomFitType.FitToPage,
+                FitDirection = HorizontalFit ? FitDirectionType.Horizontal : FitDirectionType.Vertical,
+                PixelSize = PixelSize,
+                Zoom = ZoomNumber,
+                ImageResolution = SelectedResolution switch
+                {
+                    72 => ImageResolution.DPI_72,
+                    150 => ImageResolution.DPI_150,
+                    300 => ImageResolution.DPI_300,
+                    _ => ImageResolution.DPI_600
+                }
+            };
 
-            bool flag = false;
+            var created = false;
             using (RevitProgressBar revitProgressBar = new RevitProgressBar(true))
             {
                 using (TransactionGroup tGroup = new TransactionGroup(doc, "Создание изображений"))
                 {
                     tGroup.Start();
 
-                    var uiDoc = new UIDocument(doc);
-                    revitProgressBar.Run("Генерация изображений...", _legends, (legend) =>
+                    revitProgressBar.Run("Генерация изображений...", _legends, legend =>
                     {
                         uiDoc.ActiveView = legend;
-
                         exportOptions.ViewName = legend.Name;
 
                         using (Transaction t = new Transaction(doc, "Создание изображений"))
                         {
                             t.Start();
 
-                            if (imageViews.Select(v => v.Name).Contains(legend.Name))
+                            // An image saved earlier from this legend is replaced.
+                            var imageView = imageViews.FirstOrDefault(v => v.Name == legend.Name);
+                            if (imageView != null)
                             {
-                                var imageView = imageViews.FirstOrDefault(v => v.Name == legend.Name);
                                 imageViews.Remove(imageView);
-                                
                                 doc.Delete(imageView.Id);
                             }
 
                             doc.SaveToProjectAsImage(exportOptions);
-                            
+
                             try
                             {
                                 legend.ToUIView()?.Close();
@@ -107,7 +88,7 @@ namespace BIMPlugins.Views.WPF
                             t.Commit();
                         }
 
-                        flag = true;
+                        created = true;
                     });
 
                     if (revitProgressBar.IsCancelling())
@@ -117,19 +98,17 @@ namespace BIMPlugins.Views.WPF
                     }
 
                     tGroup.Assimilate();
-                }  
+                }
             }
 
-            if (flag)
-            {
-                MessageBox.Show("Изображения созданы и добавлены в проект", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Information);
-            }
+            if (created)
+                MessageWindow.ShowMessage("Изображения созданы и добавлены в проект", "Изображения из легенд", icon: MessageBoxImage.Information);
         }
 
         public event EventHandler CloseRequest;
         public void RaiseCloseRequest()
         {
             CloseRequest?.Invoke(this, EventArgs.Empty);
-        } 
+        }
     }
 }

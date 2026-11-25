@@ -18,13 +18,6 @@ namespace BIMPlugins.Common.WPF
 
     public enum FilterAction { Select, Exclude, Isolate, Hide }
 
-    /// <summary>A value for a combo box with the text it shows.</summary>
-    public sealed class Option<T>(T value, string text)
-    {
-        public T Value { get; } = value;
-        public string Text { get; } = text;
-    }
-
     /// <summary>
     /// A category of the chosen elements. Its parameters load when it is expanded first. The right tree of the window
     /// shows the same items through <see cref="SelectedParametersView"/>, so a tick lives in one place only.

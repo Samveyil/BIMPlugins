@@ -4,7 +4,6 @@ using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
 using BIMPlugins.Views.WPF;
 
-
 namespace BIMPlugins.Views
 {
     [Transaction(TransactionMode.Manual)]
@@ -13,9 +12,7 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var options = new SectionBoxVM();
-            var view = new SectionBoxView(options);
-            RevitOptionsBar.Show(view);
+            RevitOptionsBar.Show(new SectionBoxView());
 
             return Result.Succeeded;
         }

@@ -3,7 +3,6 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.Views.WPF;
 
-
 namespace BIMPlugins.Views
 {
     [Transaction(TransactionMode.Manual)]
@@ -12,11 +11,7 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var vm = new ColourFilterVM();
-            var window = new ColourFilterWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
-
-            window.ShowDialog();
+            new ColourFilterWindow().ShowDialog();
 
             return Result.Succeeded;
         }

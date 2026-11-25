@@ -7,6 +7,7 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Windows;
 using BIMPlugins.Windows.RevitServer;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
@@ -78,26 +79,33 @@ namespace BIMPlugins.Docs
 
             if (openInSameSession)
             {
-                RevitAPI.UIApplication.DialogBoxShowing += new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
+                var uiApp = RevitAPI.UIApplication;
+                uiApp.DialogBoxShowing += new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
 
-                if (isDetached)
+                // A file that cannot be opened does not stop the others; why it failed is shown at the end.
+                var errors = new List<string>();
+                try
                 {
                     foreach (var file in sameVersionGroup)
                     {
                         var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.Path);
-                        mPath.OpenAndActivateDetachedDocument();
+
+                        string error;
+                        var uiDoc = isDetached
+                            ? mPath.OpenAndActivateDetachedDocument(out error)
+                            : mPath.OpenAndActivateLocalDocument(out error);
+
+                        if (uiDoc == null)
+                            errors.Add(error);
                     }
                 }
-                else
+                finally
                 {
-                    foreach (var file in sameVersionGroup)
-                    {
-                        var mPath = ModelPathUtils.ConvertUserVisiblePathToModelPath(file.Path);
-                        mPath.OpenAndActivateLocalDocument();
-                    }
+                    uiApp.DialogBoxShowing -= new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
                 }
 
-                RevitAPI.UIApplication.DialogBoxShowing -= new EventHandler<DialogBoxShowingEventArgs>(PartitionsDialogBoxHide);
+                if (errors.Count != 0)
+                    ReportWindow.ShowReport(errors, "Не удалось открыть");
             }
 
             return Result.Succeeded;
