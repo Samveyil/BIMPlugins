@@ -18,7 +18,7 @@ namespace BIMPlugins.Sheets
 
             if (sheets.Count == 0)
             {
-                MessageWindow.ShowMessage("В проекте отсутствуют листы!", icon: System.Windows.MessageBoxImage.Warning);
+                MessageDialog.Show("В проекте отсутствуют листы!", icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 

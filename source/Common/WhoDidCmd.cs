@@ -5,7 +5,6 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Windows;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Common
 {
@@ -20,7 +19,7 @@ namespace BIMPlugins.Common
 
             if (!doc.IsWorkshared)
             {
-                MessageWindow.ShowMessage("Модель не является файлом совместной работы!", "Кто сделал это?", icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Модель не является файлом совместной работы!", "Кто сделал это?", icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 
@@ -29,15 +28,15 @@ namespace BIMPlugins.Common
 
             if (selectedElement == null)
             {
-                MessageWindow.ShowMessage("Сначала выберите элемент!", "Кто сделал это?", icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Сначала выберите элемент!", "Кто сделал это?", icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 
             var workInfo = WorksharingUtils.GetWorksharingTooltipInfo(doc, selectedElement.Id);
 
-            MessageWindow.ShowMessage(
+            MessageDialog.Show(
                 $"Создатель: {workInfo.Creator}\nВладелец: {workInfo.Owner}\nПоследнее изменение: {workInfo.LastChangedBy}",
-                "Кто сделал это?", icon: MessageBoxImage.Information);
+                "Кто сделал это?", icon: MessageIcon.Information);
 
             return Result.Succeeded;
         }

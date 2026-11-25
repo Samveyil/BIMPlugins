@@ -7,7 +7,6 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.Windows;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Common
 {
@@ -27,7 +26,7 @@ namespace BIMPlugins.Common
             var area = references
                 .Sum(r => ((Face)r.ToElement(doc).GetGeometryObjectFromReference(r)).Area);
 
-            MessageWindow.ShowMessage($"{area.ToUnit("m2").Round(3)} м2", "Суммарная площадь", icon: MessageBoxImage.Information);
+            MessageDialog.Show($"{area.ToUnit("m2").Round(3)} м2", "Суммарная площадь", icon: MessageIcon.Information);
 
             return Result.Succeeded;
         }

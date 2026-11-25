@@ -15,6 +15,9 @@ namespace BIMPlugins.Sheets.Classes
 
         public string Name { get; set; }
 
+        // The value the chosen parameter has now, shown when the sheet is not renumbered.
+        public string ParameterValue { get; set; }
+
         public int NumberInvisibleCount { get; }
         public bool HasNumberInvisibleChars => NumberInvisibleCount != 0;
 

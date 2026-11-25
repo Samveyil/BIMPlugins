@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -87,7 +86,7 @@ namespace BIMPlugins.Sheets.WPF
             }
             catch (Exception ex)
             {
-                MessageWindow.ShowMessage($"Не удалось прочитать файл Excel. Если он открыт в Excel, закройте его.\n\n{ex.Message}", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show($"Не удалось прочитать файл Excel. Если он открыт в Excel, закройте его.\n\n{ex.Message}", Title, icon: MessageIcon.Warning);
                 return;
             }
 
@@ -118,7 +117,7 @@ namespace BIMPlugins.Sheets.WPF
             Sort();
 
             if (missingNumbers.Count != 0)
-                MessageWindow.ShowMessage($"В проекте нет листов с номерами: {string.Join(", ", missingNumbers)}", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show($"В проекте нет листов с номерами: {string.Join(", ", missingNumbers)}", Title, icon: MessageIcon.Warning);
         }
 
         partial void OnUseExcelChanged(bool value)
@@ -187,6 +186,9 @@ namespace BIMPlugins.Sheets.WPF
             sheet == null || SelectedSheetNumberParameter == null ? null : sheet.ToParameter(SelectedSheetNumberParameter.Id)?.AsString();
 
         [RelayCommand]
+        private void CollapseAll() => Classes.SheetGroups.CollapseAll(SheetGroups.SourceCollection);
+
+        [RelayCommand]
         private void SelectExcelFile()
         {
             var dialog = new OpenFileDialog
@@ -213,7 +215,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             if (!RefreshExistOne && CreatedSpecifications.Any(sc => sc.Name == SchedulePrefix + NewSpecificationName))
             {
-                MessageWindow.ShowMessage("Введите уникальное имя ведомости!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Введите уникальное имя ведомости!", Title, icon: MessageIcon.Warning);
                 return;
             }
 
@@ -242,8 +244,8 @@ namespace BIMPlugins.Sheets.WPF
                 }
 
                 if (renamed.Count != 0)
-                    MessageWindow.ShowMessage($"Спецификации с этими именами уже есть в проекте, новые получили имена по умолчанию:\n{string.Join("\n", renamed)}",
-                        Title, icon: MessageBoxImage.Warning);
+                    MessageDialog.Show($"Спецификации с этими именами уже есть в проекте, новые получили имена по умолчанию:\n{string.Join("\n", renamed)}",
+                        Title, icon: MessageIcon.Warning);
             }
 
             ViewSchedule viewSchedule;

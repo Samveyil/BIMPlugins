@@ -42,6 +42,10 @@
                         <TextBox Text="{Binding FilterForBaseSheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"
                                  materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
                     </StackPanel>
+                    <Button Panel.ZIndex="1" Width="25" Height="25" Padding="0" Margin="5 0 22 -35" HorizontalAlignment="Right"
+                            Command="{Binding CollapseBaseSheetsCommand}" Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
+                        <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
+                    </Button>
                     <TreeView ItemsSource="{Binding SheetSectionsForBaseSheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="637"
                               VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0 10" MaxHeight="637">
                         <TreeView.Resources>
@@ -51,6 +55,12 @@
                                 <Setter Property="MinHeight" Value="24"/>
 
                                 <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
+
+                                <Setter Property="materialDesign:TreeViewAssist.ExpanderSize" Value="12"/>
+
+                                <Setter Property="materialDesign:TreeViewAssist.HasNoItemsExpanderVisibility" Value="Collapsed"/>
+
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                             </Style>
 
                             <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
@@ -87,6 +97,10 @@
                         <TextBox Text="{Binding FilterForCopySheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="150"
                                  materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
                     </StackPanel>
+                    <Button Panel.ZIndex="1" Width="25" Height="25" Padding="0" Margin="5 0 22 -35" HorizontalAlignment="Right"
+                            Command="{Binding CollapseCopySheetsCommand}" Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
+                        <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
+                    </Button>
                     <TreeView ItemsSource="{Binding SheetSectionsForCopySheet, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="637"
                               VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0 10" MaxHeight="637" >
                         <TreeView.Resources>
@@ -96,6 +110,12 @@
                                 <Setter Property="MinHeight" Value="24"/>
 
                                 <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
+
+                                <Setter Property="materialDesign:TreeViewAssist.ExpanderSize" Value="12"/>
+
+                                <Setter Property="materialDesign:TreeViewAssist.HasNoItemsExpanderVisibility" Value="Collapsed"/>
+
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                             </Style>
 
                             <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">

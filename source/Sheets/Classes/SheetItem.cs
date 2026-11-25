@@ -7,6 +7,8 @@ namespace BIMPlugins.Sheets.Classes
     {
         private bool? _isSelected = false;
 
+        [ObservableProperty] private bool _isExpanded;
+
         public virtual bool? IsSelected
         {
             get => _isSelected;

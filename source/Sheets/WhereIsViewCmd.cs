@@ -6,7 +6,6 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.WPF;
 using BIMPlugins.Windows;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Sheets
 {
@@ -20,7 +19,7 @@ namespace BIMPlugins.Sheets
             var view = doc.ActiveView;
             if (view.ViewType == ViewType.DrawingSheet)
             {
-                MessageWindow.ShowMessage("Активным видом не должен быть лист!", icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Активным видом не должен быть лист!", icon: MessageIcon.Warning);
                 return Result.Succeeded;
             }
 
@@ -41,7 +40,7 @@ namespace BIMPlugins.Sheets
 
             if (sheets.Count == 0)
             {
-                MessageWindow.ShowMessage($"Вид: {view.Name} не размещен ни на одном листе!", icon: MessageBoxImage.Information);
+                MessageDialog.Show($"Вид: {view.Name} не размещен ни на одном листе!", icon: MessageIcon.Information);
                 return Result.Succeeded;
             }
 

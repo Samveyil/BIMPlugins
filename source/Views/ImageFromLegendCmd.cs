@@ -6,7 +6,6 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Views.WPF;
 using BIMPlugins.Windows;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Views
 {
@@ -23,7 +22,7 @@ namespace BIMPlugins.Views
 
             if (legends.Count == 0)
             {
-                MessageWindow.ShowMessage("Выберите легенды в диспетчере проекта!", "Изображения из легенд", icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Выберите легенды в диспетчере проекта!", "Изображения из легенд", icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 

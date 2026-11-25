@@ -2,6 +2,7 @@ using Autodesk.Revit.DB;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -90,6 +91,25 @@ namespace BIMPlugins.Sheets.Classes
             view.Filter = item => HasItems((GroupItem)item);
 
             return view;
+        }
+
+        /// <summary>
+        /// Collapses the folders and the sheets within them, the ones hidden by a filter too.
+        /// </summary>
+        public static void CollapseAll(IEnumerable groups)
+        {
+            foreach (var group in groups.Cast<GroupItem>())
+            {
+                group.IsExpanded = false;
+
+                foreach (var item in group.Items.SourceCollection)
+                {
+                    if (item is SheetItem sheet)
+                        sheet.IsExpanded = false;
+                }
+
+                CollapseAll(group.Items.SourceCollection.OfType<GroupItem>());
+            }
         }
 
         // The value the browser sorts by, as text; the sheet number if the organization names no parameter.

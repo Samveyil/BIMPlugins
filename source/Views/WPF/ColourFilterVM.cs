@@ -13,7 +13,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
 using System.Windows.Data;
 using System.Windows.Forms;
 using View = Autodesk.Revit.DB.View;
@@ -234,7 +233,7 @@ namespace BIMPlugins.Views.WPF
             var patternId = ViewGraphics.GetSolidFillPatternId(_doc);
             if (patternId == null)
             {
-                MessageWindow.ShowMessage("В проекте нет образца сплошной заливки!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("В проекте нет образца сплошной заливки!", Title, icon: MessageIcon.Warning);
                 return;
             }
 

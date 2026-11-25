@@ -30,7 +30,7 @@ namespace BIMPlugins.Views
             var element = ParseId(Clipboard.GetText())?.ToElement(doc);
             if (element == null)
             {
-                MessageWindow.ShowMessage("В буфере обмена нет Id элемента этого проекта!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("В буфере обмена нет Id элемента этого проекта!", Title, icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 
@@ -42,7 +42,7 @@ namespace BIMPlugins.Views
 
             if (element.OwnerViewId == ElementId.InvalidElementId)
             {
-                MessageWindow.ShowMessage("Элемент не принадлежит ни одному виду!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Элемент не принадлежит ни одному виду!", Title, icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 

@@ -2,7 +2,6 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows;
 
 namespace BIMPlugins.ClashViewer.Classes
 {
@@ -20,8 +19,8 @@ namespace BIMPlugins.ClashViewer.Classes
                 {
                     try
                     {
-                        var result = MessageWindow.ShowMessage(message, buttons: MessageBoxButton.YesNo, icon: MessageBoxImage.Information);
-                        tcs.SetResult(result == MessageBoxResult.Yes);
+                        var result = MessageDialog.Show(message, buttons: MessageButtons.YesNo, icon: MessageIcon.Information);
+                        tcs.SetResult(result == MessageResult.Yes);
                     }
                     catch (Exception ex)
                     {
@@ -31,8 +30,8 @@ namespace BIMPlugins.ClashViewer.Classes
             }
             else
             {
-                var result = MessageWindow.ShowMessage(message, buttons: MessageBoxButton.YesNo, icon: MessageBoxImage.Information);
-                tcs.SetResult(result == MessageBoxResult.Yes);
+                var result = MessageDialog.Show(message, buttons: MessageButtons.YesNo, icon: MessageIcon.Information);
+                tcs.SetResult(result == MessageResult.Yes);
             }
 
             return tcs.Task;
@@ -44,12 +43,12 @@ namespace BIMPlugins.ClashViewer.Classes
             {
                 _syncContext.Post(_ =>
                 {
-                    MessageWindow.ShowMessage(message, icon: MessageBoxImage.Error);
+                    MessageDialog.Show(message, icon: MessageIcon.Error);
                 }, null);
             }
             else
             {
-                MessageWindow.ShowMessage(message, icon: MessageBoxImage.Error);
+                MessageDialog.Show(message, icon: MessageIcon.Error);
             }
         }
     }

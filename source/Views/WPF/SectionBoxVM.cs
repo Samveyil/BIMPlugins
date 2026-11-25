@@ -11,7 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
@@ -53,7 +52,7 @@ namespace BIMPlugins.Views.WPF
 
                 if (bottomElev >= topElev)
                 {
-                    MessageWindow.ShowMessage("Отметка низа выше отметки верха!", Title, icon: MessageBoxImage.Warning);
+                    MessageDialog.Show("Отметка низа выше отметки верха!", Title, icon: MessageIcon.Warning);
                     return;
                 }
 
@@ -75,7 +74,7 @@ namespace BIMPlugins.Views.WPF
             }
             catch (Exception ex)
             {
-                MessageWindow.ShowMessage($"{ex.Message}\n{ex.StackTrace}", "Ошибка", icon: MessageBoxImage.Error);
+                MessageDialog.Show($"{ex.Message}\n{ex.StackTrace}", "Ошибка", icon: MessageIcon.Error);
             }
         }
 

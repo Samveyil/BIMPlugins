@@ -5,7 +5,6 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System.Windows;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -34,7 +33,7 @@ namespace BIMPlugins.Common.WPF
         {
             if (_selectedElement is not FamilyInstance familyInstance)
             {
-                MessageWindow.ShowMessage("Выбранный элемент не является семейством!", "Быстрый выбор", icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Выбранный элемент не является семейством!", "Быстрый выбор", icon: MessageIcon.Warning);
                 return;
             }
 

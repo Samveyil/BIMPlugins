@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -44,6 +43,12 @@ namespace BIMPlugins.Sheets.WPF
         }
 
         [RelayCommand]
+        private void CollapseBaseSheets() => SheetGroups.CollapseAll(SheetSectionsForBaseSheet.SourceCollection);
+
+        [RelayCommand]
+        private void CollapseCopySheets() => SheetGroups.CollapseAll(SheetSectionsForCopySheet.SourceCollection);
+
+        [RelayCommand]
         private void Run()
         {
             var baseSheet = SheetSectionsForBaseSheet.Cast<GroupItem>()
@@ -53,7 +58,7 @@ namespace BIMPlugins.Sheets.WPF
 
             if (baseSheet == null)
             {
-                MessageWindow.ShowMessage("Не выбран лист, с которого копируются параметры!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Не выбран лист, с которого копируются параметры!", Title, icon: MessageIcon.Warning);
                 return;
             }
 
@@ -65,14 +70,14 @@ namespace BIMPlugins.Sheets.WPF
 
             if (sheetsToCopy.Count == 0)
             {
-                MessageWindow.ShowMessage("Не выбраны листы для копирования параметров!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Не выбраны листы для копирования параметров!", Title, icon: MessageIcon.Warning);
                 return;
             }
 
             var titleBlock = _doc.ToElements(baseSheet.Id, BuiltInCategory.OST_TitleBlocks).FirstOrDefault();
             if (titleBlock == null)
             {
-                MessageWindow.ShowMessage("На выбранном листе нет штампа!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("На выбранном листе нет штампа!", Title, icon: MessageIcon.Warning);
                 return;
             }
 
@@ -112,8 +117,8 @@ namespace BIMPlugins.Sheets.WPF
             }
 
             if (sheetsWithoutTitleBlock.Count != 0)
-                MessageWindow.ShowMessage($"На листах без штампа скопированы только параметры листа: {string.Join(", ", sheetsWithoutTitleBlock)}",
-                    Title, icon: MessageBoxImage.Information);
+                MessageDialog.Show($"На листах без штампа скопированы только параметры листа: {string.Join(", ", sheetsWithoutTitleBlock)}",
+                    Title, icon: MessageIcon.Information);
         }
 
         private static List<Parameter> GetStampParameters(Element element, bool withDate) => element.Parameters

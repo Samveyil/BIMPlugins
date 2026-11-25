@@ -245,7 +245,7 @@ namespace BIMPlugins
             new Card();
             new Hue("Dammy", Colors.Black, Colors.White);
 
-            _ = typeof(MessageWindow).Assembly;
+            _ = typeof(MessageDialog).Assembly;
         }
     }
 

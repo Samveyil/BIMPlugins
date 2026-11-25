@@ -76,12 +76,12 @@ namespace BIMPlugins
                     }
 
                     if (errors.Count != 0)
-                        ReportWindow.ShowReport(errors, "Не удалось открыть");
+                        ReportDialog.Show(errors, "Не удалось открыть");
                 }
             }
             catch (Exception ex)
             {
-                MessageWindow.ShowMessage(ex.Message + "\n\n" + ex.StackTrace);
+                MessageDialog.Show(ex.Message + "\n\n" + ex.StackTrace);
             }
             finally
             {
@@ -125,7 +125,7 @@ namespace BIMPlugins
 
                 RechangeBackUsername();
 
-                ReportWindow.ShowReport(toShow, "Освобождение элементов");
+                ReportDialog.Show(toShow, "Освобождение элементов");
 
                 int intRevitProcID = Process.GetCurrentProcess().Id;
                 Process prs = Process.GetProcessById(intRevitProcID);

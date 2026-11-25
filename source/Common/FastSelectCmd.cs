@@ -7,7 +7,6 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Windows;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Common
 {
@@ -23,7 +22,7 @@ namespace BIMPlugins.Common
                 .FirstOrDefault();
             if (element == null)
             {
-                MessageWindow.ShowMessage("Выберите элемент!", "Быстрый выбор", icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Выберите элемент!", "Быстрый выбор", icon: MessageIcon.Warning);
                 return Result.Cancelled;
             }
 

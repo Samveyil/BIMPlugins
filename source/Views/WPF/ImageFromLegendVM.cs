@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
@@ -102,7 +101,7 @@ namespace BIMPlugins.Views.WPF
             }
 
             if (created)
-                MessageWindow.ShowMessage("Изображения созданы и добавлены в проект", "Изображения из легенд", icon: MessageBoxImage.Information);
+                MessageDialog.Show("Изображения созданы и добавлены в проект", "Изображения из легенд", icon: MessageIcon.Information);
         }
 
         public event EventHandler CloseRequest;

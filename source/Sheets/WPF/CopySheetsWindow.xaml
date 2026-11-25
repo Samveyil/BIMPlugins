@@ -72,6 +72,10 @@
                              materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
                 </StackPanel>
 
+                <Button Panel.ZIndex="1" Width="25" Height="25" Padding="0" Margin="5 0 22 -35" HorizontalAlignment="Right"
+                        Command="{Binding CollapseAllCommand}" Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
+                    <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
+                </Button>
                 <TreeView ItemsSource="{Binding SheetGroups, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="680" Padding="0"
                           VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0 10" MaxHeight="680" >
                     <TreeView.Resources>
@@ -81,6 +85,12 @@
                             <Setter Property="MinHeight" Value="24"/>
 
                             <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
+
+                            <Setter Property="materialDesign:TreeViewAssist.ExpanderSize" Value="12"/>
+
+                            <Setter Property="materialDesign:TreeViewAssist.HasNoItemsExpanderVisibility" Value="Collapsed"/>
+
+                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                         </Style>
 
                         <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">

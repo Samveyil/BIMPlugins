@@ -24,7 +24,7 @@ namespace BIMPlugins.Docs
             if (files == null || files.Count == 0)
                 return Result.Cancelled;
 
-            var isDetached = MessageWindow.ShowMessage("Отсоединить модель?", buttons: System.Windows.MessageBoxButton.YesNo, icon: System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes;
+            var isDetached = MessageDialog.Show("Отсоединить модель?", buttons: MessageButtons.YesNo, icon: MessageIcon.Question) == MessageResult.Yes;
 
             var setFile = @$"{Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)}\BIMPlugins\openDocs.xml";
 
@@ -38,7 +38,7 @@ namespace BIMPlugins.Docs
             var sameVersionGroup = groupedFiles.FirstOrDefault(g => g.Key == RevitAPI.Application.VersionNumber);
             if (sameVersionGroup != null)
             {
-                if (MessageWindow.ShowMessage("Открыть в текущем сеансе?", buttons: System.Windows.MessageBoxButton.YesNo, icon: System.Windows.MessageBoxImage.Question) == System.Windows.MessageBoxResult.Yes)
+                if (MessageDialog.Show("Открыть в текущем сеансе?", buttons: MessageButtons.YesNo, icon: MessageIcon.Question) == MessageResult.Yes)
                 {
                     groupedFiles.Remove(sameVersionGroup);
                     openInSameSession = true;
@@ -105,7 +105,7 @@ namespace BIMPlugins.Docs
                 }
 
                 if (errors.Count != 0)
-                    ReportWindow.ShowReport(errors, "Не удалось открыть");
+                    ReportDialog.Show(errors, "Не удалось открыть");
             }
 
             return Result.Succeeded;

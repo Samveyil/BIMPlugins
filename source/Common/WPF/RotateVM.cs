@@ -11,7 +11,6 @@ using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -77,7 +76,7 @@ namespace BIMPlugins.Common.WPF
             }
             catch (Exception ex)
             {
-                MessageWindow.ShowMessage($"{ex.Message}\n{ex.StackTrace}", "Ошибка", icon: MessageBoxImage.Error);
+                MessageDialog.Show($"{ex.Message}\n{ex.StackTrace}", "Ошибка", icon: MessageIcon.Error);
             }
             finally
             {

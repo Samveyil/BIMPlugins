@@ -8,7 +8,6 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Common.WPF
 {
@@ -32,11 +31,11 @@ namespace BIMPlugins.Common.WPF
                 if (mirroredElems.Count != 0)
                     uiDoc.Selection.SetElementIds(mirroredElems);
                 else
-                    MessageWindow.ShowMessage("Не было найдено отзеркаленных элементов", "Зеркало", icon: MessageBoxImage.Information);
+                    MessageDialog.Show("Не было найдено отзеркаленных элементов", "Зеркало", icon: MessageIcon.Information);
             }
             catch (Exception ex)
             {
-                MessageWindow.ShowMessage($"{ex.Message}\n{ex.StackTrace}", "Ошибка", icon: MessageBoxImage.Error);
+                MessageDialog.Show($"{ex.Message}\n{ex.StackTrace}", "Ошибка", icon: MessageIcon.Error);
             }
             finally
             {

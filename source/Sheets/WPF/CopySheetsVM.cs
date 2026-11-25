@@ -13,7 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
-using System.Windows;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -99,6 +98,9 @@ namespace BIMPlugins.Sheets.WPF
         }
 
         [RelayCommand]
+        private void CollapseAll() => Classes.SheetGroups.CollapseAll(SheetGroups.SourceCollection);
+
+        [RelayCommand]
         private void Run()
         {
             var selectedSheetItems = SheetGroups
@@ -109,7 +111,7 @@ namespace BIMPlugins.Sheets.WPF
 
             if (selectedSheetItems.Count == 0)
             {
-                MessageWindow.ShowMessage("Не выбраны листы для копирования!", Title, icon: MessageBoxImage.Warning);
+                MessageDialog.Show("Не выбраны листы для копирования!", Title, icon: MessageIcon.Warning);
                 return;
             }
 
@@ -188,7 +190,7 @@ namespace BIMPlugins.Sheets.WPF
             }
 
             if (errors.Count != 0)
-                ReportWindow.ShowReport(errors, "Не всё удалось скопировать");
+                ReportDialog.Show(errors, "Не всё удалось скопировать");
         }
 
         // The position goes before or after the number of the source sheet; "$" sets it apart until the sheets are renumbered.

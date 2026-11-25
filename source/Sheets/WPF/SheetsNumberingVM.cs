@@ -11,12 +11,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Windows;
 using Visibility = System.Windows.Visibility;
 
 namespace BIMPlugins.Sheets.WPF
 {
     public enum NumberChange { Increase, Decrease }
+
+    // Which sheets of the group are renumbered.
+    public enum NumberingScope { Group, Checked, FromChecked }
 
     public partial class SheetsNumberingVM : ObservableObject
     {
@@ -40,6 +42,11 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private Parameter _selectedParameter;
         [ObservableProperty] private List<GroupItem> _sheetSections;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private GroupItem _selectedGroup;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(UsesCheckedSheets))] private NumberingScope _selectedScope = NumberingScope.Group;
+
+        public bool UsesCheckedSheets => SelectedScope != NumberingScope.Group;
+
+        partial void OnSelectedScopeChanged(NumberingScope value) => ChangeNumber();
 
         partial void OnNumberLengthChanged(int value) => ChangeNumber();
         partial void OnPrefixChanged(string value) => ChangeNumber();
@@ -54,16 +61,20 @@ namespace BIMPlugins.Sheets.WPF
 
         partial void OnSelectedParameterChanged(Parameter value)
         {
-            if (SelectedGroup == null || value == null)
+            if (_sheetItems == null)
                 return;
 
-            foreach (var sheetItem in SelectedGroup.Sheets.Cast<SheetNumberingItem>())
-                sheetItem.NumberToParameter = sheetItem.Element.ToParameter(value.Id)?.AsString();
+            foreach (var sheetItem in _sheetItems)
+            {
+                sheetItem.ParameterValue = GetParameterValue(sheetItem.Element);
+                sheetItem.NumberToParameter = sheetItem.ParameterValue;
+            }
 
             ChangeNumber();
         }
 
         private readonly Document _doc;
+        private readonly List<SheetNumberingItem> _sheetItems;
 
         public const string NumberLengthName = nameof(NumberLength);
         public const string StartNumberName = nameof(StartNumber);
@@ -73,6 +84,13 @@ namespace BIMPlugins.Sheets.WPF
         [
             new(NumberChange.Increase, "Увеличить на"),
             new(NumberChange.Decrease, "Уменьшить на")
+        ];
+
+        public IReadOnlyList<Option<NumberingScope>> Scopes { get; } =
+        [
+            new(NumberingScope.Group, "Все листы группы"),
+            new(NumberingScope.Checked, "Только отмеченные"),
+            new(NumberingScope.FromChecked, "С первого отмеченного и ниже")
         ];
 
         public List<Parameter> Parameters { get; }
@@ -89,13 +107,42 @@ namespace BIMPlugins.Sheets.WPF
 
             SelectedParameter = Parameters.FirstOrDefault(p => p.IsShared && p.GUID == SheetNumberParameterGuid) ?? Parameters.FirstOrDefault();
 
-            var sheetItems = sheets.Select(sheet => new SheetNumberingItem(sheet)
+            _sheetItems = sheets.Select(sheet =>
             {
-                NumberToParameter = SelectedParameter == null ? null : sheet.ToParameter(SelectedParameter.Id)?.AsString()
+                var sheetItem = new SheetNumberingItem(sheet) { ParameterValue = GetParameterValue(sheet) };
+                sheetItem.NumberToParameter = sheetItem.ParameterValue;
+
+                // A sheet checked or unchecked changes which sheets are renumbered.
+                sheetItem.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName == nameof(SheetItem.IsSelected) && UsesCheckedSheets)
+                        ChangeNumber();
+                };
+
+                return sheetItem;
             }).ToList();
 
-            SheetSections = Classes.SheetGroups.Create(_doc, sheetItems);
+            SheetSections = Classes.SheetGroups.Create(_doc, _sheetItems);
         }
+
+        private string GetParameterValue(ViewSheet sheet) =>
+            SelectedParameter == null ? null : sheet.ToParameter(SelectedParameter.Id)?.AsString();
+
+        // The sheets of the group to renumber, in the order of the tree.
+        private List<SheetNumberingItem> GetSheetsToNumber()
+        {
+            var sheetItems = SelectedGroup.Sheets.Cast<SheetNumberingItem>();
+
+            return SelectedScope switch
+            {
+                NumberingScope.Checked => sheetItems.Where(s => s.IsSelected == true).ToList(),
+                NumberingScope.FromChecked => sheetItems.SkipWhile(s => s.IsSelected != true).ToList(),
+                _ => sheetItems.ToList()
+            };
+        }
+
+        [RelayCommand]
+        private void CollapseAll() => Classes.SheetGroups.CollapseAll(SheetSections);
 
         [RelayCommand]
         private void TreeItemClicked(object item)
@@ -117,16 +164,21 @@ namespace BIMPlugins.Sheets.WPF
         [RelayCommand(CanExecute = nameof(CanRun))]
         private void Run()
         {
-            var sheetItems = SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList();
+            var sheetItems = GetSheetsToNumber();
+            if (sheetItems.Count == 0)
+            {
+                MessageDialog.Show("Не отмечены листы для нумерации!", Title, icon: MessageIcon.Warning);
+                return;
+            }
 
             // A number taken twice would fail the whole renumbering half-way.
             var takenNumbers = sheetItems.Where(s => s.WarningImageVisibility == Visibility.Visible).Select(s => s.NewNumber).ToList();
             if (takenNumbers.Count != 0)
             {
-                MessageWindow.ShowMessage(
+                MessageDialog.Show(
                     $"Номера повторяются или уже заняты листами других групп: {string.Join(", ", takenNumbers)}.\n" +
                     "Включите «Добавлять невидимые символы к повторяющимся номерам», чтобы оставить эти номера.",
-                    Title, icon: MessageBoxImage.Warning);
+                    Title, icon: MessageIcon.Warning);
                 return;
             }
 
@@ -161,7 +213,7 @@ namespace BIMPlugins.Sheets.WPF
                 t.Commit();
             }
 
-            MessageWindow.ShowMessage("Листы успешно пронумерованы!", Title, icon: MessageBoxImage.Information);
+            MessageDialog.Show("Листы успешно пронумерованы!", Title, icon: MessageIcon.Information);
         }
 
         private bool CanRun() => SelectedGroup != null;
@@ -218,9 +270,11 @@ namespace BIMPlugins.Sheets.WPF
             if (SelectedGroup == null)
                 return;
 
-            var sheetItems = SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList();
+            // The sheets left out of the renumbering show their own numbers.
+            ReturnNumbers();
+            var sheetItems = GetSheetsToNumber();
 
-            // Numbers of the sheets out of this group and the new numbers given so far: a new number must be none of them.
+            // Numbers of the sheets that are not renumbered and the new numbers given so far: a new number must be none of them.
             // The old numbers of this group are freed by the renumbering.
             var takenNumbers = SheetSections
                 .SelectMany(g => g.Sheets)
@@ -278,12 +332,10 @@ namespace BIMPlugins.Sheets.WPF
 
         private void ReturnNumbers()
         {
-            if (SelectedGroup == null)
-                return;
-
-            foreach (var sheetItem in SelectedGroup.Sheets.Cast<SheetNumberingItem>())
+            foreach (var sheetItem in _sheetItems)
             {
                 sheetItem.NewNumber = sheetItem.Number;
+                sheetItem.NumberToParameter = sheetItem.ParameterValue;
                 sheetItem.WarningImageVisibility = Visibility.Collapsed;
             }
         }
