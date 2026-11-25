@@ -8,7 +8,7 @@
         xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:classes="clr-namespace:BIMPlugins.Sheets.Classes"
         xmlns:local="clr-namespace:BIMPlugins.Sheets.WPF"
-        d:DataContext="{d:DesignInstance local:SpecificationScheduleViewModel}"
+        d:DataContext="{d:DesignInstance local:SpecificationScheduleVM}"
         mc:Ignorable="d"
         Title="Ведомость спецификаций" Height="820" Width="1400" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Window.Resources>

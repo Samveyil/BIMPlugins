@@ -6,9 +6,9 @@ using System.Linq;
 
 namespace BIMPlugins.Sheets.Classes
 {
-    public partial class ScheduleItem(SpecificationScheduleViewModel viewModel) : ObservableObject
+    public partial class ScheduleItem(SpecificationScheduleVM vm) : ObservableObject
     {
-        private readonly SpecificationScheduleViewModel _viewModel = viewModel;
+        private readonly SpecificationScheduleVM _vm = vm;
 
         [ObservableProperty] private bool _isSelected;
 
@@ -23,7 +23,7 @@ namespace BIMPlugins.Sheets.Classes
                     RevitName = this.Name.Replace("Спецификация: ", "")
                 };
 
-                if (_viewModel.UseTitle)
+                if (_vm.UseTitle)
                 {
                     var headerData = Element.GetTableData().GetSectionData(SectionType.Header);
                     var title = headerData.GetCellText(0, 0);
@@ -36,7 +36,7 @@ namespace BIMPlugins.Sheets.Classes
                     specItem.Title = specItem.RevitName.Trim();
                 }
 
-                _viewModel.SpecificationItems.Add(specItem);
+                _vm.SpecificationItems.Add(specItem);
 
                 Parent.IsSelected = Parent.ScheduleItems.All(s => s.IsSelected == true)
                     ? true
@@ -44,10 +44,10 @@ namespace BIMPlugins.Sheets.Classes
             }
             else
             {
-                var itemToRemove = _viewModel.SpecificationItems
+                var itemToRemove = _vm.SpecificationItems
                     .FirstOrDefault(item => "Спецификация: " + item.RevitName == this.Name);
 
-                _viewModel.SpecificationItems.Remove(itemToRemove);
+                _vm.SpecificationItems.Remove(itemToRemove);
 
                 Parent.IsSelected = Parent.ScheduleItems.Any(s => s.IsSelected == true)
                     ? null

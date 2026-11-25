@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 namespace BIMPlugins.Parameters.WPF
 {
-    public partial class AddParameterToFormulaViewModel(List<Parameter> parameters) : ObservableObject
+    public partial class AddParameterToFormulaVM(List<Parameter> parameters) : ObservableObject
     {
         [ObservableProperty] private Parameter _selectedParameter;
 

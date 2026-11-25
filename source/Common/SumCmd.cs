@@ -12,9 +12,7 @@ namespace BIMPlugins.Common
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var options = new SumViewModel();
-            var view = new SumView(options);
-            RevitOptionsBar.Show(view);
+            RevitOptionsBar.Show(new SumView());
 
             return Result.Succeeded;
         }

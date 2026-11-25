@@ -27,9 +27,9 @@ namespace BIMPlugins.Views
             }
             else
             {
-                var viewModel = new ImageFromLegendViewModel(legends);
-                var window = new ImageFromLegendWindow(viewModel);
-                viewModel.CloseRequest += (s, e) => window.Close();
+                var vm = new ImageFromLegendVM(legends);
+                var window = new ImageFromLegendWindow(vm);
+                vm.CloseRequest += (s, e) => window.Close();
 
                 window.ShowDialog();
             }

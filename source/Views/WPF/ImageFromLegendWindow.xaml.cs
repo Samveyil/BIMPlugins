@@ -8,10 +8,10 @@ namespace BIMPlugins.Views.WPF
     /// </summary>
     public partial class ImageFromLegendWindow : Window
     {
-        public ImageFromLegendWindow(ImageFromLegendViewModel viewModel)
+        public ImageFromLegendWindow(ImageFromLegendVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

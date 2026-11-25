@@ -8,10 +8,10 @@ namespace BIMPlugins.Sheets.WPF
     /// </summary>
     public partial class CopyStampWindow : Window
     {
-        public CopyStampWindow(CopyStampViewModel viewModel)
+        public CopyStampWindow(CopyStampVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

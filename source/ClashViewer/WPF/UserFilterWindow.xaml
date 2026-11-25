@@ -7,7 +7,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:local="clr-namespace:BIMPlugins.ClashViewer.WPF"
-        d:DataContext="{d:DesignInstance local:UserFilterViewModel}"
+        d:DataContext="{d:DesignInstance local:UserFilterVM}"
         mc:Ignorable="d"
         Title="Фильтр" Height="600" Width="700" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Window.Resources>

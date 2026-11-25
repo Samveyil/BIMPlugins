@@ -5,10 +5,10 @@
     /// </summary>
     public partial class NumerateView
     {
-        public NumerateView(NumerateViewModel viewModel)
+        public NumerateView(NumerateVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

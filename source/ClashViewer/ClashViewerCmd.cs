@@ -13,9 +13,9 @@ namespace BIMPlugins.ClashViewer
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var viewModel = new ClashViewerViewModel();
+            var vm = new ClashViewerVM();
 
-            _window ??= new ClashViewerWindow(viewModel);
+            _window ??= new ClashViewerWindow(vm);
 
             _window.Show();
             _window.Activate();

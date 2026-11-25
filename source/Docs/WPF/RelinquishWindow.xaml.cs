@@ -7,10 +7,10 @@ namespace BIMPlugins.Docs.WPF
     /// </summary>
     public partial class RelinquishWindow : Window
     {
-        public RelinquishWindow(RelinquishViewModel viewModel)
+        public RelinquishWindow(RelinquishVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

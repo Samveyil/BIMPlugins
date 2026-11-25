@@ -13,7 +13,7 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Parameters.WPF
 {
-    public partial class SetParameterValueViewModel : ObservableObject
+    public partial class SetParameterValueVM : ObservableObject
     {
         [ObservableProperty] private bool _userValue = false;
         [ObservableProperty] private bool _fromParameter = false;
@@ -39,7 +39,7 @@ namespace BIMPlugins.Parameters.WPF
             TargetParameters.Refresh();
         }
 
-        public SetParameterValueViewModel(ICollection<Element> elements)
+        public SetParameterValueVM(ICollection<Element> elements)
         {
             _elements = elements;
 
@@ -83,14 +83,14 @@ namespace BIMPlugins.Parameters.WPF
         [RelayCommand]
         private void AddParameterToFormula()
         {
-            var viewModel = new AddParameterToFormulaViewModel(Parameters);
-            var window = new AddParameterToFormulaWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new AddParameterToFormulaVM(Parameters);
+            var window = new AddParameterToFormulaWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
 
-            if (viewModel.UserSelect)
-                UserFormulaText += ($"[{viewModel.SelectedParameter.Definition.Name}]");
+            if (vm.UserSelect)
+                UserFormulaText += ($"[{vm.SelectedParameter.Definition.Name}]");
         }
 
         [RelayCommand(CanExecute = nameof(IsEnabled))]

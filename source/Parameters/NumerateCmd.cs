@@ -13,7 +13,7 @@ namespace BIMPlugins.Parameters
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var options = new NumerateViewModel();
+            var options = new NumerateVM();
 
             if (options.Parameters.Count == 0) return Result.Cancelled;
 

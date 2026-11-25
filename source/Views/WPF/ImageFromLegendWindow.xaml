@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:local="clr-namespace:BIMPlugins.Views.WPF"
-        d:DataContext="{d:DesignInstance local:ImageFromLegendViewModel}"
+        d:DataContext="{d:DesignInstance local:ImageFromLegendVM}"
         mc:Ignorable="d"
         Title="Изображения из легенды" Height="450" Width="500" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" SizeToContent="WidthAndHeight">
     <Window.Resources>

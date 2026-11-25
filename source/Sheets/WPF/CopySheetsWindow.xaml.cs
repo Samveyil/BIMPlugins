@@ -8,10 +8,10 @@ namespace BIMPlugins.Sheets.WPF
     /// </summary>
     public partial class CopySheetsWindow : Window
     {
-        public CopySheetsWindow(CopySheetsViewModel viewModel)
+        public CopySheetsWindow(CopySheetsVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

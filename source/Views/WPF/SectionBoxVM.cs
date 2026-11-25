@@ -13,7 +13,7 @@ using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
-    public partial class SectionBoxViewModel : ObservableObject
+    public partial class SectionBoxVM : ObservableObject
     {
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Level _topLevel;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Level _bottomLevel;
@@ -24,7 +24,7 @@ namespace BIMPlugins.Views.WPF
 
         private ExternalEvent ExEvent { get; }
 
-        public SectionBoxViewModel()
+        public SectionBoxVM()
         {
             Levels = new (_doc.ToElements<Level>()
                 .OrderBy(x => x.Elevation)

@@ -7,10 +7,10 @@ namespace BIMPlugins.Views.WPF
     /// </summary>
     public partial class ColourFilterWindow : Window
     {
-        public ColourFilterWindow(ColourFilterViewModel viewModel)
+        public ColourFilterWindow(ColourFilterVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

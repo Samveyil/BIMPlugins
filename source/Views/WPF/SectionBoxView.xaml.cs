@@ -5,10 +5,10 @@
     /// </summary>
     public partial class SectionBoxView
     {
-        public SectionBoxView(SectionBoxViewModel viewModel)
+        public SectionBoxView(SectionBoxVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

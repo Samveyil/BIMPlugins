@@ -1,14 +1,14 @@
 ﻿namespace BIMPlugins.Common.WPF
 {
     /// <summary>
-    /// Логика взаимодействия для RotateView.xaml
+    /// Логика взаимодействия для FastSelectView.xaml
     /// </summary>
     public partial class FastSelectView
     {
-        public FastSelectView(FastSelectViewModel viewModel)
+        public FastSelectView(FastSelectVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

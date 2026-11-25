@@ -5,10 +5,10 @@
     /// </summary>
     public partial class SetNewLevelView
     {
-        public SetNewLevelView(SetNewLevelViewModel viewModel)
+        public SetNewLevelView(SetNewLevelVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

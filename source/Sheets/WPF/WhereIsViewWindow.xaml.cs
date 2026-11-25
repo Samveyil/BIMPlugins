@@ -7,10 +7,10 @@ namespace BIMPlugins.Sheets.WPF
     /// </summary>
     public partial class WhereIsViewWindow : Window
     {
-        public WhereIsViewWindow(WhereIsViewViewModel viewModel)
+        public WhereIsViewWindow(WhereIsViewVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

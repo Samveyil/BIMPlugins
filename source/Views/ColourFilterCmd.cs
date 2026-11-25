@@ -12,9 +12,9 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var viewModel = new ColourFilterViewModel();
-            var window = new ColourFilterWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new ColourFilterVM();
+            var window = new ColourFilterWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
 

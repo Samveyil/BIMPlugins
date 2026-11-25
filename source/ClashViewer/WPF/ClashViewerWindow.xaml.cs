@@ -7,10 +7,10 @@ namespace BIMPlugins.ClashViewer.WPF
     /// </summary>
     public partial class ClashViewerWindow : Window
     {
-        public ClashViewerWindow(ClashViewerViewModel viewModel)
+        public ClashViewerWindow(ClashViewerVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
             Closing += ClashViewerWindow_Closing;
         }
 
@@ -19,7 +19,7 @@ namespace BIMPlugins.ClashViewer.WPF
             e.Cancel = true;
             Hide();
             
-            (DataContext as ClashViewerViewModel).Dispose();
+            (DataContext as ClashViewerVM).Dispose();
         }
     }
 }

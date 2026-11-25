@@ -16,7 +16,7 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
-    public partial class CopyStampViewModel : ObservableObject
+    public partial class CopyStampVM : ObservableObject
     {
         [ObservableProperty] private string _filterForBaseSheet;
         [ObservableProperty] private string _filterForCopySheet;
@@ -28,7 +28,7 @@ namespace BIMPlugins.Sheets.WPF
         partial void OnFilterForBaseSheetChanged(string value) => SheetSectionsForBaseSheet.Refresh();
         partial void OnFilterForCopySheetChanged(string value) => SheetSectionsForCopySheet.Refresh();
 
-        public CopyStampViewModel(IList<ViewSheet> sheets)
+        public CopyStampVM(IList<ViewSheet> sheets)
         {
             _doc = RevitAPI.Document;
 

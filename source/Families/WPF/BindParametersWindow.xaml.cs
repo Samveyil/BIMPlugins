@@ -9,12 +9,12 @@ namespace BIMPlugins.Families.WPF
     /// </summary>
     public partial class BindParametersWindow : Window
     {
-        public BindParametersWindow(BindParametersViewModel viewModel)
+        public BindParametersWindow(BindParametersVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
 
-            ICollectionView view = CollectionViewSource.GetDefaultView((DataContext as BindParametersViewModel).Parameters);
+            ICollectionView view = CollectionViewSource.GetDefaultView((DataContext as BindParametersVM).Parameters);
             view.GroupDescriptions.Clear();
             view.GroupDescriptions.Add(new PropertyGroupDescription("ParameterGroup"));
         }

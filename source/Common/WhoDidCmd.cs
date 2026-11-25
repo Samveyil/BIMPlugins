@@ -3,7 +3,9 @@ using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Windows;
 using System.Linq;
+using System.Windows;
 
 namespace BIMPlugins.Common
 {
@@ -16,23 +18,26 @@ namespace BIMPlugins.Common
             var uiDoc = RevitAPI.UIDocument;
             var doc = uiDoc.Document;
 
+            if (!doc.IsWorkshared)
+            {
+                MessageWindow.ShowMessage("Модель не является файлом совместной работы!", "Кто сделал это?", icon: MessageBoxImage.Warning);
+                return Result.Cancelled;
+            }
+
             var selectedElement = uiDoc.ToSelectedElements()
                 .FirstOrDefault();
 
             if (selectedElement == null)
             {
-                TaskDialog.Show("Ошибка", "Сначала выберите элемент");
-                return Result.Failed;
+                MessageWindow.ShowMessage("Сначала выберите элемент!", "Кто сделал это?", icon: MessageBoxImage.Warning);
+                return Result.Cancelled;
             }
 
             var workInfo = WorksharingUtils.GetWorksharingTooltipInfo(doc, selectedElement.Id);
 
-            string creator = workInfo.Creator;
-            string owner = workInfo.Owner;
-            string lastChange = workInfo.LastChangedBy;
-            string to_print = "Создатель: " + creator + "\n" + "Владелец: " + owner + "\n" + "Последнее изменение: " + lastChange;
-
-            TaskDialog.Show("Кто сделал это?", to_print);
+            MessageWindow.ShowMessage(
+                $"Создатель: {workInfo.Creator}\nВладелец: {workInfo.Owner}\nПоследнее изменение: {workInfo.LastChangedBy}",
+                "Кто сделал это?", icon: MessageBoxImage.Information);
 
             return Result.Succeeded;
         }

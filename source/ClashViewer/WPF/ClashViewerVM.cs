@@ -26,7 +26,7 @@ using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 
 namespace BIMPlugins.ClashViewer.WPF
 {
-    public partial class ClashViewerViewModel : ObservableObject, IDisposable
+    public partial class ClashViewerVM : ObservableObject, IDisposable
     {
         [ObservableProperty] private string _xmlFilePath;
         [ObservableProperty] private string _reportDate;
@@ -57,7 +57,7 @@ namespace BIMPlugins.ClashViewer.WPF
         [ObservableProperty] private bool _isLeftEqualRight;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(WriteNewCommentCommand))] private string _newCommentText;
 
-        private UserFilterViewModel _userFilterViewModel;
+        private UserFilterVM _userFilterVM;
         private XDocument _xDoc;
         private string _xmlDirectory;
         private string _syncXDocPath;
@@ -71,7 +71,7 @@ namespace BIMPlugins.ClashViewer.WPF
         {
             SyncTime = null;
             SelectedClashTest = null;
-            _userFilterViewModel = null;
+            _userFilterVM = null;
             SelectedUserFilterRules = null;
             _clashTests.Clear();
 
@@ -165,7 +165,7 @@ namespace BIMPlugins.ClashViewer.WPF
                 .ToHashSet()
                 .OrderBy(l => l, new NaturalComparer()));
 
-            _userFilterViewModel = null;
+            _userFilterVM = null;
 
             RefreshClashResults(value);
         }
@@ -175,7 +175,7 @@ namespace BIMPlugins.ClashViewer.WPF
 
         private ExternalEvent ExEvent { get; }
 
-        public ClashViewerViewModel()
+        public ClashViewerVM()
         {
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetSectionBox());
 
@@ -227,7 +227,7 @@ namespace BIMPlugins.ClashViewer.WPF
         [RelayCommand(CanExecute = (nameof(IsUIDocumentActive)))]
         private void UserFilter()
         {
-            if (_userFilterViewModel == null)
+            if (_userFilterVM == null)
             {
                 var doc = RevitAPI.Document;
 
@@ -251,29 +251,29 @@ namespace BIMPlugins.ClashViewer.WPF
                     return;
                 }
 
-                _userFilterViewModel = new UserFilterViewModel(elements);
+                _userFilterVM = new UserFilterVM(elements);
             }
 
-            var userFilterWindow = new UserFilterWindow(_userFilterViewModel);
-            _userFilterViewModel.CloseRequest += (s, e) => userFilterWindow.Close();
+            var userFilterWindow = new UserFilterWindow(_userFilterVM);
+            _userFilterVM.CloseRequest += (s, e) => userFilterWindow.Close();
 
             userFilterWindow.ShowDialog();
 
-            if (_userFilterViewModel.IsCommandExecuted)
+            if (_userFilterVM.IsCommandExecuted)
             {
-                SelectedUserFilterRules = _userFilterViewModel.SelectedFilterRules;
+                SelectedUserFilterRules = _userFilterVM.SelectedFilterRules;
                 RefreshClashResults(SelectedClashTest);
             }
             else
             {
-                _userFilterViewModel = null;
+                _userFilterVM = null;
             }
         }
 
         [RelayCommand]
         private void ClearUserFilter()
         {
-            _userFilterViewModel = null;
+            _userFilterVM = null;
             SelectedUserFilterRules = null;
             RefreshClashResults(SelectedClashTest);
         }
@@ -818,9 +818,9 @@ namespace BIMPlugins.ClashViewer.WPF
                 bool sectionFilter = SelectedSectionToFilter.IsNullOrEmpty() || clashResult.AssignedTo == SelectedSectionToFilter || IsLeftEqualRight;
                 bool familyNameFilter = SelectedFamilyNameToFilter.IsNullOrEmpty() || clashResult.ClashObjects.Select(cl => cl.FamilyName).Contains(SelectedFamilyNameToFilter);
 
-                bool userFilter = _userFilterViewModel == null ||
-                    (ContainsBothElements && clashResult.ClashObjects.Select(cl => cl.Id).All(id => _userFilterViewModel.FilteredIds.Contains(id))) ||
-                    (!ContainsBothElements && clashResult.ClashObjects.Select(cl => cl.Id).Any(id => _userFilterViewModel.FilteredIds.Contains(id)));
+                bool userFilter = _userFilterVM == null ||
+                    (ContainsBothElements && clashResult.ClashObjects.Select(cl => cl.Id).All(id => _userFilterVM.FilteredIds.Contains(id))) ||
+                    (!ContainsBothElements && clashResult.ClashObjects.Select(cl => cl.Id).Any(id => _userFilterVM.FilteredIds.Contains(id)));
 
                 return statusFilter && levelFilter && sectionFilter && familyNameFilter && userFilter;
             };

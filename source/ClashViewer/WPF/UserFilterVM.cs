@@ -1,61 +1,59 @@
 ﻿using Autodesk.Revit.DB;
-using Autodesk.Revit.UI;
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
-using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Windows.Data;
+using System.Collections.Generic;
+using System.Linq;
+using System;
 
-namespace BIMPlugins.Common.WPF
+namespace BIMPlugins.ClashViewer.WPF
 {
-    public partial class SuperFilterViewModel : ObservableObject
+    public partial class UserFilterVM : ObservableObject
     {
-        [ObservableProperty] private ICollectionView _categoryItems;
-        [ObservableProperty] private string _filterCategory;
-        [ObservableProperty] private string _filterParameter;
+        [ObservableProperty] private ObservableCollection<CategoryItem> _categoryItems = [];
+        [ObservableProperty] private string _filter;
         [ObservableProperty] private ObservableCollection<CategoryItem> _selectedCategoryItems = [];
         [ObservableProperty] private string _selectedRule = "Или";
-        [ObservableProperty] private string _selectedOption = "Выборка по всем элементам";
 
-        partial void OnFilterCategoryChanged(string value)
+        partial void OnFilterChanged(string value)
         {
-            CategoryItems.Refresh();
-        }
-        partial void OnFilterParameterChanged(string value)
-        {
-            foreach (var categoryItem in CategoryItems.Cast<CategoryItem>().Where(c => c.Parameters != null))
+            foreach (var categoryItem in CategoryItems.Where(c => c.Parameters != null))
             {
                 categoryItem.Parameters.Refresh();
             }
         }
-        partial void OnSelectedOptionChanged(string value)
-        {
-            GetCategoriesItems();
-            SelectedCategoryItems.Clear();
-        }
 
-        private List<Element> _elements;
-        private readonly UIDocument _uiDoc;
-        private readonly Document _doc;
+        private readonly List<Element> _elements;
 
-        public List<string> FilterOptions { get; } = ["Выборка по всем элементам", "Выборка по текущему виду", "Выборка по выделенным элементам"];
         public List<string> FilterRules { get; } = ["И", "Или"];
+#if !R2024_OR_GREATER
+        public List<int> FilteredIds { get; private set; } = [];
+#else
+        public List<long> FilteredIds { get; private set; } = [];
+#endif
+        public bool IsCommandExecuted { get; private set; } = false;
+        public string SelectedFilterRules { get; private set; }
 
-        public SuperFilterViewModel()
+        public UserFilterVM(List<Element> elements)
         {
-            _uiDoc = RevitAPI.UIDocument;
-            _doc = _uiDoc.Document;
+            _elements = elements;
 
-            if (_uiDoc.ToSelectedElements().Count() != 0)
-                SelectedOption = "Выборка по выделенным элементам";
+            var uniqueCategories = elements
+                .GroupBy(e => e.Category.Name)
+                .Select(g => g.First())
+                .OrderBy(e => e.Category.Name)
+                .Select(e => e.Category)
+                .ToList();
 
-            GetCategoriesItems();
+            foreach (var category in uniqueCategories)
+            {                
+                CategoryItems.Add(new CategoryItem(category));
+            }
         }
 
         [RelayCommand]
@@ -66,12 +64,10 @@ namespace BIMPlugins.Common.WPF
                 if (categoryItem.Parameters != null)
                     return;
 
-                var elements = new FilteredElementCollector(_doc, _elements.Select(e => e.Id).ToList())
+                var elements = new FilteredElementCollector(RevitAPI.Document, _elements.Select(e => e.Id).ToList())
                     .OfCategory(categoryItem.BuiltInCategory)
                     .WhereElementIsNotElementType()
                     .ToList();
-
-                categoryItem.ElementsCount = elements.Count;
 
                 var uniqueParameters = elements
                     .SelectMany(e => e.Parameters.Cast<Parameter>())
@@ -80,7 +76,6 @@ namespace BIMPlugins.Common.WPF
                     .Select(p => new ParameterItem(p) { Parent = categoryItem });
 
                 var uniqueTypeParameters = elements.Select(e => e.ToElementType())
-                    .Where(e => e != null)
                     .SelectMany(e => e.Parameters.Cast<Parameter>())
                     .GroupBy(p => p.Definition.Name)
                     .Select(g => g.First())
@@ -98,11 +93,11 @@ namespace BIMPlugins.Common.WPF
 
                 categoryItem.Parameters.Filter = item =>
                 {
-                    if (FilterParameter.IsNullOrEmpty())
+                    if (Filter.IsNullOrEmpty())
                         return true;
 
                     var parameterItem = (ParameterItem)item;
-                    return parameterItem.Name.Contains(FilterParameter, StringComparison.OrdinalIgnoreCase);
+                    return parameterItem.Name.Contains(Filter, StringComparison.OrdinalIgnoreCase);
                 };
             }
             else if (item is ParameterItem parameterItem)
@@ -110,7 +105,7 @@ namespace BIMPlugins.Common.WPF
                 if (parameterItem.Values.Count != 0 || parameterItem.Name == "Все")
                     return;
 
-                var elements = new FilteredElementCollector(_doc, _elements.Select(e => e.Id).ToList())
+                var elements = new FilteredElementCollector(RevitAPI.Document, _elements.Select(e => e.Id).ToList())
                     .OfCategory(parameterItem.Parent.BuiltInCategory)
                     .WhereElementIsNotElementType()
                     .ToElements();
@@ -121,7 +116,7 @@ namespace BIMPlugins.Common.WPF
                     var parameter = parameterItem.IsTypeParameter
                         ? element.ToElementType().Parameters.Cast<Parameter>().FirstOrDefault(p => p.Id.ToString() == parameterItem.Id.ToString())
                         : element.Parameters.Cast<Parameter>().FirstOrDefault(p => p.Id.ToString() == parameterItem.Id.ToString());
-
+                    
                     if (parameter == null)
                         continue;
 
@@ -156,7 +151,7 @@ namespace BIMPlugins.Common.WPF
         [RelayCommand]
         private void Collapse()
         {
-            foreach (var categoryItem in CategoryItems.Cast<CategoryItem>().Where(c => c.Parameters != null))
+            foreach (var categoryItem in CategoryItems.Where(c => c.Parameters != null))
             {
                 categoryItem.IsExpanded = false;
                 categoryItem.Parameters.Cast<ParameterItem>()
@@ -178,18 +173,18 @@ namespace BIMPlugins.Common.WPF
                     var selectedCategoryItem = SelectedCategoryItems.FirstOrDefault(c => c.Name == categoryItem.Name);
                     if (selectedCategoryItem != null)
                     {
-                        var newParameterItem = new ParameterItem() { Parent = selectedCategoryItem, IsSelected = true };
-
+                        var newParameterItem = new ParameterItem() { Parent = selectedCategoryItem, IsSelected=true };
+                        
                         var parameters = selectedCategoryItem.Parameters.SourceCollection as ObservableCollection<ParameterItem>;
                         parameters.Add(newParameterItem);
                     }
                     else
                     {
                         var newCategoryItem = new CategoryItem(categoryItem);
-
+                        
                         var newParameterItem = new ParameterItem() { Parent = newCategoryItem, IsSelected = true };
                         newCategoryItem.Parameters = CollectionViewSource.GetDefaultView(new ObservableCollection<ParameterItem> { newParameterItem });
-
+                        
                         SelectedCategoryItems.Add(newCategoryItem);
                     }
                 }
@@ -204,7 +199,7 @@ namespace BIMPlugins.Common.WPF
                 if (parameterItem.Name == "Все")
                 {
                     var categoryItem = parameterItem.Parent;
-
+                    
                     var selectedCategoryItem = SelectedCategoryItems.FirstOrDefault(c => c.Name == categoryItem.Name);
                     if (selectedCategoryItem == null) return;
 
@@ -248,7 +243,7 @@ namespace BIMPlugins.Common.WPF
                 SelectedCategoryItems.Remove(selectedCategoryItem);
             }
 
-            var parameterItem = CategoryItems.Cast<CategoryItem>().FirstOrDefault(c => c.Name == selectedCategoryItem.Name)
+            var parameterItem = CategoryItems.FirstOrDefault(c => c.Name == selectedCategoryItem.Name)
                 .Parameters
                 .OfType<ParameterItem>()
                 .FirstOrDefault(p => p.Name == selectedParameterItem.Name);
@@ -274,7 +269,7 @@ namespace BIMPlugins.Common.WPF
                 }
             }
 
-            CategoryItems.Cast<CategoryItem>().FirstOrDefault(c => c.Name == selectedCategoryItem.Name)
+            CategoryItems.FirstOrDefault(c => c.Name == selectedCategoryItem.Name)
                 .Parameters
                 .OfType<ParameterItem>()
                 .FirstOrDefault(p => p.Name == selectedParameterItem.Name)
@@ -296,22 +291,28 @@ namespace BIMPlugins.Common.WPF
         }
 
         [RelayCommand]
-        private void Run(string option)
+        private void Run()
         {
             RaiseCloseRequest();
+            IsCommandExecuted = true;
 
-            List<ElementId> filteredElementsIds = [];
+            FilteredIds.Clear();
 
+            var filterConditions = new List<string>();
             foreach (var categoryItem in SelectedCategoryItems)
             {
+                var categoryConditions = new List<string>();
+
                 if (SelectedRule == "Или" || categoryItem.Parameters.OfType<ParameterItem>().Count() == 1)
                 {
                     if (categoryItem.Parameters.OfType<ParameterItem>().FirstOrDefault(p => p.Name == "Все") != null)
                     {
-                        filteredElementsIds.AddRange(new FilteredElementCollector(_doc, _elements.Select(e => e.Id).ToList())
+                        categoryConditions.Add("Все");
+
+                        FilteredIds.AddRange(new FilteredElementCollector(RevitAPI.Document, _elements.Select(e => e.Id).ToList())
                             .OfCategory(categoryItem.BuiltInCategory)
                             .WhereElementIsNotElementType()
-                            .Select(e => e.Id)
+                            .Select(e => e.Id.GetValue())
                             .ToList());
                     }
                     else
@@ -320,22 +321,34 @@ namespace BIMPlugins.Common.WPF
 
                         foreach (var parameter in categoryItem.Parameters.OfType<ParameterItem>().Where(p => p.Name != "Все"))
                         {
-                            filteredElementsIds.AddRange(parameter.Values
+                            var values = parameter.Values.Select(v => v.Value).ToList();
+                            parametersWithValues.Add($"{parameter.Name} = {string.Join(", ", values)}");
+
+                            FilteredIds.AddRange(parameter.Values
                                 .SelectMany(v => v.Elements)
-                                .Select(v => v.Id)
+                                .Select(v => v.Id.GetValue())
                                 .ToHashSet());
                         }
+
+                        categoryConditions.AddRange(parametersWithValues);
                     }
                 }
                 else
                 {
-                    var allElementsGroups = new List<HashSet<ElementId>>();
-
+                    var parametersWithValues = new List<string>();
+#if !R2024_OR_GREATER
+                    var allElementsGroups = new List<HashSet<int>>();
+#else
+                    var allElementsGroups = new List<HashSet<long>>();
+#endif
                     foreach (var parameter in categoryItem.Parameters.OfType<ParameterItem>().Where(p => p.Name != "Все"))
                     {
+                        var values = parameter.Values.Select(v => v.Value).ToList();
+                        parametersWithValues.Add($"{parameter.Name} = {string.Join(", ", values)}");
+
                         allElementsGroups.Add(parameter.Values
                             .SelectMany(v => v.Elements)
-                            .Select(e => e.Id)
+                            .Select(e => e.Id.GetValue())
                             .ToHashSet());
                     }
 
@@ -344,77 +357,24 @@ namespace BIMPlugins.Common.WPF
                         var commonIds = allElementsGroups
                             .Skip(1)
                             .Aggregate(
-                                new HashSet<ElementId>(allElementsGroups.First()),
+#if !R2024_OR_GREATER
+                                new HashSet<int>(allElementsGroups.First()),
+#else
+                                new HashSet<long>(allElementsGroups.First()),
+#endif
                                 (intersect, ids) => { intersect.IntersectWith(ids); return intersect; }
                             );
 
-                        filteredElementsIds.AddRange(commonIds);
+                        FilteredIds.AddRange(commonIds);
                     }
+
+                    categoryConditions.Add($"И: {string.Join("; ", parametersWithValues)}");
                 }
+
+                filterConditions.Add($"{categoryItem.Name}: {string.Join("; ", categoryConditions)}");
             }
 
-            if (option == "Выделить")
-                _uiDoc.Selection.SetElementIds(filteredElementsIds);
-            else if (option == "Исключить")
-                _uiDoc.Selection.SetElementIds(_elements.Select(e => e.Id).Except(filteredElementsIds).ToList());
-            else if (option == "Изолировать")
-            {
-                using (Transaction t = new Transaction(_doc, "Изолировать выбранные элементы"))
-                {
-                    t.Start();
-
-                    _doc.ActiveView.IsolateElementsTemporary(filteredElementsIds);
-
-                    t.Commit();
-                }
-            }
-            else
-            {
-                using (Transaction t = new Transaction(_doc, "Скрыть выбранные элементы"))
-                {
-                    t.Start();
-
-                    _doc.ActiveView.HideElementsTemporary(filteredElementsIds);
-
-                    t.Commit();
-                }
-            }
-        }
-
-        private void GetCategoriesItems()
-        {
-            if (SelectedOption == "Выборка по выделенным элементам")
-                _elements = _uiDoc.ToSelectedElements()
-                    .Where(e => e.Category != null)
-                    .ToList();
-            else
-            {
-                var collector = SelectedOption == "Выборка по всем элементам"
-                    ? new FilteredElementCollector(_doc)
-                    : new FilteredElementCollector(_doc, _doc.ActiveView.Id);
-
-                _elements = collector
-                    .WhereElementIsNotElementType()
-                    .Where(el => el.Category?.CategoryType == CategoryType.Model || el.Category?.CategoryType == CategoryType.Annotation)
-                    .ToList();
-            }
-
-            var uniqueCategories = _elements
-                .GroupBy(e => e.Category.Name)
-                .Select(g => g.First())
-                .OrderBy(e => e.Category.Name)
-                .Select(e => new CategoryItem(e.Category))
-                .ToList();
-
-            CategoryItems = CollectionViewSource.GetDefaultView(uniqueCategories);
-            CategoryItems.Filter = item =>
-            {
-                if (FilterCategory.IsNullOrEmpty())
-                    return true;
-
-                var categoryItem = (CategoryItem)item;
-                return categoryItem.Name.Contains(FilterCategory, StringComparison.OrdinalIgnoreCase);
-            };
+            SelectedFilterRules = string.Join("\n", filterConditions);
         }
 
         private void AddValueItemToSelection(ValueItem valueItem)
@@ -498,7 +458,6 @@ namespace BIMPlugins.Common.WPF
     {
         [ObservableProperty] private bool _isExpanded = true;
         [ObservableProperty] ICollectionView _parameters;
-        [ObservableProperty] private int _elementsCount = 0;
 
         public CategoryItem(Category category)
         {
@@ -509,7 +468,6 @@ namespace BIMPlugins.Common.WPF
         {
             Name = other.Name;
             BuiltInCategory = other.BuiltInCategory;
-            ElementsCount = other.ElementsCount;
         }
 
         public string Name { get; set; }

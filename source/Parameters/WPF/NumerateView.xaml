@@ -5,7 +5,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:BIMPlugins.Parameters.WPF"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             d:DataContext="{d:DesignInstance local:NumerateViewModel}"
+             d:DataContext="{d:DesignInstance local:NumerateVM}"
              mc:Ignorable="d" 
              Background="#FFF3D7C0"
              Orientation="Horizontal"

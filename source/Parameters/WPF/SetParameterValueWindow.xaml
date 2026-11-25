@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:local="clr-namespace:BIMPlugins.Parameters.WPF"
-        d:DataContext="{d:DesignInstance local:SetParameterValueViewModel}"
+        d:DataContext="{d:DesignInstance local:SetParameterValueVM}"
         mc:Ignorable="d"
         Title="Заполнить параметры" Height="380" Width="300" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Window.Resources>

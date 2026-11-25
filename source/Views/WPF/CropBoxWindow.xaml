@@ -6,7 +6,7 @@
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:local="clr-namespace:BIMPlugins.Views.WPF"
-        d:DataContext="{d:DesignInstance local:CropBoxViewModel}"
+        d:DataContext="{d:DesignInstance local:CropBoxVM}"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen" ResizeMode="NoResize"
         Title="Секущий диапазон на 3D" Height="740" Width="782">

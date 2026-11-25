@@ -7,10 +7,10 @@ namespace BIMPlugins.Sheets.WPF
     /// </summary>
     public partial class SpecificationScheduleWindow : Window
     {
-        public SpecificationScheduleWindow(SpecificationScheduleViewModel viewModel)
+        public SpecificationScheduleWindow(SpecificationScheduleVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

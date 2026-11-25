@@ -5,10 +5,10 @@
     /// </summary>
     public partial class RotateView
     {
-        public RotateView(RotateViewModel viewModel)
+        public RotateView()
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = new RotateVM();
         }
     }
 }

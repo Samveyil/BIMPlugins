@@ -22,9 +22,9 @@ namespace BIMPlugins.Sheets
                 return Result.Cancelled;
             }
 
-            var viewModel = new SpecificationScheduleViewModel(sheets);
-            var window = new SpecificationScheduleWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new SpecificationScheduleVM(sheets);
+            var window = new SpecificationScheduleWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
           

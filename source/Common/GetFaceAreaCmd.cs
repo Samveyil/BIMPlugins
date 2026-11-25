@@ -5,6 +5,9 @@ using Autodesk.Revit.UI.Selection;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using BIMPlugins.Windows;
+using System.Linq;
+using System.Windows;
 
 namespace BIMPlugins.Common
 {
@@ -13,24 +16,18 @@ namespace BIMPlugins.Common
     public class GetFaceAreaCmd : IExternalCommand
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
-        {            
-            Document doc = RevitAPI.Document;
-            UIDocument uidoc = RevitAPI.UIDocument;
+        {
+            var uiDoc = RevitAPI.UIDocument;
+            var doc = uiDoc.Document;
 
-            var elementRefs = uidoc.PickObjects(ObjectType.Face, "Выберите грани");
-            if (elementRefs == null)
+            var references = uiDoc.PickObjects(ObjectType.Face, "Выберите грани");
+            if (references == null)
                 return Result.Cancelled;
 
-            double sum = 0;
-            foreach (Reference reference in elementRefs)
-            {
-                GeometryObject geometryObject = reference.ToElement(doc).GetGeometryObjectFromReference(reference);
-                Face face = geometryObject as Face;
+            var area = references
+                .Sum(r => ((Face)r.ToElement(doc).GetGeometryObjectFromReference(r)).Area);
 
-                sum += face.Area;
-            }
-
-            TaskDialog.Show("Суммарная площадь", $"{sum.ToUnit("m2").Round(3)} м2");
+            MessageWindow.ShowMessage($"{area.ToUnit("m2").Round(3)} м2", "Суммарная площадь", icon: MessageBoxImage.Information);
 
             return Result.Succeeded;
         }

@@ -14,7 +14,7 @@ using System.Windows.Forms;
 
 namespace BIMPlugins.Views.WPF
 {
-    public partial class ColourFilterViewModel : ObservableObject
+    public partial class ColourFilterVM : ObservableObject
     {
         [ObservableProperty] private string _filter;
         [ObservableProperty] private bool _hideUnchecked = false;
@@ -42,7 +42,7 @@ namespace BIMPlugins.Views.WPF
         public List<string> SelectionOptions { get; } = ["Со всей модели", "С текущего вида"];
         public List<string> ColoringOptions { get; } = ["Поверхности и линии", "Только линии", "Только поверхности"];
 
-        public ColourFilterViewModel()
+        public ColourFilterVM()
         {
             var categories = _doc.Settings.Categories
                 .Cast<Category>()

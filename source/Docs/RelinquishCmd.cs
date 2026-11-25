@@ -11,9 +11,9 @@ namespace BIMPlugins.Docs
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var viewModel = new RelinquishViewModel();
-            var window = new RelinquishWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new RelinquishVM();
+            var window = new RelinquishWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
 

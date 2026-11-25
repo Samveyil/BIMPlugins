@@ -13,7 +13,7 @@ using System.Xml.Linq;
 
 namespace BIMPlugins.Docs.WPF
 {
-    public partial class RelinquishViewModel : ObservableObject
+    public partial class RelinquishVM : ObservableObject
     {
         [ObservableProperty] private string _username = RevitAPI.Application.Username;
         [ObservableProperty] private ObservableCollection<RelinquishFile> _files = [];

@@ -5,7 +5,6 @@ using Autodesk.Revit.UI.Events;
 using System;
 using System.Windows.Controls;
 
-
 namespace BIMPlugins.Common.WPF
 {
     /// <summary>
@@ -19,10 +18,12 @@ namespace BIMPlugins.Common.WPF
 
         public const string Title = "Управление видимостью";
 
+        private ViewSettingsVM VM { get; } = new();
+
         public ViewSettingWindow(UIControlledApplication application)
         {
             InitializeComponent();
-            DataContext = new ViewSettingsViewModel();
+            DataContext = VM;
 
             uiControlApp = application;
             uiControlApp.DockableFrameVisibilityChanged += new EventHandler<DockableFrameVisibilityChangedEventArgs>(UIApp_DockableFrameVisibilityChanged);
@@ -35,8 +36,7 @@ namespace BIMPlugins.Common.WPF
                 if (e.DockableFrameShown)
                 {
                     SubscribeToViewEvents();
-                    (DataContext as ViewSettingsViewModel).GetViewFilters();
-                    (DataContext as ViewSettingsViewModel).GetViewWorksets();
+                    VM.Refresh();
                 }
                 else
                 {
@@ -81,28 +81,22 @@ namespace BIMPlugins.Common.WPF
             {
                 try
                 {
-                    (DataContext as ViewSettingsViewModel).GetViewFilters();
-                    (DataContext as ViewSettingsViewModel).GetViewWorksets();
+                    VM.Refresh();
                 }
                 catch { }
-                
             }
         }
         private void Application_DocumentChanged(object sender, DocumentChangedEventArgs e)
         {
             try
             {
-                if (e.Operation == UndoOperation.TransactionCommitted &&
-                    (e.GetTransactionNames().Contains("Фильтр") || e.GetTransactionNames().Contains("Свойства временного вида")))
-                {
-                    (DataContext as ViewSettingsViewModel).GetViewFilters();
-                    (DataContext as ViewSettingsViewModel).GetViewWorksets();
-                }
-                else if (e.Operation == UndoOperation.TransactionUndone || e.Operation == UndoOperation.TransactionRedone)
-                {
-                    (DataContext as ViewSettingsViewModel).GetViewFilters();
-                    (DataContext as ViewSettingsViewModel).GetViewWorksets();
-                }
+                var names = e.GetTransactionNames();
+                var refresh = e.Operation == UndoOperation.TransactionCommitted
+                    ? names.Contains("Фильтр") || names.Contains("Свойства временного вида")
+                    : e.Operation == UndoOperation.TransactionUndone || e.Operation == UndoOperation.TransactionRedone;
+
+                if (refresh)
+                    VM.Refresh();
             }
             catch { }
         }
@@ -110,11 +104,9 @@ namespace BIMPlugins.Common.WPF
         {
             try
             {
-                FailuresAccessor failuresAccessor = e.GetFailuresAccessor();
-                if (failuresAccessor.GetTransactionName() == "Активация видового экрана")
+                if (e.GetFailuresAccessor().GetTransactionName() == "Активация видового экрана")
                 {
-                    (DataContext as ViewSettingsViewModel).GetViewFilters();
-                    (DataContext as ViewSettingsViewModel).GetViewWorksets();
+                    VM.Refresh();
                 }
             }
             catch { }

@@ -7,10 +7,10 @@ namespace BIMPlugins.Parameters.WPF
     /// </summary>
     public partial class SetParameterValueWindow : Window
     {
-        public SetParameterValueWindow(SetParameterValueViewModel viewModel)
+        public SetParameterValueWindow(SetParameterValueVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

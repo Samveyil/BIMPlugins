@@ -19,7 +19,7 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
-    public partial class SpecificationScheduleViewModel : ObservableObject
+    public partial class SpecificationScheduleVM : ObservableObject
     {
         [ObservableProperty] private string _filter;
         [ObservableProperty] private ICollectionView _sheetGroups;
@@ -129,7 +129,7 @@ namespace BIMPlugins.Sheets.WPF
             }
         }
 
-        public SpecificationScheduleViewModel(IList<ViewSheet> sheets)
+        public SpecificationScheduleVM(IList<ViewSheet> sheets)
         {
             _doc = RevitAPI.Document;
             _sheets = sheets;

@@ -17,7 +17,7 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
-    public partial class CopySheetsViewModel : ObservableObject
+    public partial class CopySheetsVM : ObservableObject
     {
         [ObservableProperty] private string _filter;
         [ObservableProperty] private ICollectionView _sheetGroups;
@@ -59,7 +59,7 @@ namespace BIMPlugins.Sheets.WPF
         public List<string> NumberPositions { get; set; } = ["Начале", "Конце"];
         public List<string> ViewDuplicateOptions { get; set; } = ["Копировать", "Копировать с детализацией", "Создать зависимый вид"];
 
-        public CopySheetsViewModel(IList<ViewSheet> sheets)
+        public CopySheetsVM(IList<ViewSheet> sheets)
         {
             _doc = RevitAPI.Document;
 

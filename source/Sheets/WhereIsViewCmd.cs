@@ -44,8 +44,8 @@ namespace BIMPlugins.Sheets
                 return Result.Succeeded;
             }
 
-            var viewModel = new WhereIsViewViewModel(sheets);
-            var window = new WhereIsViewWindow(viewModel);
+            var vm = new WhereIsViewVM(sheets);
+            var window = new WhereIsViewWindow(vm);
 
             window.Show();
 

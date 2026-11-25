@@ -12,9 +12,7 @@ namespace BIMPlugins.Common
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var options = new MirrorViewModel();
-            var view = new MirrorView(options);
-            RevitOptionsBar.Show(view);
+            RevitOptionsBar.Show(new MirrorView());
 
             return Result.Succeeded;
         }

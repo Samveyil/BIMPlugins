@@ -1,14 +1,14 @@
 ﻿namespace BIMPlugins.Common.WPF
 {
     /// <summary>
-    /// Логика взаимодействия для OVVKWorksetView.xaml
+    /// Логика взаимодействия для SumView.xaml
     /// </summary>
     public partial class SumView
     {
-        public SumView(SumViewModel viewModel)
+        public SumView()
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = new SumVM();
         }
     }
 }

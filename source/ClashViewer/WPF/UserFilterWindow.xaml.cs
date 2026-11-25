@@ -7,10 +7,10 @@ namespace BIMPlugins.ClashViewer.WPF
     /// </summary>
     public partial class UserFilterWindow : Window
     {
-        public UserFilterWindow(UserFilterViewModel viewModel)
+        public UserFilterWindow(UserFilterVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

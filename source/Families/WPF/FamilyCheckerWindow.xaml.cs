@@ -7,10 +7,10 @@ namespace BIMPlugins.Families.WPF
     /// </summary>
     public partial class FamilyCheckerWindow : Window
     {
-        public FamilyCheckerWindow(FamilyCheckerVM viewModel)
+        public FamilyCheckerWindow(FamilyCheckerVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

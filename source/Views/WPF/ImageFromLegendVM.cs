@@ -12,7 +12,7 @@ using System.Windows;
 
 namespace BIMPlugins.Views.WPF
 {
-    public partial class ImageFromLegendViewModel(List<View> legends) : ObservableObject
+    public partial class ImageFromLegendVM(List<View> legends) : ObservableObject
     {
         [ObservableProperty] private bool _zoom = true;
         [ObservableProperty] private bool _fitToPage = false;

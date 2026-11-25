@@ -1,14 +1,14 @@
 ﻿namespace BIMPlugins.Common.WPF
 {
     /// <summary>
-    /// Логика взаимодействия для OVVKWorksetView.xaml
+    /// Логика взаимодействия для MirrorView.xaml
     /// </summary>
     public partial class MirrorView
     {
-        public MirrorView(MirrorViewModel viewModel)
+        public MirrorView()
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = new MirrorVM();
         }
     }
 }

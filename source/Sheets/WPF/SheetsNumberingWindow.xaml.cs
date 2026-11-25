@@ -9,10 +9,10 @@ namespace BIMPlugins.Sheets.WPF
     /// </summary>
     public partial class SheetsNumberingWindow : Window
     {
-        public SheetsNumberingWindow(SheetsNumberingViewModel viewModel)
+        public SheetsNumberingWindow(SheetsNumberingVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
 
         private void ComboBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)

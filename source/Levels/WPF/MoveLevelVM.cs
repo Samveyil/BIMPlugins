@@ -12,7 +12,7 @@ using System.Linq;
 
 namespace BIMPlugins.Levels.WPF
 {
-    public partial class MoveLevelViewModel : ObservableObject
+    public partial class MoveLevelVM : ObservableObject
     {
         [ObservableProperty] private Level _selectedLevel;
         [ObservableProperty] private double _elevation;
@@ -28,7 +28,7 @@ namespace BIMPlugins.Levels.WPF
 
         public List<Level> Levels { get; }
 
-        public MoveLevelViewModel()
+        public MoveLevelVM()
         {
             _doc = RevitAPI.Document;
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.MoveLevel());

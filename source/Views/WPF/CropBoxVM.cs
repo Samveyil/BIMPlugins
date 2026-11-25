@@ -15,7 +15,7 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Views.WPF
 {
-    public partial class CropBoxViewModel : ObservableObject
+    public partial class CropBoxVM : ObservableObject
     {
         [ObservableProperty] private ObservableCollection<ViewCropBoxItem> _viewCropBoxItems = [];
         [ObservableProperty] private static bool _showSectionPlane = true;
@@ -58,7 +58,7 @@ namespace BIMPlugins.Views.WPF
         }
 
 
-        public CropBoxViewModel()
+        public CropBoxVM()
         {
             DeleteSectionPlaneExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeletePlanes());
             DeleteDirectShapesExEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeleteAllDirectShapes());

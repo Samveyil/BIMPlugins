@@ -5,10 +5,10 @@
     /// </summary>
     public partial class MoveLevelView
     {
-        public MoveLevelView(MoveLevelViewModel viewModel)
+        public MoveLevelView(MoveLevelVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

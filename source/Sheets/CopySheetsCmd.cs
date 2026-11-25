@@ -23,9 +23,9 @@ namespace BIMPlugins.Sheets
                 return Result.Cancelled;
             }
 
-            var viewModel = new CopySheetsViewModel(sheets);
-            var window = new CopySheetsWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new CopySheetsVM(sheets);
+            var window = new CopySheetsWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
 

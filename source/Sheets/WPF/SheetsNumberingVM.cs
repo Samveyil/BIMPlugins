@@ -16,7 +16,7 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
-    public partial class SheetsNumberingViewModel : ObservableObject
+    public partial class SheetsNumberingVM : ObservableObject
     {
         [ObservableProperty] private bool _userSettings = true;
         [ObservableProperty] private int _startNumber = 0;
@@ -92,7 +92,7 @@ namespace BIMPlugins.Sheets.WPF
         public List<string> WaysToChangeNumber { get; set; } = ["Увеличить на", "Уменьшить на"];
         public List<Parameter> Parameters { get; set; }
 
-        public SheetsNumberingViewModel(IList<ViewSheet> sheets)
+        public SheetsNumberingVM(IList<ViewSheet> sheets)
         {
             _doc = RevitAPI.Document;
 

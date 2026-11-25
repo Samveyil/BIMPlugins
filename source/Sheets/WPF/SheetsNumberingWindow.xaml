@@ -8,7 +8,7 @@
         xmlns:converters="clr-namespace:BIMPlugins.Windows.Converters;assembly=BIMPlugins.Windows"
         xmlns:classes="clr-namespace:BIMPlugins.Sheets.Classes"
         xmlns:local="clr-namespace:BIMPlugins.Sheets.WPF"
-        d:DataContext="{d:DesignInstance local:SheetsNumberingViewModel}"
+        d:DataContext="{d:DesignInstance local:SheetsNumberingVM}"
         mc:Ignorable="d"
         Title="Нумератор листов" WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Height="800" Width="1100">
     <Window.Resources>
@@ -136,7 +136,7 @@
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserSettings, UpdateSourceTrigger=PropertyChanged}">
                         <TextBox Margin="5 10" materialDesign:HintAssist.Hint="Префикс" materialDesign:TextFieldAssist.HasClearButton="True"
                                  Text="{Binding Prefix, UpdateSourceTrigger=PropertyChanged}" Width="60" materialDesign:HintAssist.IsFloating="True"/>
-                        <TextBox Text="{Binding StartNumber, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingViewModel.StartNumberName}"
+                        <TextBox Text="{Binding StartNumber, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingVM.StartNumberName}"
                                  Margin="5 10" Width="70" Height="25"
                                  Style="{StaticResource TextBoxWithButtons}" />
                         <TextBox Margin="5 10" materialDesign:HintAssist.Hint="Суффикс" materialDesign:TextFieldAssist.HasClearButton="True"
@@ -154,7 +154,7 @@
                     
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserSettings}">
                         <TextBlock Text="Длина номера листа:" Margin="5 0 5 5" VerticalAlignment="Center"/>
-                        <TextBox Text="{Binding NumberLength, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingViewModel.NumberLengthName}"
+                        <TextBox Text="{Binding NumberLength, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingVM.NumberLengthName}"
                                  Margin="5 0 5 5" Width="65" Height="25"
                                  Style="{StaticResource TextBoxWithButtons}"  HorizontalAlignment="Left"/>
                     </StackPanel>
@@ -169,7 +169,7 @@
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserSettings, Converter={StaticResource InvertBooleanConverter}}">
                         <ComboBox ItemsSource="{Binding WaysToChangeNumber}" SelectedItem="{Binding SelectedWayToChangeNumber, UpdateSourceTrigger=PropertyChanged}"
                                   Width="100" Margin="5 0 5 5" Height="25"/>
-                        <TextBox Text="{Binding Step, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingViewModel.StepName}"
+                        <TextBox Text="{Binding Step, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingVM.StepName}"
                                  Margin="5 0 5 5" Width="70" Height="25"
                                  Style="{StaticResource TextBoxWithButtons}" />
                     </StackPanel>

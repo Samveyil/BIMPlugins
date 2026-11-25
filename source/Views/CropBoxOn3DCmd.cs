@@ -12,8 +12,8 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var viewModel = new CropBoxViewModel();
-            var window = new CropBoxWindow(viewModel);
+            var vm = new CropBoxVM();
+            var window = new CropBoxWindow(vm);
 
             window.Show();
 

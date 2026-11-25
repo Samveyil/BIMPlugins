@@ -13,7 +13,7 @@ namespace BIMPlugins.Views
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var options = new SectionBoxViewModel();
+            var options = new SectionBoxVM();
             var view = new SectionBoxView(options);
             RevitOptionsBar.Show(view);
 

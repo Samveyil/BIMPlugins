@@ -11,13 +11,13 @@ using System.Linq;
 
 namespace BIMPlugins.Sheets.WPF
 {
-    public partial class WhereIsViewViewModel : ObservableObject
+    public partial class WhereIsViewVM : ObservableObject
     {
         [ObservableProperty] private ObservableCollection<SheetItem> _viewSheets = [];
 
         private readonly UIDocument _uiDoc;
 
-        public WhereIsViewViewModel(List<ViewSheet> viewSheets)
+        public WhereIsViewVM(List<ViewSheet> viewSheets)
         {
             _uiDoc = RevitAPI.UIDocument;
 

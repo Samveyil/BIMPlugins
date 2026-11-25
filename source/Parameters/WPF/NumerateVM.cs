@@ -10,7 +10,7 @@ using BIMPlugins.ExtStorage.Extensions;
 
 namespace BIMPlugins.Parameters.WPF
 {
-    public partial class NumerateViewModel : ObservableObject
+    public partial class NumerateVM : ObservableObject
     {
         [ObservableProperty] private string _prefix;
         [ObservableProperty] private double _number = 1;
@@ -24,7 +24,7 @@ namespace BIMPlugins.Parameters.WPF
         
         private ExternalEvent ExEvent { get; }
 
-        public NumerateViewModel()
+        public NumerateVM()
         {
             _uiDoc = RevitAPI.UIDocument;
             _doc = _uiDoc.Document;

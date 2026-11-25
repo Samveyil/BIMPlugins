@@ -23,9 +23,9 @@ namespace BIMPlugins.Families
                 if (selectedInstance == null) { return Result.Cancelled; }
             }
 
-            var viewModel = new BindParametersViewModel((FamilyInstance)selectedInstance);
-            var window = new BindParametersWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new BindParametersVM((FamilyInstance)selectedInstance);
+            var window = new BindParametersWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
 

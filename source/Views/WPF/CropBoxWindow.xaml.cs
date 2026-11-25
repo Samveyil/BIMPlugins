@@ -11,17 +11,17 @@ namespace BIMPlugins.Views.WPF
     /// </summary>
     public partial class CropBoxWindow : Window
     {
-        public CropBoxWindow(CropBoxViewModel viewModel)
+        public CropBoxWindow(CropBoxVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
 
             Closed += CropBoxWindow_Closed;
         }
 
         private void CropBoxWindow_Closed(object sender, EventArgs e)
         {
-            (DataContext as CropBoxViewModel).DeleteDirectShapesExEvent.Raise();
+            (DataContext as CropBoxVM).DeleteDirectShapesExEvent.Raise();
         }
     }
 }

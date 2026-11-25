@@ -11,7 +11,7 @@ using System.Linq;
 
 namespace BIMPlugins.Levels.WPF
 {
-    public partial class SetNewLevelViewModel : ObservableObject
+    public partial class SetNewLevelVM : ObservableObject
     {
         [ObservableProperty] private double _count = 0;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SelectAllCommand))] private Level _oldLevel;
@@ -24,7 +24,7 @@ namespace BIMPlugins.Levels.WPF
 
         public List<Level> Levels { get; }
 
-        public SetNewLevelViewModel()
+        public SetNewLevelVM()
         {
             _doc = RevitAPI.Document;
             ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetNewLevel());

@@ -12,7 +12,7 @@ namespace BIMPlugins.Levels
     {
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
-            var options = new MoveLevelViewModel();
+            var options = new MoveLevelVM();
             var view = new MoveLevelView(options);
             RevitOptionsBar.Show(view);
 

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:local="clr-namespace:BIMPlugins.Families.WPF"
-        d:DataContext="{d:DesignInstance local:BindParametersViewModel}"
+        d:DataContext="{d:DesignInstance local:BindParametersVM}"
         mc:Ignorable="d"
         Title="Связать параметры" Height="700" Width="550" WindowStartupLocation="CenterScreen" ResizeMode="NoResize">
     <Window.Resources>

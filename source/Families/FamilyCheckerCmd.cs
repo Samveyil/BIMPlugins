@@ -24,8 +24,8 @@ namespace BIMPlugins.Families
                 return Result.Cancelled;
             }
 
-            var viewModel = new FamilyCheckerVM(famInstance as FamilyInstance);
-            var window = new FamilyCheckerWindow(viewModel);
+            var vm = new FamilyCheckerVM(famInstance as FamilyInstance);
+            var window = new FamilyCheckerWindow(vm);
 
             window.Show();
 

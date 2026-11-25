@@ -7,10 +7,10 @@ namespace BIMPlugins.Parameters.WPF
     /// </summary>
     public partial class AddParameterToFormulaWindow : Window
     {
-        public AddParameterToFormulaWindow(AddParameterToFormulaViewModel viewModel)
+        public AddParameterToFormulaWindow(AddParameterToFormulaVM vm)
         {
             InitializeComponent();
-            DataContext = viewModel;
+            DataContext = vm;
         }
     }
 }

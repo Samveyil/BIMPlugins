@@ -22,9 +22,9 @@ namespace BIMPlugins.Parameters
                 return Result.Cancelled;
             }
 
-            var viewModel = new SetParameterValueViewModel(elems);
-            var window = new SetParameterValueWindow(viewModel);
-            viewModel.CloseRequest += (s, e) => window.Close();
+            var vm = new SetParameterValueVM(elems);
+            var window = new SetParameterValueWindow(vm);
+            vm.CloseRequest += (s, e) => window.Close();
 
             window.ShowDialog();
 

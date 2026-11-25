@@ -9,13 +9,13 @@ using System.Linq;
 
 namespace BIMPlugins.Families.WPF
 {
-    public partial class BindParametersViewModel : ObservableObject
+    public partial class BindParametersVM : ObservableObject
     {
         [ObservableProperty] private ObservableCollection<BindParameterItem> _parameters = [];
 
         private readonly Document _doc;
 
-        public BindParametersViewModel(FamilyInstance familyInstance)
+        public BindParametersVM(FamilyInstance familyInstance)
         {
             _doc = familyInstance.Document;
             var famManager = _doc.FamilyManager;

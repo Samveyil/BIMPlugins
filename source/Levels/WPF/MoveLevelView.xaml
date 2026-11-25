@@ -5,7 +5,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:local="clr-namespace:BIMPlugins.Levels.WPF"
-        d:DataContext="{d:DesignInstance local:MoveLevelViewModel}"
+        d:DataContext="{d:DesignInstance local:MoveLevelVM}"
         mc:Ignorable="d" 
         Background="#FFF3D7C0"
         Orientation="Horizontal"
