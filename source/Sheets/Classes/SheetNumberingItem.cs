@@ -1,17 +1,19 @@
 ﻿using Autodesk.Revit.DB;
 using CommunityToolkit.Mvvm.ComponentModel;
-using System.Collections.Generic;
+using Visibility = System.Windows.Visibility;
 
 namespace BIMPlugins.Sheets.Classes
 {
     public partial class SheetNumberingItem : SheetItem
     {
-        [ObservableProperty] private string _newNumber;
+        [ObservableProperty][NotifyPropertyChangedFor(nameof(NewNumberMark))] private string _newNumber;
         [ObservableProperty] private string _numberToParameter;
-        [ObservableProperty] private System.Windows.Visibility _warningImageVisibility = System.Windows.Visibility.Collapsed;
+        [ObservableProperty] private Visibility _warningImageVisibility = Visibility.Collapsed;
 
         public string Name { get; set; }
-        public List<TitleBlock> TitleBlocks { get; set; } = [];
+
+        public string NumberMark => InvisibleChars.Mark(Number);
+        public string NewNumberMark => InvisibleChars.Mark(NewNumber);
 
         public SheetNumberingItem(ViewSheet viewSheet) : base(viewSheet)
         {

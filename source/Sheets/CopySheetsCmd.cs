@@ -6,7 +6,6 @@ using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.WPF;
 using BIMPlugins.Windows;
 
-
 namespace BIMPlugins.Sheets
 {
     [Transaction(TransactionMode.Manual)]
@@ -23,9 +22,7 @@ namespace BIMPlugins.Sheets
                 return Result.Cancelled;
             }
 
-            var vm = new CopySheetsVM(sheets);
-            var window = new CopySheetsWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
+            var window = new CopySheetsWindow(new CopySheetsVM(sheets));
 
             window.ShowDialog();
 

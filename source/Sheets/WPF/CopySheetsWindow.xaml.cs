@@ -1,6 +1,5 @@
 ﻿using System.Windows;
 
-
 namespace BIMPlugins.Sheets.WPF
 {
     /// <summary>
@@ -11,6 +10,8 @@ namespace BIMPlugins.Sheets.WPF
         public CopySheetsWindow(CopySheetsVM vm)
         {
             InitializeComponent();
+
+            vm.CloseRequest += (s, e) => Close();
             DataContext = vm;
         }
     }

@@ -89,6 +89,22 @@
                         <Setter Property="Padding" Value="2"/>
                     </Style>
 
+                    <!-- How many invisible characters a number has: "+2". Hidden when it has none. -->
+                    <Style TargetType="TextBlock" x:Key="InvisibleCharsMark">
+                        <Setter Property="Margin" Value="2 0 0 0"/>
+                        <Setter Property="Padding" Value="3 0"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Setter Property="FontSize" Value="10"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="Background" Value="{StaticResource BIMPlugins.PrimaryBrush}"/>
+                        <Setter Property="ToolTip" Value="Невидимых символов в конце номера"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+
                     <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Sheets}">
                         <StackPanel Orientation="Horizontal" Height="20" VerticalAlignment="Center">
                             <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="5 0"/>
@@ -103,7 +119,8 @@
                             <TextBlock Text="(" Padding="0" VerticalAlignment="Center" FontSize="10"/>
                             <Label Content="{Binding Number, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="0" FontSize="10"
                                    ToolTip="Исходный номер листа"/>
-                            <TextBlock Text=")" Padding="0" VerticalAlignment="Center" FontSize="10"  Margin="0 0 5 0"/>
+                            <TextBlock Text="{Binding NumberMark}" Style="{StaticResource InvisibleCharsMark}"/>
+                            <TextBlock Text=")" Padding="0" VerticalAlignment="Center" FontSize="10" Margin="0 0 5 0"/>
 
                             <TextBlock Text="(" Padding="0" VerticalAlignment="Center" FontSize="12"/>
                             <Label Content="{Binding NumberToParameter, Converter={StaticResource EscapeUnderscoreConverter}}"
@@ -113,6 +130,7 @@
 
                             <Label Content="{Binding NewNumber, Converter={StaticResource EscapeUnderscoreConverter}}"
                                    VerticalAlignment="Center" Padding="0" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding NewNumberMark}" Style="{StaticResource InvisibleCharsMark}"/>
                             <Label Content="-" Margin="3 2" Padding="0" VerticalAlignment="Center" />
                             <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="0"/>
                         </StackPanel>
@@ -167,12 +185,17 @@
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserSettings, Converter={StaticResource InvertBooleanConverter}}">
-                        <ComboBox ItemsSource="{Binding WaysToChangeNumber}" SelectedItem="{Binding SelectedWayToChangeNumber, UpdateSourceTrigger=PropertyChanged}"
+                        <ComboBox ItemsSource="{Binding WaysToChangeNumber}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding SelectedWayToChangeNumber}"
                                   Width="100" Margin="5 0 5 5" Height="25"/>
                         <TextBox Text="{Binding Step, UpdateSourceTrigger=PropertyChanged}" Tag="{x:Static local:SheetsNumberingVM.StepName}"
                                  Margin="5 0 5 5" Width="70" Height="25"
                                  Style="{StaticResource TextBoxWithButtons}" />
                     </StackPanel>
+
+                    <Separator Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
+
+                    <CheckBox Content="Добавлять невидимые символы к повторяющимся номерам" Margin="5" Padding="2 0" IsChecked="{Binding AddInvisibleChars}"
+                              ToolTip="Если номер уже занят, к «Номеру листа» добавляются невидимые символы: 1, затем 1 + символ, 1 + два символа и т. д. В параметр они не записываются."/>
 
                     <Separator Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
 

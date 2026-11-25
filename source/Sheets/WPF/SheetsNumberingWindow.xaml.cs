@@ -1,7 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
 
-
 namespace BIMPlugins.Sheets.WPF
 {
     /// <summary>
@@ -12,6 +11,8 @@ namespace BIMPlugins.Sheets.WPF
         public SheetsNumberingWindow(SheetsNumberingVM vm)
         {
             InitializeComponent();
+
+            vm.CloseRequest += (s, e) => Close();
             DataContext = vm;
         }
 

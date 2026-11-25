@@ -1,14 +1,13 @@
 ﻿using Autodesk.Revit.DB;
 using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
-using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.Classes;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -18,6 +17,12 @@ namespace BIMPlugins.Sheets.WPF
 {
     public partial class CopyStampVM : ObservableObject
     {
+        private const string Title = "Копировать штамп";
+
+        // Parameters of the stamp: who signed and when.
+        private static readonly string[] StampParameterWords = ["должность", "фамилия", "подпись"];
+        private const string TitleBlockDateMark = "_Дата";
+
         [ObservableProperty] private string _filterForBaseSheet;
         [ObservableProperty] private string _filterForCopySheet;
         [ObservableProperty] private ICollectionView _sheetSectionsForBaseSheet;
@@ -32,108 +37,32 @@ namespace BIMPlugins.Sheets.WPF
         {
             _doc = RevitAPI.Document;
 
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
+            var baseGroups = SheetGroups.Create(_doc, sheets.Select(s => new SheetItem(s)).ToList());
+            SheetSectionsForBaseSheet = CreateView(baseGroups, () => FilterForBaseSheet);
 
-            FolderItemInfo folderItemInfo;
-            ElementId paramId;
+            var copyGroups = baseGroups.Select(g => g.Clone()).ToList();
+            SheetSectionsForCopySheet = CreateView(copyGroups, () => FilterForCopySheet);
+        }
 
-            try
+        // The groups, with the sheets of each filtered by title and the groups left empty by the filter hidden.
+        private static ICollectionView CreateView(List<GroupItem> groups, Func<string> filter)
+        {
+            foreach (var group in groups)
             {
-                folderItemInfo = bo.GetFolderItems(sheets[0].Id)[0];
-
-                paramId = folderItemInfo.ElementId;
-            }
-            catch { folderItemInfo = null; paramId = ElementId.InvalidElementId; }
-
-            var sheetListItems = new List<SheetItem>();
-            var sections = new HashSet<string>();
-
-            foreach (var sheet in sheets)
-            {
-                var sheetItem = new SheetItem(sheet);
-
-                if (folderItemInfo != null)
-                {
-                    var sheetParameter = sheet.ToParameter(paramId);
-                    sheetItem.GroupItemName = sheetParameter.AsString().IsNullOrEmpty()
-                        ? ""
-                        : sheetParameter.AsString();
-                }
-
-                sections.Add(sheetItem.GroupItemName);
-                sheetListItems.Add(sheetItem);
+                group.Sheets.Filter = item =>
+                    filter().IsNullOrEmpty() || ((SheetItem)item).Title.Contains(filter(), StringComparison.OrdinalIgnoreCase);
             }
 
-            var sheetGroups = new ObservableCollection<GroupItem>();
-            foreach (var section in sections)
+            var view = CollectionViewSource.GetDefaultView(groups);
+            view.Filter = item =>
             {
-                List<SheetItem> subList = [];
-                foreach (var sheetListItem in sheetListItems.OrderBy(s => s.Number, new NaturalComparer()))
-                {
-                    if (sheetListItem.GroupItemName == section) subList.Add(sheetListItem);
-                }
+                var group = (GroupItem)item;
+                group.Sheets.Refresh();
 
-                if (subList.Count > 0)
-                {
-                    var groupItem = new GroupItem
-                    {
-                        Name = section.IsNullOrEmpty()
-                            ? "???"
-                            : section,
-                        Sheets = CollectionViewSource.GetDefaultView(subList)
-                    };
-
-                    subList.ForEach(v => v.Parent = groupItem);
-
-                    sheetGroups.Add(groupItem);
-                }
-            }
-
-            if (sheetGroups.Count == 1 && sheetGroups.First().Name == "???")
-                sheetGroups.First().Name = "все";
-
-            sheetGroups = new(sheetGroups.OrderBy(s => s.Name, new NaturalComparer()).ToList());
-
-            SheetSectionsForBaseSheet = CollectionViewSource.GetDefaultView(sheetGroups);
-            SheetSectionsForBaseSheet.Filter = item =>
-            {
-                var groupSheet = (GroupItem)item;
-
-                groupSheet.Sheets.Filter = item =>
-                {
-                    if (FilterForBaseSheet.IsNullOrEmpty())
-                        return true;
-
-                    var sheetInstance = (SheetItem)item;
-                    return sheetInstance.Title.Contains(FilterForBaseSheet, StringComparison.OrdinalIgnoreCase);
-                };
-
-                if (FilterForBaseSheet.IsNullOrEmpty())
-                    return true;
-
-                return groupSheet.Sheets.Cast<SheetItem>().Count() != 0;
+                return filter().IsNullOrEmpty() || !group.Sheets.IsEmpty;
             };
 
-            var copySheetGroups = sheetGroups.Select(g => g.Clone()).ToList();
-            SheetSectionsForCopySheet = CollectionViewSource.GetDefaultView(copySheetGroups);
-            SheetSectionsForCopySheet.Filter = item =>
-            {
-                var groupSheet = (GroupItem)item;
-
-                groupSheet.Sheets.Filter = item =>
-                {
-                    if (FilterForCopySheet.IsNullOrEmpty())
-                        return true;
-
-                    var sheetInstance = (SheetItem)item;
-                    return sheetInstance.Title.Contains(FilterForCopySheet, StringComparison.OrdinalIgnoreCase);
-                };
-
-                if (FilterForCopySheet.IsNullOrEmpty())
-                    return true;
-
-                return groupSheet.Sheets.Cast<SheetItem>().Count() != 0;
-            };
+            return view;
         }
 
         [RelayCommand]
@@ -141,11 +70,12 @@ namespace BIMPlugins.Sheets.WPF
         {
             var baseSheet = SheetSectionsForBaseSheet.Cast<GroupItem>()
                 .SelectMany(s => s.Sheets.Cast<SheetItem>())
-                .FirstOrDefault(s => s.IsSelected == true);
+                .FirstOrDefault(s => s.IsSelected == true)?
+                .Element;
 
             if (baseSheet == null)
             {
-                MessageBox.Show("Не выбран лист с которого копируются параметры", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("Не выбран лист, с которого копируются параметры!", Title, icon: MessageBoxImage.Warning);
                 return;
             }
 
@@ -157,43 +87,40 @@ namespace BIMPlugins.Sheets.WPF
 
             if (sheetsToCopy.Count == 0)
             {
-                MessageBox.Show("Не выбраны листы для копирования параметров", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("Не выбраны листы для копирования параметров!", Title, icon: MessageBoxImage.Warning);
+                return;
+            }
+
+            var titleBlock = _doc.ToElements(baseSheet.Id, BuiltInCategory.OST_TitleBlocks).FirstOrDefault();
+            if (titleBlock == null)
+            {
+                MessageWindow.ShowMessage("На выбранном листе нет штампа!", Title, icon: MessageBoxImage.Warning);
                 return;
             }
 
             RaiseCloseRequest();
 
-            var titleBlock = _doc.ToElements(baseSheet.Element.Id, BuiltInCategory.OST_TitleBlocks)
-                .FirstOrDefault();
+            // The parameters to copy are the same for every sheet: they are picked once.
+            var sheetParameters = GetStampParameters(baseSheet, withDate: false);
+            var titleBlockParameters = GetStampParameters(titleBlock, withDate: true);
 
-            using (Transaction t = new Transaction(_doc, "Копировать штамп"))
+            var sheetsWithoutTitleBlock = new List<string>();
+
+            using (Transaction t = new Transaction(_doc, Title))
             {
                 t.Start();
 
                 using (var revitProgressBar = new RevitProgressBar(true))
                 {
-                    revitProgressBar.Run("Копирование штампа...", sheetsToCopy, (sheetToCopy) =>
+                    revitProgressBar.Run("Копирование штампа...", sheetsToCopy, sheetToCopy =>
                     {
-                        foreach (var parameter in baseSheet.Element.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly).ToList())
-                        {
-                            string paramName = parameter.Definition.Name;
-                            if (paramName.ToLower().Contains("должность") || paramName.ToLower().Contains("фамилия") || paramName.ToLower().Contains("подпись"))
-                            {
-                                sheetToCopy.LookupParameter(paramName).SetValue(parameter.GetValue()?? string.Empty);
-                            }
-                        }
+                        CopyParameters(sheetParameters, sheetToCopy);
 
-                        var titleBlockToCopy = _doc.ToElements(sheetToCopy.Id, BuiltInCategory.OST_TitleBlocks)
-                        .FirstOrDefault();
-
-                        foreach (var parameter in titleBlock.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly).ToList())
-                        {
-                            string paramName = parameter.Definition.Name;
-                            if (paramName.ToLower().Contains("должность") || paramName.ToLower().Contains("фамилия") || paramName.ToLower().Contains("подпись") || paramName.Contains("_Дата"))
-                            {
-                                titleBlockToCopy.LookupParameter(paramName).SetValue(parameter.GetValue()?? string.Empty);
-                            }
-                        }
+                        var titleBlockToCopy = _doc.ToElements(sheetToCopy.Id, BuiltInCategory.OST_TitleBlocks).FirstOrDefault();
+                        if (titleBlockToCopy != null)
+                            CopyParameters(titleBlockParameters, titleBlockToCopy);
+                        else
+                            sheetsWithoutTitleBlock.Add(sheetToCopy.SheetNumber);
                     });
 
                     if (revitProgressBar.IsCancelling())
@@ -205,6 +132,28 @@ namespace BIMPlugins.Sheets.WPF
 
                 t.Commit();
             }
+
+            if (sheetsWithoutTitleBlock.Count != 0)
+                MessageWindow.ShowMessage($"На листах без штампа скопированы только параметры листа: {string.Join(", ", sheetsWithoutTitleBlock)}",
+                    Title, icon: MessageBoxImage.Information);
+        }
+
+        private static List<Parameter> GetStampParameters(Element element, bool withDate) => element.Parameters
+            .Cast<Parameter>()
+            .Where(p => !p.IsReadOnly)
+            .Where(p =>
+            {
+                var name = p.Definition.Name;
+                return StampParameterWords.Any(word => name.Contains(word, StringComparison.OrdinalIgnoreCase))
+                    || withDate && name.Contains(TitleBlockDateMark);
+            })
+            .ToList();
+
+        // A sheet or a title block without one of the parameters simply keeps it unset.
+        private static void CopyParameters(List<Parameter> sourceParameters, Element target)
+        {
+            foreach (var parameter in sourceParameters)
+                target.LookupParameter(parameter.Definition.Name)?.SetValue(parameter.GetValue() ?? string.Empty);
         }
 
         public event EventHandler CloseRequest;

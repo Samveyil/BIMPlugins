@@ -20,42 +20,38 @@ namespace BIMPlugins.Sheets.Classes
                 {
                     ScheduleInstance = this,
                     SheetNumber = Parent.NumberFromParameter,
-                    RevitName = this.Name.Replace("Спецификация: ", "")
+                    RevitName = ScheduleName,
+                    Title = GetTitle()
                 };
-
-                if (_vm.UseTitle)
-                {
-                    var headerData = Element.GetTableData().GetSectionData(SectionType.Header);
-                    var title = headerData.GetCellText(0, 0);
-                    specItem.Title = title.IsNullOrEmpty()
-                        ? specItem.RevitName.Trim()
-                        : title.Replace("\r\n", " ").Trim();
-                }
-                else
-                {
-                    specItem.Title = specItem.RevitName.Trim();
-                }
 
                 _vm.SpecificationItems.Add(specItem);
 
-                Parent.IsSelected = Parent.ScheduleItems.All(s => s.IsSelected == true)
-                    ? true
-                    : null;
+                Parent.IsSelected = Parent.ScheduleItems.All(s => s.IsSelected) ? true : null;
             }
             else
             {
-                var itemToRemove = _vm.SpecificationItems
-                    .FirstOrDefault(item => "Спецификация: " + item.RevitName == this.Name);
+                // The row of this very schedule on this sheet: one schedule may stand on several sheets under one name.
+                _vm.SpecificationItems.Remove(_vm.SpecificationItems.FirstOrDefault(item => item.ScheduleInstance == this));
 
-                _vm.SpecificationItems.Remove(itemToRemove);
-
-                Parent.IsSelected = Parent.ScheduleItems.Any(s => s.IsSelected == true)
-                    ? null
-                    : false;
+                Parent.IsSelected = Parent.ScheduleItems.Any(s => s.IsSelected) ? null : false;
             }
         }
 
-        public string Name { get; set; }
+        // The title of the schedule's header if asked and there is one, otherwise its name.
+        private string GetTitle()
+        {
+            if (_vm.UseTitle)
+            {
+                var title = Element.GetTableData().GetSectionData(SectionType.Header).GetCellText(0, 0);
+                if (!title.IsNullOrEmpty())
+                    return title.Replace("\r\n", " ").Trim();
+            }
+
+            return ScheduleName.Trim();
+        }
+
+        public string Name => "Спецификация: " + ScheduleName;
+        public string ScheduleName { get; set; }
         public ViewSchedule Element { get; set; }
         public SheetScheduleItem Parent { get; set; }
     }

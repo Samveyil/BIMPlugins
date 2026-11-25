@@ -10,6 +10,8 @@ namespace BIMPlugins.Sheets.WPF
         public SpecificationScheduleWindow(SpecificationScheduleVM vm)
         {
             InitializeComponent();
+
+            vm.CloseRequest += (s, e) => Close();
             DataContext = vm;
         }
     }

@@ -22,12 +22,10 @@ namespace BIMPlugins.Sheets
                 return Result.Cancelled;
             }
 
-            var vm = new SpecificationScheduleVM(sheets);
-            var window = new SpecificationScheduleWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
+            var window = new SpecificationScheduleWindow(new SpecificationScheduleVM(sheets));
 
             window.ShowDialog();
-          
+
             return Result.Succeeded;
         }
     }

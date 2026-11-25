@@ -5,7 +5,6 @@ using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.WPF;
 using BIMPlugins.Windows;
-using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 
@@ -25,18 +24,20 @@ namespace BIMPlugins.Sheets
                 return Result.Succeeded;
             }
 
-            List<ViewSheet> sheets = view.ViewType == ViewType.Schedule
+            // A schedule or a legend may stand on one sheet more than once: each sheet is listed once.
+            var sheetIds = view.ViewType == ViewType.Schedule
                 ? view
                     .GetDependentElements(new ElementClassFilter(typeof(ScheduleSheetInstance)))
-                    .Select(id => id.ToElement<ScheduleSheetInstance>(doc))
-                    .Select(v => v.OwnerViewId.ToElement<ViewSheet>(doc))
-                    .ToList()
+                    .Select(id => id.ToElement<ScheduleSheetInstance>(doc).OwnerViewId)
                 : view
                     .GetDependentElements(new ElementClassFilter(typeof(Viewport)))
-                    .Select(id => id.ToElement<Viewport>(doc))
-                    .Where(v => v.SheetId != ElementId.InvalidElementId)
-                    .Select(v => v.SheetId.ToElement<ViewSheet>(doc))
-                    .ToList();
+                    .Select(id => id.ToElement<Viewport>(doc).SheetId)
+                    .Where(id => id != ElementId.InvalidElementId);
+
+            var sheets = sheetIds
+                .Distinct()
+                .Select(id => id.ToElement<ViewSheet>(doc))
+                .ToList();
 
             if (sheets.Count == 0)
             {
@@ -44,9 +45,7 @@ namespace BIMPlugins.Sheets
                 return Result.Succeeded;
             }
 
-            var vm = new WhereIsViewVM(sheets);
-            var window = new WhereIsViewWindow(vm);
-
+            var window = new WhereIsViewWindow(new WhereIsViewVM(sheets));
             window.Show();
 
             return Result.Succeeded;

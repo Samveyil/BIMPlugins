@@ -1,84 +1,64 @@
 ﻿using Autodesk.Revit.DB;
 using BIMPlugins.Bars;
+using BIMPlugins.Classes;
 using BIMPlugins.ExtStorage;
-using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.Sheets.Classes;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows;
-using System.Windows.Data;
+using Visibility = System.Windows.Visibility;
 
 namespace BIMPlugins.Sheets.WPF
 {
+    public enum NumberChange { Increase, Decrease }
+
     public partial class SheetsNumberingVM : ObservableObject
     {
+        private const string Title = "Нумератор листов";
+
+        // The shared parameter "Номер листа" of ADSK, chosen by default to get the number written to.
+        private static readonly Guid SheetNumberParameterGuid = new("b4e34c05-d510-468f-bd86-e753486c8add");
+
+        // The last number of a sheet number and what follows it: "A-12a" is "12" and "a".
+        private static readonly Regex LastNumber = new(@"(\d+)(\D*)$");
+
         [ObservableProperty] private bool _userSettings = true;
         [ObservableProperty] private int _startNumber = 0;
         [ObservableProperty] private string _prefix;
         [ObservableProperty] private string _suffix;
         [ObservableProperty] private int _numberLength = 2;
-        [ObservableProperty] private string _selectedWayToChangeNumber = "Увеличить на";
+        [ObservableProperty] private NumberChange _selectedWayToChangeNumber = NumberChange.Increase;
         [ObservableProperty] private int _step = 0;
+        [ObservableProperty] private bool _addInvisibleChars;
         [ObservableProperty] private bool _writeNumberToParameter = true;
         [ObservableProperty] private Parameter _selectedParameter;
-        [ObservableProperty] private ObservableCollection<GroupItem> _sheetSections = [];
-        [ObservableProperty] private GroupItem _selectedGroup;
+        [ObservableProperty] private List<GroupItem> _sheetSections;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private GroupItem _selectedGroup;
 
-        partial void OnNumberLengthChanged(int value)
-        {
-            ChangeNumber();
-        }
-        partial void OnPrefixChanged(string value)
-        {
-            ChangeNumber();
-        }
-        partial void OnSuffixChanged(string value)
-        {
-            ChangeNumber();
-        }
-        partial void OnStepChanged(int value)
-        {
-            ChangeNumber(SelectedWayToChangeNumber);
-        }
-        partial void OnStartNumberChanged(int value)
-        {
-            ChangeNumber();
-        }
-        partial void OnSelectedWayToChangeNumberChanged(string value)
-        {
-            ChangeNumber(value);
-        }
-        partial void OnUserSettingsChanged(bool value)
-        {
-            StartNumber = 0;
-            NumberLength = 2;
-            Step = 0;
+        partial void OnNumberLengthChanged(int value) => ChangeNumber();
+        partial void OnPrefixChanged(string value) => ChangeNumber();
+        partial void OnSuffixChanged(string value) => ChangeNumber();
+        partial void OnStepChanged(int value) => ChangeNumber();
+        partial void OnStartNumberChanged(int value) => ChangeNumber();
+        partial void OnSelectedWayToChangeNumberChanged(NumberChange value) => ChangeNumber();
+        partial void OnAddInvisibleCharsChanged(bool value) => ChangeNumber();
 
-            ReturnNumbers();
-        }
-        partial void OnSelectedGroupChanged(GroupItem value)
-        {
-            StartNumber = 0;
-            NumberLength = 2;
-            Step = 0;
+        partial void OnUserSettingsChanged(bool value) => ResetSettings();
+        partial void OnSelectedGroupChanged(GroupItem value) => ResetSettings();
 
-            ReturnNumbers();
-        }
         partial void OnSelectedParameterChanged(Parameter value)
         {
-            if (SelectedGroup == null)
+            if (SelectedGroup == null || value == null)
                 return;
-            
-            foreach (var sheetItem in SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList())
-            {
-                sheetItem.NumberToParameter = sheetItem.Element.ToParameter(value.Id).AsString();
-            }
+
+            foreach (var sheetItem in SelectedGroup.Sheets.Cast<SheetNumberingItem>())
+                sheetItem.NumberToParameter = sheetItem.Element.ToParameter(value.Id)?.AsString();
 
             ChangeNumber();
         }
@@ -89,133 +69,86 @@ namespace BIMPlugins.Sheets.WPF
         public const string StartNumberName = nameof(StartNumber);
         public const string StepName = nameof(Step);
 
-        public List<string> WaysToChangeNumber { get; set; } = ["Увеличить на", "Уменьшить на"];
-        public List<Parameter> Parameters { get; set; }
+        public IReadOnlyList<Option<NumberChange>> WaysToChangeNumber { get; } =
+        [
+            new(NumberChange.Increase, "Увеличить на"),
+            new(NumberChange.Decrease, "Уменьшить на")
+        ];
+
+        public List<Parameter> Parameters { get; }
 
         public SheetsNumberingVM(IList<ViewSheet> sheets)
         {
             _doc = RevitAPI.Document;
 
-            Parameters = new(
-                sheets[0].Parameters.Cast<Parameter>()
-                    .Where(parameter => !parameter.IsReadOnly && parameter.StorageType == StorageType.String)
-                    .OrderBy(parameter => parameter.Definition.Name)
-            );
+            Parameters = sheets[0].Parameters
+                .Cast<Parameter>()
+                .Where(p => !p.IsReadOnly && p.StorageType == StorageType.String)
+                .OrderBy(p => p.Definition.Name)
+                .ToList();
 
-            SelectedParameter = Parameters.FirstOrDefault(p => p.IsShared && p.GUID == new Guid("b4e34c05-d510-468f-bd86-e753486c8add")) ?? Parameters.First();
+            SelectedParameter = Parameters.FirstOrDefault(p => p.IsShared && p.GUID == SheetNumberParameterGuid) ?? Parameters.FirstOrDefault();
 
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
-
-            FolderItemInfo folderItemInfo;
-            ElementId paramId;
-            
-            try
+            var sheetItems = sheets.Select(sheet => new SheetNumberingItem(sheet)
             {
-                folderItemInfo = bo.GetFolderItems(sheets[0].Id)[0];
+                NumberToParameter = SelectedParameter == null ? null : sheet.ToParameter(SelectedParameter.Id)?.AsString()
+            }).ToList();
 
-                paramId = folderItemInfo.ElementId;
-            }
-            catch { folderItemInfo = null; paramId = ElementId.InvalidElementId; }
-
-            var sheetListItems = new List<SheetNumberingItem>();
-            var sections = new HashSet<string>();
-
-            foreach (var sheet in sheets)
-            {
-                var sheetItem = new SheetNumberingItem(sheet);
-                sheetItem.NumberToParameter = sheet.ToParameter(SelectedParameter.Id).AsString();
-
-                if (folderItemInfo != null)
-                {
-                    var sheetParameter = sheet.ToParameter(paramId);
-                    sheetItem.GroupItemName = sheetParameter.AsString().IsNullOrEmpty()
-                        ? ""
-                        : sheetParameter.AsString();
-                }
-   
-                sections.Add(sheetItem.GroupItemName);
-                sheetListItems.Add(sheetItem);
-            }
-
-            foreach (var section in sections)
-            {
-                List<SheetNumberingItem> subList = [];
-                foreach (var sheetListItem in sheetListItems.OrderBy(s => s.Number, new NaturalComparer()))
-                {
-                    if (sheetListItem.GroupItemName == section) subList.Add(sheetListItem);
-                }
-
-                if (subList.Count > 0)
-                {
-                    var groupSheets = new GroupItem
-                    {
-                        Name = section.IsNullOrEmpty()
-                            ? "???"
-                            : section,
-                        Sheets = CollectionViewSource.GetDefaultView(subList)
-                    };
-
-                    subList.ForEach(v => v.Parent = groupSheets);
-
-                    SheetSections.Add(groupSheets);
-                }
-            }
-
-            if (SheetSections.Count == 1 && SheetSections.First().Name == "???")
-                SheetSections.First().Name = "все";
-
-            SheetSections = new(SheetSections.OrderBy(s => s.Name, new NaturalComparer()).ToList());
+            SheetSections = Classes.SheetGroups.Create(_doc, sheetItems);
         }
 
         [RelayCommand]
         private void TreeItemClicked(object item)
         {
-            if (item is GroupItem groupSheets)
+            var group = item switch
             {
-                SelectedGroup = groupSheets;  
-            }
-            else if (item is SheetNumberingItem sheetItem)
-            {
-                SelectedGroup = sheetItem.Parent;
-            }
+                GroupItem groupItem => groupItem,
+                SheetNumberingItem sheetItem => sheetItem.Parent,
+                _ => null
+            };
 
+            if (group == null)
+                return;
+
+            SelectedGroup = group;
             SelectedGroup.IsSelected = true;
         }
 
-        [RelayCommand]
+        [RelayCommand(CanExecute = nameof(CanRun))]
         private void Run()
         {
+            var sheetItems = SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList();
+
+            // A number taken twice would fail the whole renumbering half-way.
+            var takenNumbers = sheetItems.Where(s => s.WarningImageVisibility == Visibility.Visible).Select(s => s.NewNumber).ToList();
+            if (takenNumbers.Count != 0)
+            {
+                MessageWindow.ShowMessage(
+                    $"Номера повторяются или уже заняты листами других групп: {string.Join(", ", takenNumbers)}.\n" +
+                    "Включите «Добавлять невидимые символы к повторяющимся номерам», чтобы оставить эти номера.",
+                    Title, icon: MessageBoxImage.Warning);
+                return;
+            }
+
             RaiseCloseRequest();
 
-            using (Transaction t = new Transaction(_doc, "Нумератор листов"))
+            using (Transaction t = new Transaction(_doc, Title))
             {
                 t.Start();
 
-                var group = SheetSections.FirstOrDefault(s => s.Name == SelectedGroup.Name);
-
-                int i = 0;
-                foreach (var sheetElement in group.Sheets.Cast<SheetNumberingItem>().ToList())
-                {
-                    var sheet = sheetElement.Element;
-
-                    var parameter = sheet.get_Parameter(BuiltInParameter.SHEET_NUMBER);
-                    parameter.Set($"1000{i}");
-
-                    i++;
-                }
+                // The sheets first get numbers nobody has, so that two sheets of the group may swap their numbers.
+                foreach (var sheetItem in sheetItems)
+                    sheetItem.Element.get_Parameter(BuiltInParameter.SHEET_NUMBER).Set($"BIMPlugins_{Guid.NewGuid():N}");
 
                 using (RevitProgressBar revitProgressBar = new RevitProgressBar(true))
                 {
-                    revitProgressBar.Run("Нумерация листов...", group.Sheets.Cast<SheetNumberingItem>().ToList(), (sheetElement) =>
+                    revitProgressBar.Run("Нумерация листов...", sheetItems, sheetItem =>
                     {
-                        var sheet = sheetElement.Element;
+                        var sheet = sheetItem.Element;
+                        sheet.get_Parameter(BuiltInParameter.SHEET_NUMBER).Set(sheetItem.NewNumber);
 
-                        sheet.get_Parameter(BuiltInParameter.SHEET_NUMBER).Set(sheetElement.NewNumber);
-                        
-                        if (WriteNumberToParameter)
-                        {
-                            sheet.ToParameter(SelectedParameter.Id).Set(sheetElement.NumberToParameter);
-                        }
+                        if (WriteNumberToParameter && SelectedParameter != null)
+                            sheet.ToParameter(SelectedParameter.Id)?.Set(sheetItem.NumberToParameter);
                     });
 
                     if (revitProgressBar.IsCancelling())
@@ -228,8 +161,10 @@ namespace BIMPlugins.Sheets.WPF
                 t.Commit();
             }
 
-            MessageBox.Show("Листы успешно пронумерованы!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageWindow.ShowMessage("Листы успешно пронумерованы!", Title, icon: MessageBoxImage.Information);
         }
+
+        private bool CanRun() => SelectedGroup != null;
 
         [RelayCommand]
         private void Plus(string tag)
@@ -239,7 +174,7 @@ namespace BIMPlugins.Sheets.WPF
                 case StartNumberName:
                     StartNumber++;
                     break;
-                
+
                 case NumberLengthName:
                     NumberLength++;
                     break;
@@ -249,113 +184,108 @@ namespace BIMPlugins.Sheets.WPF
                     break;
             }
         }
-        
+
         [RelayCommand]
         private void Minus(string tag)
         {
             switch (tag)
             {
                 case StartNumberName:
-                    StartNumber--;
-                    if (StartNumber < 0)
-                        StartNumber = 0;
+                    StartNumber = Math.Max(0, StartNumber - 1);
                     break;
 
                 case NumberLengthName:
-                    NumberLength--;
-                    if (NumberLength < 0)
-                        NumberLength = 0;
+                    NumberLength = Math.Max(0, NumberLength - 1);
                     break;
 
                 case StepName:
-                    Step--;
-                    if (Step < 0)
-                        Step = 0;
+                    Step = Math.Max(0, Step - 1);
                     break;
             }
         }
 
-        private void ChangeNumber(string way="Увеличить на")
+        private void ResetSettings()
         {
-            var group = SheetSections.FirstOrDefault(s => s.Name == SelectedGroup.Name);
-            if (UserSettings)
+            StartNumber = 0;
+            NumberLength = 2;
+            Step = 0;
+
+            ReturnNumbers();
+        }
+
+        private void ChangeNumber()
+        {
+            if (SelectedGroup == null)
+                return;
+
+            var sheetItems = SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList();
+
+            // Numbers of the other groups and the new numbers given so far: a new number must be none of them.
+            // The old numbers of this group are freed by the renumbering.
+            var takenNumbers = SheetSections
+                .Where(g => g != SelectedGroup)
+                .SelectMany(g => g.Sheets.Cast<SheetNumberingItem>())
+                .Select(s => s.Number)
+                .ToHashSet();
+
+            var number = StartNumber;
+            foreach (var sheetItem in sheetItems)
             {
-                var i = StartNumber;
-                foreach (var sheetElement in group.Sheets.Cast<SheetNumberingItem>().ToList())
+                string newNumber;
+                if (UserSettings)
                 {
-                    string stringNumber = i.ToString();
-                    sheetElement.NumberToParameter = stringNumber;
-
-                    int charCount = stringNumber.Length;
-                    if (charCount < NumberLength)
-                    {
-                        stringNumber = string.Concat(Enumerable.Repeat("0", NumberLength - charCount)) + stringNumber;
-                    }
-
-                    sheetElement.NewNumber = Prefix + stringNumber + Suffix;
-                    sheetElement.WarningImageVisibility = IsNumberExist(sheetElement)
-                        ? System.Windows.Visibility.Visible
-                        : System.Windows.Visibility.Collapsed;
-
-                    i++;
+                    sheetItem.NumberToParameter = number.ToString();
+                    newNumber = Prefix + number.ToString().PadLeft(NumberLength, '0') + Suffix;
+                    number++;
                 }
-            }
-            else
-            {
-                foreach (var sheetElement in group.Sheets.Cast<SheetNumberingItem>().ToList())
+                else
                 {
-                    var sheetNumber = sheetElement.Number;
+                    // The invisible characters a number already has are added anew, only as many as it needs now.
+                    var sourceNumber = AddInvisibleChars ? InvisibleChars.Remove(sheetItem.Number) : sheetItem.Number;
 
-                    Match match = Regex.Match(sheetNumber, @"(\d+)[^\d]*$");
+                    // The last number of the sheet number is moved by the step; what comes before and after it stays.
+                    var match = LastNumber.Match(sourceNumber);
                     if (match.Success)
                     {
-                        var number = int.Parse(match.Groups[1].Value);
-                        
-                        if (way == "Увеличить на")
-                            number += Step;
-                        else
-                            number -= Step;
+                        var digits = match.Groups[1];
+                        var changed = long.Parse(digits.Value) + (SelectedWayToChangeNumber == NumberChange.Increase ? Step : -Step);
+                        changed = Math.Max(0, changed);
 
-                        string stringNumber = number.ToString();
-                        var numberLength = match.Length;
-
-                        int charCount = stringNumber.Length;
-                        if (charCount < numberLength)
-                            stringNumber = string.Concat(Enumerable.Repeat("0", numberLength - charCount)) + stringNumber;
-
-                        sheetElement.NewNumber = sheetNumber.Substring(0, match.Index) + stringNumber;
-                        sheetElement.NumberToParameter = number.ToString();
-                        sheetElement.WarningImageVisibility = IsNumberExist(sheetElement)
-                            ? System.Windows.Visibility.Visible
-                            : System.Windows.Visibility.Collapsed;
+                        newNumber = sourceNumber.Substring(0, digits.Index) + changed.ToString().PadLeft(digits.Length, '0') + match.Groups[2].Value;
+                        sheetItem.NumberToParameter = changed.ToString();
+                    }
+                    else
+                    {
+                        newNumber = sourceNumber;
                     }
                 }
+
+                // A taken number gets invisible characters until it is free: "1", then "1" + one character and so on.
+                if (AddInvisibleChars)
+                {
+                    while (takenNumbers.Contains(newNumber))
+                        newNumber += InvisibleChars.Symbol;
+                }
+
+                sheetItem.NewNumber = newNumber;
+                sheetItem.WarningImageVisibility = takenNumbers.Contains(newNumber)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+
+                takenNumbers.Add(newNumber);
             }
         }
+
         private void ReturnNumbers()
         {
             if (SelectedGroup == null)
                 return;
 
-            foreach (var sheetItem in SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList())
+            foreach (var sheetItem in SelectedGroup.Sheets.Cast<SheetNumberingItem>())
             {
                 sheetItem.NewNumber = sheetItem.Number;
+                sheetItem.WarningImageVisibility = Visibility.Collapsed;
             }
-        }
-        private bool IsNumberExist(SheetNumberingItem sheet)
-        {
-            foreach (var section in SheetSections)
-            {
-                foreach (var sheetElement in section.Sheets.Cast<SheetNumberingItem>())
-                {
-                    if (sheetElement.Number == sheet.NewNumber && sheetElement.GroupItemName != sheet.GroupItemName)
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
         }
 
         public event EventHandler CloseRequest;

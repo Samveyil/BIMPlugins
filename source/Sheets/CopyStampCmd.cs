@@ -22,9 +22,7 @@ namespace BIMPlugins.Sheets
                 return Result.Cancelled;
             }
 
-            var vm = new CopyStampVM(sheets);
-            var window = new CopyStampWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
+            var window = new CopyStampWindow(new CopyStampVM(sheets));
 
             window.ShowDialog();
 

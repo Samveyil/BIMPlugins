@@ -22,9 +22,7 @@ namespace BIMPlugins.Sheets
                 return Result.Cancelled;
             }
 
-            var vm = new SheetsNumberingVM(sheets);
-            var window = new SheetsNumberingWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
+            var window = new SheetsNumberingWindow(new SheetsNumberingVM(sheets));
 
             window.ShowDialog();
 

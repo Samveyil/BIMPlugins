@@ -167,7 +167,7 @@
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="При формировании нового номера&#x0a;добавлять нумерация в" Margin="0 5 5 5"/>
                         <ComboBox Margin="25 5 5 5" Width="205" VerticalAlignment="Center"
-                                  ItemsSource="{Binding NumberPositions}" SelectedItem="{Binding SelectedNumberPosition}"/>
+                                  ItemsSource="{Binding NumberPositions}" DisplayMemberPath="Text" SelectedValuePath="Value" SelectedValue="{Binding SelectedNumberPosition}"/>
                     </StackPanel>
 
                 </StackPanel>

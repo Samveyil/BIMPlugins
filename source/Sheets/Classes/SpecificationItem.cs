@@ -8,8 +8,11 @@ namespace BIMPlugins.Sheets.Classes
         [ObservableProperty] private string _sheetNumber;
 
         public string RevitName { get; set; }
+
+        /// <summary>The schedule on a sheet the row is for; null for a row from Excel.</summary>
         public ScheduleItem ScheduleInstance { get; set; }
 
+        public bool IsFromExcel => ScheduleInstance == null;
         public string SheetNumberFromExcel { get; set; }
     }
 }

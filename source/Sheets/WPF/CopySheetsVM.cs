@@ -1,15 +1,16 @@
 ﻿using Autodesk.Revit.DB;
 using BIMPlugins.Bars;
+using BIMPlugins.Classes;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
 using BIMPlugins.Sheets.Classes;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
@@ -17,11 +18,16 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
+    public enum NumberPosition { Start, End }
+
     public partial class CopySheetsVM : ObservableObject
     {
+        private const string Title = "Дубликатор листов";
+
         [ObservableProperty] private string _filter;
         [ObservableProperty] private ICollectionView _sheetGroups;
 
+        // The settings of the last window are kept for the next one.
         [ObservableProperty] private static bool _isCopyingViews = false;
         [ObservableProperty] private static bool _isCopyingSchedules = false;
         [ObservableProperty] private static bool _isCopyingLegends = false;
@@ -30,7 +36,7 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private static bool _isCopyingLines = false;
         [ObservableProperty] private static bool _isMakingCopiesForSchedules = false;
         [ObservableProperty] private static bool _isMakingCopiesForLegends = false;
-        [ObservableProperty] private static string _selectedNumberPosition = "Конце";
+        [ObservableProperty] private static NumberPosition _selectedNumberPosition = NumberPosition.End;
 
         [ObservableProperty] private static bool _isCopyingTitleBlockParameters = true;
         [ObservableProperty] private string _numberPrefix;
@@ -46,141 +52,63 @@ namespace BIMPlugins.Sheets.WPF
 
         private readonly Document _doc;
 
-        partial void OnFilterChanged(string value)
-        {
-            SheetGroups.Refresh();
-        }
-        partial void OnSelectedViewDuplicateOptionChanged(ViewDuplicateOption value)
-        {
-            IsSelectedAsDependent = value == ViewDuplicateOption.AsDependent;
-        }
+        // All sheet numbers of the project, with those of the copies made: a new number must be none of them.
+        private readonly HashSet<string> _sheetNumbers;
 
-        private List<string> SheetsNumbersList { get; set; } = [];
-        public List<string> NumberPositions { get; set; } = ["Начале", "Конце"];
-        public List<string> ViewDuplicateOptions { get; set; } = ["Копировать", "Копировать с детализацией", "Создать зависимый вид"];
+        partial void OnFilterChanged(string value) => SheetGroups.Refresh();
+
+        partial void OnSelectedViewDuplicateOptionChanged(ViewDuplicateOption value) =>
+            IsSelectedAsDependent = value == ViewDuplicateOption.AsDependent;
+
+        public IReadOnlyList<Option<NumberPosition>> NumberPositions { get; } =
+        [
+            new(NumberPosition.Start, "Начале"),
+            new(NumberPosition.End, "Конце")
+        ];
+
+        public List<string> ViewDuplicateOptions { get; } = ["Копировать", "Копировать с детализацией", "Создать зависимый вид"];
 
         public CopySheetsVM(IList<ViewSheet> sheets)
         {
             _doc = RevitAPI.Document;
+            _sheetNumbers = sheets.Select(s => s.SheetNumber).ToHashSet();
 
-            var scheduleGraphics = _doc.ToElements<ScheduleSheetInstance>(BuiltInCategory.OST_ScheduleGraphics)
-                .Where(s => !s.Name.Contains("Ведомость изменений"))
-                .ToList();
+            // The schedules of each sheet, found once; revision schedules of title blocks are not copied.
+            var schedulesBySheet = _doc.ToElements<ScheduleSheetInstance>()
+                .Where(s => !s.IsTitleblockRevisionSchedule)
+                .ToLookup(s => s.OwnerViewId);
 
-            var bo = BrowserOrganization.GetCurrentBrowserOrganizationForSheets(_doc);
-            
-            FolderItemInfo folderItemInfo;
-            ElementId paramId;
-
-            try
+            var sheetItems = sheets.Select(sheet =>
             {
-                folderItemInfo = bo.GetFolderItems(sheets[0].Id)[0];
-                
-                paramId = folderItemInfo.ElementId;
-            }
-            catch { folderItemInfo = null; paramId = ElementId.InvalidElementId; }
+                var sheetItem = new SheetCopyItem(sheet);
 
-            var sheetListItems = new List<SheetCopyItem>();
-            var sections = new HashSet<string>();
+                var viewItems = sheet.GetAllViewports()
+                    .Select(id => new ViewItem(id.ToElement<Viewport>(_doc)) { Parent = sheetItem })
+                    .Concat(schedulesBySheet[sheet.Id]
+                        .GroupBy(s => s.ScheduleId)
+                        .Select(g => new ViewItem(g.First()) { Parent = sheetItem }));
 
-            foreach (var sheet in sheets)
-            {
-                var sheetItem = new SheetCopyItem((ViewSheet)sheet);
-
-                SheetsNumbersList.Add(sheetItem.Number);
-
-                if (folderItemInfo != null)
-                {
-                    var sheetParameter = sheet.ToParameter(paramId);
-                    sheetItem.GroupItemName = sheetParameter.AsString().IsNullOrEmpty()
-                        ? ""
-                        : sheetParameter.AsString();
-                }
-
-                foreach (var elemId in (sheet as ViewSheet).GetAllViewports())
-                {
-                    var viewport = elemId.ToElement<Viewport>(_doc); 
-                    var view = viewport.ViewId.ToElement<View>(_doc);
-                    
-                    var viewItem = new ViewItem(viewport)
-                    {
-                        Parent = sheetItem,
-                    };
-
-                    sheetItem.ViewItems.Add(viewItem);
-                }
-
-                string sheetId = sheet.Id.ToString();
-                foreach (var scheduleGraphic in scheduleGraphics)
-                {
-                    if (scheduleGraphic.OwnerViewId.ToString() == sheetId &&
-                        !sheetItem.ViewItems.Select(i => i.ScheduleSheetInstance?.ScheduleId.ToString()).Contains(scheduleGraphic.ScheduleId.ToString()))
-                    {
-                        var viewItem = new ViewItem(scheduleGraphic)
-                        {
-                            Parent = sheetItem,
-                        };
-                        
-                        sheetItem.ViewItems.Add(viewItem);
-                    }
-                }
-
-                sheetItem.ViewItems = sheetItem.ViewItems
-                    .OrderBy(s => s.Name, new NaturalComparer())
+                sheetItem.ViewItems = viewItems
+                    .OrderBy(v => v.Name, NaturalComparer.CurrentCultureIgnoreCase)
                     .ToList();
 
-                sections.Add(sheetItem.GroupItemName);
-                sheetListItems.Add(sheetItem);
-            }
+                return sheetItem;
+            }).ToList();
 
-            var sheetGroups = new ObservableCollection<GroupItem>();
-            foreach (var section in sections)
+            var groups = Classes.SheetGroups.Create(_doc, sheetItems);
+            foreach (var group in groups)
             {
-                List<SheetCopyItem> subList = [];
-                foreach (var sheetListItem in sheetListItems.OrderBy(s => s.Number, new NaturalComparer()))
-                {
-                    if (sheetListItem.GroupItemName == section)
-                        subList.Add(sheetListItem);
-                }
-
-                if (subList.Count > 0)
-                {
-                    var groupSheets = new GroupItem
-                    {
-                        Name = section.IsNullOrEmpty() ? "???" : section,
-                        Sheets = CollectionViewSource.GetDefaultView(subList)
-                    };
-
-                    subList.ForEach(v => v.Parent = groupSheets);
-
-                    groupSheets.Sheets.Filter = item =>
-                    {
-                        if (Filter.IsNullOrEmpty())
-                            return true;
-
-                        var sheetItem = (SheetCopyItem)item;
-                        return sheetItem.Title.Contains(Filter, StringComparison.OrdinalIgnoreCase);
-                    };
-
-                    sheetGroups.Add(groupSheets);
-                }
+                group.Sheets.Filter = item =>
+                    Filter.IsNullOrEmpty() || ((SheetItem)item).Title.Contains(Filter, StringComparison.OrdinalIgnoreCase);
             }
 
-            if (sheetGroups.Count == 1 && sheetGroups.First().Name == "???")
-                sheetGroups.First().Name = "все";
-
-            sheetGroups = new(sheetGroups.OrderBy(s => s.Name, new NaturalComparer()).ToList());
-
-            SheetGroups = CollectionViewSource.GetDefaultView(sheetGroups);
+            SheetGroups = CollectionViewSource.GetDefaultView(groups);
             SheetGroups.Filter = item =>
             {
-                var groupSheet = (GroupItem)item;
-                groupSheet.Sheets.Refresh();
+                var group = (GroupItem)item;
+                group.Sheets.Refresh();
 
-                if (Filter.IsNullOrEmpty())
-                    return true;
-
-                return groupSheet.Sheets.Cast<SheetCopyItem>().Count() != 0;
+                return Filter.IsNullOrEmpty() || !group.Sheets.IsEmpty;
             };
         }
 
@@ -195,78 +123,69 @@ namespace BIMPlugins.Sheets.WPF
 
             if (selectedSheetItems.Count == 0)
             {
-                MessageBox.Show("Не выбраны листы для копирования!", "BIMPlugins", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageWindow.ShowMessage("Не выбраны листы для копирования!", Title, icon: MessageBoxImage.Warning);
                 return;
             }
 
             RaiseCloseRequest();
 
-            using (Transaction t = new Transaction(_doc, "Дубликатор листов"))
+            // What could not be copied is told at the end instead of being lost.
+            var errors = new List<string>();
+
+            using (Transaction t = new Transaction(_doc, Title))
             {
                 t.Start();
 
                 using (var revitProgressBar = new RevitProgressBar(true))
                 {
-                    revitProgressBar.Run("Копирование листов...", selectedSheetItems, (sheetItem) =>
+                    revitProgressBar.Run("Копирование листов...", selectedSheetItems, sheetItem =>
                     {
-                        var titleBlocks = _doc.ToElements(sheetItem.Element.Id, BuiltInCategory.OST_TitleBlocks);
+                        var sourceSheet = sheetItem.Element;
+                        var titleBlocks = _doc.ToElements(sourceSheet.Id, BuiltInCategory.OST_TitleBlocks);
 
-                        int position = 1;
-                        for (int i = 1; i < sheetItem.CopiesAmount + 1; i++)
+                        if (titleBlocks.Count == 0)
+                        {
+                            errors.Add($"{sourceSheet.SheetNumber}: на листе нет штампа, лист не скопирован");
+                            return;
+                        }
+
+                        var position = 1;
+                        for (var i = 0; i < sheetItem.CopiesAmount; i++)
                         {
                             var newSheet = ViewSheet.Create(_doc, titleBlocks[0].GetTypeId());
 
-                            var uniqueNumber = string.Empty;
-                            if (SelectedNumberPosition == "Начале")
-                            {
-                                string newNumber = NumberPrefix + position + '$' + sheetItem.Element.get_Parameter(BuiltInParameter.SHEET_NUMBER).AsString() + NumberSuffix;
-
-                                (uniqueNumber, position) = CheckNewNumberAvailability(newNumber, position);
-                                SheetsNumbersList.Add(uniqueNumber);
-                            }
-                            else
-                            {
-                                string newNumber = NumberPrefix + sheetItem.Element.get_Parameter(BuiltInParameter.SHEET_NUMBER).AsString() + '$' + position + NumberSuffix;
-
-                                (uniqueNumber, position) = CheckNewNumberAvailability(newNumber, position);
-                                SheetsNumbersList.Add(uniqueNumber);
-                            }
+                            string number;
+                            while (_sheetNumbers.Contains(number = ComposeNumber(sourceSheet.SheetNumber, position)))
+                                position++;
                             position++;
 
-                            newSheet.get_Parameter(BuiltInParameter.SHEET_NUMBER).Set(uniqueNumber);
-                            
-                            var newTitleBlock = _doc.ToElements(newSheet.Id, BuiltInCategory.OST_TitleBlocks)
-                                .FirstOrDefault();
+                            _sheetNumbers.Add(number);
+                            newSheet.get_Parameter(BuiltInParameter.SHEET_NUMBER).Set(number);
 
-                            newTitleBlock.Move(titleBlocks[0].ToPoint());
-                            
-                            CopySheetParameters(sheetItem.Element, newSheet);
+                            // The title block of a new sheet stands at the origin; it is moved where the source one stands.
+                            var newTitleBlock = _doc.ToElements(newSheet.Id, BuiltInCategory.OST_TitleBlocks).First();
+                            newTitleBlock.Move(titleBlocks[0].ToPoint() - newTitleBlock.ToPoint());
 
-                            if (IsCopyingTitleBlockParameters) CopyTitleBlockParameters(titleBlocks[0], newTitleBlock);
+                            CopyParameters(sourceSheet, newSheet);
+                            if (IsCopyingTitleBlockParameters)
+                                CopyParameters(titleBlocks[0], newTitleBlock);
 
-                            if (titleBlocks.Count > 1)
+                            foreach (var titleBlock in titleBlocks.Skip(1))
                             {
-                                foreach ( var titleBlock in titleBlocks.Skip(1))
-                                {
-                                    newTitleBlock = _doc.Create.NewFamilyInstance(
-                                        titleBlock.ToPoint(),
-                                        titleBlock.ToElementType() as FamilySymbol,
-                                        newSheet);
+                                newTitleBlock = _doc.Create.NewFamilyInstance(titleBlock.ToPoint(), titleBlock.ToElementType<FamilySymbol>(), newSheet);
 
-                                    if (IsCopyingTitleBlockParameters) CopyTitleBlockParameters(titleBlock, newTitleBlock);
-                                }
+                                if (IsCopyingTitleBlockParameters)
+                                    CopyParameters(titleBlock, newTitleBlock);
                             }
-                            
-                            if (IsCopyingViews) CopyViews(sheetItem, newSheet);
-                            if (IsCopyingSchedules) CopySchedules(sheetItem, newSheet);
-                            if (IsCopyingLegends) CopyLegends(sheetItem, newSheet);
-                            if (IsCopyingAnnotations) CopyAnnotations(sheetItem, newSheet);
-                            if (IsCopyingTextNotes) CopyTextNotes(sheetItem, newSheet);
-                            if (IsCopyingLines) CopyLines(sheetItem, newSheet);
 
-                            newSheet.Name = sheetItem.NewCopyName.IsNullOrEmpty()
-                                ? NamePrefix + newSheet.Name + NameSuffix
-                                : NamePrefix + sheetItem.NewCopyName + NameSuffix;
+                            if (IsCopyingViews) CopyViews(sheetItem, newSheet, errors);
+                            if (IsCopyingSchedules) CopySchedules(sheetItem, newSheet, errors);
+                            if (IsCopyingLegends) CopyLegends(sheetItem, newSheet, errors);
+                            if (IsCopyingAnnotations) CopyElements(sheetItem, newSheet, _doc.ToElementIds(sourceSheet.Id, BuiltInCategory.OST_GenericAnnotation), "аннотации", errors);
+                            if (IsCopyingTextNotes) CopyElements(sheetItem, newSheet, _doc.ToElementIds(sourceSheet.Id, BuiltInCategory.OST_TextNotes), "текст", errors);
+                            if (IsCopyingLines) CopyElements(sheetItem, newSheet, _doc.ToElementIds<CurveElement>(sourceSheet.Id), "линии", errors);
+
+                            newSheet.Name = NamePrefix + (sheetItem.NewCopyName.IsNullOrEmpty() ? newSheet.Name : sheetItem.NewCopyName) + NameSuffix;
 
                             _doc.Regenerate();
                         }
@@ -281,160 +200,113 @@ namespace BIMPlugins.Sheets.WPF
 
                 t.Commit();
             }
+
+            if (errors.Count != 0)
+                ReportWindow.ShowReport(errors, "Не всё удалось скопировать");
         }
 
-        private (string, int) CheckNewNumberAvailability(string number, int position)
+        // The position goes before or after the number of the source sheet; "$" sets it apart until the sheets are renumbered.
+        private string ComposeNumber(string sourceNumber, int position) => SelectedNumberPosition == NumberPosition.Start
+            ? $"{NumberPrefix}{position}${sourceNumber}{NumberSuffix}"
+            : $"{NumberPrefix}{sourceNumber}${position}{NumberSuffix}";
+
+        // Parameters of a sheet, or of a title block of the same family, are found by id: the same parameter whatever its name and language.
+        private static void CopyParameters(Element source, Element target)
         {
-            string currentNumber = number;
-            int currentAmount = position;
-            int maxAttempts = 400;
-            int attempts = 0;
+            var sheetNumberId = new ElementId(BuiltInParameter.SHEET_NUMBER);
 
-            while (SheetsNumbersList.Contains(currentNumber) && attempts < maxAttempts)
+            foreach (var sourceParam in source.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly && p.HasValue && p.Id != sheetNumberId))
             {
-                currentNumber = SelectedNumberPosition == "Начале"
-                    ? currentNumber.Replace(currentAmount.ToString() + '$', (currentAmount + 1).ToString() + '$')
-                    : currentNumber.Replace('$' + currentAmount.ToString(), '$' + (currentAmount + 1).ToString());
+                var targetParam = target.ToParameter(sourceParam.Id);
+                if (targetParam == null || targetParam.IsReadOnly)
+                    continue;
 
-                currentAmount++;
-                attempts++;
-            }
-
-            return (currentNumber, currentAmount);
-        }
-
-        private void CopySheetParameters(ViewSheet sourceSheet, ViewSheet targetSheet)
-        {
-            foreach (Parameter sourceParam in sourceSheet.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly && p.HasValue).ToList())
-            {
-                Parameter targetParam = targetSheet.LookupParameter(sourceParam.Definition.Name);
-                if (targetParam != null && !targetParam.IsReadOnly && targetParam.Definition.Name != "Номер листа")
+                try
                 {
-                    try
-                    {
-                        targetParam.SetValue(sourceParam.GetValue());
-                    }
-                    catch { }
+                    targetParam.SetValue(sourceParam.GetValue());
                 }
+                catch { } // A parameter Revit does not let set here, such as one driven by another, stays as it is.
             }
         }
-        private void CopyTitleBlockParameters(Element sourceTitleBlock, Element targetTitleBlock)
+
+        private void CopyViews(SheetCopyItem sheetItem, ViewSheet targetSheet, List<string> errors)
         {
-            foreach (Parameter sourceParam in sourceTitleBlock.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly && p.HasValue).ToList())
-            {
-                Parameter targetParam = targetTitleBlock.LookupParameter(sourceParam.Definition.Name);
-                if (targetParam != null && !targetParam.IsReadOnly && targetParam.Definition.Name != "Номер листа")
-                {
-                    try
-                    {
-                        targetParam.SetValue(sourceParam.GetValue());
-                    }
-                    catch { }
-                }
-            }
-        }
-        private void CopyViews(SheetCopyItem sheetItem, ViewSheet targetSheet)
-        {
-            foreach (ViewItem viewItem in sheetItem.ViewItems
-                    .Where(v => v.IsSelected && v.ViewType != ViewType.Legend && v.ViewType != ViewType.Schedule)
-                    .ToList())
+            foreach (var viewItem in sheetItem.ViewItems.Where(v => v.IsSelected && v.ViewType != ViewType.Legend && v.ViewType != ViewType.Schedule))
             {
                 try
                 {
-                    ElementId newViewId = null;
-                    View newView = null;
-                    if (viewItem.ViewType == ViewType.DraftingView)
+                    // A drafting view has no dependent views: it is always copied with its detailing.
+                    var option = viewItem.ViewType == ViewType.DraftingView ? ViewDuplicateOption.WithDetailing : SelectedViewDuplicateOption;
+                    var newViewId = viewItem.View.Duplicate(option);
+
+                    if (option == ViewDuplicateOption.AsDependent)
                     {
-                        newViewId = viewItem.View.Duplicate(ViewDuplicateOption.WithDetailing);
-                        newView = newViewId.ToElement<View>(_doc);
+                        var newView = newViewId.ToElement<View>(_doc);
+                        newView.CropBoxActive = CropBoxActive;
+                        newView.CropBoxVisible = CropBoxVisible;
+                        newView.get_Parameter(BuiltInParameter.VIEWER_ANNOTATION_CROP_ACTIVE).Set(CropAnnotation ? 1 : 0);
                     }
-                    else
-                    {
-                        newViewId = viewItem.View.Duplicate(SelectedViewDuplicateOption);
-                        newView = newViewId.ToElement<View>(_doc);
-                        if (SelectedViewDuplicateOption == ViewDuplicateOption.AsDependent)
-                        {
-                            newView.CropBoxActive = CropBoxActive;
-                            newView.CropBoxVisible = CropBoxVisible;
-                            newView.get_Parameter(BuiltInParameter.VIEWER_ANNOTATION_CROP_ACTIVE).Set(CropAnnotation ? 1 : 0);
-                        }
-                    }
-                    
+
                     Viewport.Create(_doc, targetSheet.Id, newViewId, viewItem.Viewport.GetBoxCenter());
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    errors.Add($"{sheetItem.Number}: {viewItem.Name} — {ex.Message}");
+                }
             }
         }
-        private void CopySchedules(SheetCopyItem sheetItem, ViewSheet targetSheet)
-        {
-            foreach (ViewItem viewItem in sheetItem.ViewItems
-                    .Where(v => v.IsSelected && v.ViewType == ViewType.Schedule)
-                    .ToList())
-            {
-                if (IsMakingCopiesForSchedules)
-                {
-                    try
-                    {
-                        var schedule = viewItem.ScheduleSheetInstance.ScheduleId.ToElement<View>(_doc);
-                        var newScheduleId = schedule.Duplicate(ViewDuplicateOption.Duplicate);
 
-                        ScheduleSheetInstance.Create(_doc, targetSheet.Id, newScheduleId, viewItem.CenterPoint);
-                    }
-                    catch { }
-                }
-                else
-                {
-                    ScheduleSheetInstance.Create(_doc, targetSheet.Id, viewItem.ScheduleSheetInstance.ScheduleId, viewItem.CenterPoint);
-                }
-            }
-        }
-        private void CopyLegends(SheetCopyItem sheetItem, ViewSheet targetSheet)
+        private void CopySchedules(SheetCopyItem sheetItem, ViewSheet targetSheet, List<string> errors)
         {
-            foreach (ViewItem viewItem in sheetItem.ViewItems
-                    .Where(v => v.IsSelected && v.ViewType == ViewType.Legend)
-                    .ToList())
+            foreach (var viewItem in sheetItem.ViewItems.Where(v => v.IsSelected && v.ViewType == ViewType.Schedule))
             {
-                if (IsMakingCopiesForLegends)
+                try
                 {
-                    try
-                    {
-                        var newLegendId = viewItem.View.Duplicate(ViewDuplicateOption.WithDetailing);
-                        Viewport.Create(_doc, targetSheet.Id, newLegendId, viewItem.Viewport.GetBoxCenter());
-                    }
-                    catch { }
+                    var scheduleId = viewItem.ScheduleSheetInstance.ScheduleId;
+                    if (IsMakingCopiesForSchedules)
+                        scheduleId = scheduleId.ToElement<View>(_doc).Duplicate(ViewDuplicateOption.Duplicate);
+
+                    ScheduleSheetInstance.Create(_doc, targetSheet.Id, scheduleId, viewItem.CenterPoint);
                 }
-                else
+                catch (Exception ex)
                 {
-                    Viewport.Create(_doc, targetSheet.Id, viewItem.View.Id, viewItem.Viewport.GetBoxCenter());
+                    errors.Add($"{sheetItem.Number}: {viewItem.Name} — {ex.Message}");
                 }
             }
         }
-        private void CopyAnnotations(SheetCopyItem sheetItem, ViewSheet targetSheet)
+
+        private void CopyLegends(SheetCopyItem sheetItem, ViewSheet targetSheet, List<string> errors)
         {
+            foreach (var viewItem in sheetItem.ViewItems.Where(v => v.IsSelected && v.ViewType == ViewType.Legend))
+            {
+                try
+                {
+                    var legendId = IsMakingCopiesForLegends
+                        ? viewItem.View.Duplicate(ViewDuplicateOption.WithDetailing)
+                        : viewItem.View.Id;
+
+                    Viewport.Create(_doc, targetSheet.Id, legendId, viewItem.Viewport.GetBoxCenter());
+                }
+                catch (Exception ex)
+                {
+                    errors.Add($"{sheetItem.Number}: {viewItem.Name} — {ex.Message}");
+                }
+            }
+        }
+
+        private static void CopyElements(SheetCopyItem sheetItem, ViewSheet targetSheet, ICollection<ElementId> elementIds, string what, List<string> errors)
+        {
+            if (elementIds.Count == 0)
+                return;
+
             try
             {
-                var annotationIds = _doc.ToElementIds(sheetItem.Element.Id, BuiltInCategory.OST_GenericAnnotation);
-                annotationIds.CopyElements(sheetItem.Element, targetSheet);
+                elementIds.CopyElements(sheetItem.Element, targetSheet);
             }
-            catch { }
-        }
-        private void CopyTextNotes(SheetCopyItem sheetItem, ViewSheet targetSheet)
-        {
-            try
+            catch (Exception ex)
             {
-                var textNotesIds = _doc.ToElementIds(sheetItem.Element.Id, BuiltInCategory.OST_TextNotes);
-                textNotesIds.CopyElements(sheetItem.Element, targetSheet);
+                errors.Add($"{sheetItem.Number}: {what} — {ex.Message}");
             }
-            catch { }
-        }
-        private void CopyLines(SheetCopyItem sheetItem, ViewSheet targetSheet)
-        {
-            try
-            {
-                var lineIds = _doc.ToElementIds<CurveElement>(sheetItem.Element.Id); 
-                lineIds.CopyElements(sheetItem.Element, targetSheet);
-            }
-            catch { }
         }
 
         public event EventHandler CloseRequest;
