@@ -14,14 +14,5 @@ namespace BIMPlugins.Sheets.Classes
         public static int Count(string text) => text?.Count(c => c == Symbol) ?? 0;
 
         public static string Remove(string text) => text?.Replace(Symbol.ToString(), string.Empty);
-
-        /// <summary>
-        /// The mark shown next to a number in the window: "+2" for two invisible characters, null for none.
-        /// </summary>
-        public static string Mark(string text)
-        {
-            var count = Count(text);
-            return count == 0 ? null : $"+{count}";
-        }
     }
 }

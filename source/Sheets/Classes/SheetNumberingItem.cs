@@ -6,19 +6,26 @@ namespace BIMPlugins.Sheets.Classes
 {
     public partial class SheetNumberingItem : SheetItem
     {
-        [ObservableProperty][NotifyPropertyChangedFor(nameof(NewNumberMark))] private string _newNumber;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(NewNumberInvisibleCount), nameof(HasNewNumberInvisibleChars))]
+        private string _newNumber;
+
         [ObservableProperty] private string _numberToParameter;
         [ObservableProperty] private Visibility _warningImageVisibility = Visibility.Collapsed;
 
         public string Name { get; set; }
 
-        public string NumberMark => InvisibleChars.Mark(Number);
-        public string NewNumberMark => InvisibleChars.Mark(NewNumber);
+        public int NumberInvisibleCount { get; }
+        public bool HasNumberInvisibleChars => NumberInvisibleCount != 0;
+
+        public int NewNumberInvisibleCount => InvisibleChars.Count(NewNumber);
+        public bool HasNewNumberInvisibleChars => NewNumberInvisibleCount != 0;
 
         public SheetNumberingItem(ViewSheet viewSheet) : base(viewSheet)
         {
             Name = viewSheet.Name;
             NewNumber = Number;
+            NumberInvisibleCount = InvisibleChars.Count(Number);
         }
     }
 }

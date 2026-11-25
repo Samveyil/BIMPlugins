@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -96,20 +95,7 @@ namespace BIMPlugins.Sheets.WPF
             }).ToList();
 
             var groups = Classes.SheetGroups.Create(_doc, sheetItems);
-            foreach (var group in groups)
-            {
-                group.Sheets.Filter = item =>
-                    Filter.IsNullOrEmpty() || ((SheetItem)item).Title.Contains(Filter, StringComparison.OrdinalIgnoreCase);
-            }
-
-            SheetGroups = CollectionViewSource.GetDefaultView(groups);
-            SheetGroups.Filter = item =>
-            {
-                var group = (GroupItem)item;
-                group.Sheets.Refresh();
-
-                return Filter.IsNullOrEmpty() || !group.Sheets.IsEmpty;
-            };
+            SheetGroups = Classes.SheetGroups.CreateView(groups, () => Filter);
         }
 
         [RelayCommand]
@@ -117,7 +103,7 @@ namespace BIMPlugins.Sheets.WPF
         {
             var selectedSheetItems = SheetGroups
                 .Cast<GroupItem>()
-                .SelectMany(s => s.Sheets.Cast<SheetCopyItem>())
+                .SelectMany(g => g.Sheets.Cast<SheetCopyItem>())
                 .Where(s => s.IsSelected == true)
                 .ToList();
 

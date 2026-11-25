@@ -58,7 +58,7 @@
                                 <Setter Property="Padding" Value="2"/>
                             </Style>
 
-                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Sheets}">
+                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Items}">
                                 <StackPanel VerticalAlignment="Center">
                                     <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="0"/>
                                 </StackPanel>
@@ -103,7 +103,7 @@
                                 <Setter Property="Padding" Value="2"/>
                             </Style>
 
-                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Sheets}">
+                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Items}">
                                 <StackPanel VerticalAlignment="Center">
                                     <CheckBox Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}"
                                               IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

@@ -111,7 +111,7 @@ namespace BIMPlugins.Sheets.WPF
                 return;
 
             SelectedGroup = group;
-            SelectedGroup.IsSelected = true;
+            SelectedGroup.IsExpanded = true;
         }
 
         [RelayCommand(CanExecute = nameof(CanRun))]
@@ -220,11 +220,11 @@ namespace BIMPlugins.Sheets.WPF
 
             var sheetItems = SelectedGroup.Sheets.Cast<SheetNumberingItem>().ToList();
 
-            // Numbers of the other groups and the new numbers given so far: a new number must be none of them.
+            // Numbers of the sheets out of this group and the new numbers given so far: a new number must be none of them.
             // The old numbers of this group are freed by the renumbering.
             var takenNumbers = SheetSections
-                .Where(g => g != SelectedGroup)
-                .SelectMany(g => g.Sheets.Cast<SheetNumberingItem>())
+                .SelectMany(g => g.Sheets)
+                .Except(sheetItems)
                 .Select(s => s.Number)
                 .ToHashSet();
 

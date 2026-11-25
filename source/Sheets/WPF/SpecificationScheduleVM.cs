@@ -15,7 +15,6 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -180,20 +179,7 @@ namespace BIMPlugins.Sheets.WPF
                 .ToList();
 
             var groups = Classes.SheetGroups.Create(_doc, _sheetItems);
-            foreach (var group in groups)
-            {
-                group.Sheets.Filter = item =>
-                    Filter.IsNullOrEmpty() || ((SheetItem)item).Title.Contains(Filter, StringComparison.OrdinalIgnoreCase);
-            }
-
-            SheetGroups = CollectionViewSource.GetDefaultView(groups);
-            SheetGroups.Filter = item =>
-            {
-                var group = (GroupItem)item;
-                group.Sheets.Refresh();
-
-                return Filter.IsNullOrEmpty() || !group.Sheets.IsEmpty;
-            };
+            SheetGroups = Classes.SheetGroups.CreateView(groups, () => Filter);
         }
 
         // The number of the sheet as the chosen parameter gives it.

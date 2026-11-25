@@ -11,7 +11,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Windows;
-using System.Windows.Data;
 
 namespace BIMPlugins.Sheets.WPF
 {
@@ -38,38 +37,17 @@ namespace BIMPlugins.Sheets.WPF
             _doc = RevitAPI.Document;
 
             var baseGroups = SheetGroups.Create(_doc, sheets.Select(s => new SheetItem(s)).ToList());
-            SheetSectionsForBaseSheet = CreateView(baseGroups, () => FilterForBaseSheet);
+            SheetSectionsForBaseSheet = SheetGroups.CreateView(baseGroups, () => FilterForBaseSheet);
 
             var copyGroups = baseGroups.Select(g => g.Clone()).ToList();
-            SheetSectionsForCopySheet = CreateView(copyGroups, () => FilterForCopySheet);
-        }
-
-        // The groups, with the sheets of each filtered by title and the groups left empty by the filter hidden.
-        private static ICollectionView CreateView(List<GroupItem> groups, Func<string> filter)
-        {
-            foreach (var group in groups)
-            {
-                group.Sheets.Filter = item =>
-                    filter().IsNullOrEmpty() || ((SheetItem)item).Title.Contains(filter(), StringComparison.OrdinalIgnoreCase);
-            }
-
-            var view = CollectionViewSource.GetDefaultView(groups);
-            view.Filter = item =>
-            {
-                var group = (GroupItem)item;
-                group.Sheets.Refresh();
-
-                return filter().IsNullOrEmpty() || !group.Sheets.IsEmpty;
-            };
-
-            return view;
+            SheetSectionsForCopySheet = SheetGroups.CreateView(copyGroups, () => FilterForCopySheet);
         }
 
         [RelayCommand]
         private void Run()
         {
             var baseSheet = SheetSectionsForBaseSheet.Cast<GroupItem>()
-                .SelectMany(s => s.Sheets.Cast<SheetItem>())
+                .SelectMany(g => g.Sheets)
                 .FirstOrDefault(s => s.IsSelected == true)?
                 .Element;
 
@@ -80,7 +58,7 @@ namespace BIMPlugins.Sheets.WPF
             }
 
             var sheetsToCopy = SheetSectionsForCopySheet.Cast<GroupItem>()
-                .SelectMany(s => s.Sheets.Cast<SheetItem>())
+                .SelectMany(g => g.Sheets)
                 .Where(s => s.IsSelected == true)
                 .Select(s => s.Element)
                 .ToList();

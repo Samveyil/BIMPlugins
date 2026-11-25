@@ -20,6 +20,18 @@
             <materialDesign:InvertBooleanConverter x:Key="InvertBooleanConverter" />
             <converters:EscapeUnderscoreConverter x:Key="EscapeUnderscoreConverter" />
             <converters:NullableToBoolConverter x:Key="NullableToBoolConverter" />
+            <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+
+            <!-- How many invisible characters there are at the end of a number: a crossed eye and the count. -->
+            <DataTemplate x:Key="InvisibleCharsMark">
+                <Border Background="#E6E6E6" CornerRadius="3" Padding="3 0" Margin="3 0 0 0" VerticalAlignment="Center"
+                        ToolTip="Невидимых символов в конце номера">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="EyeOffOutline" Width="11" Height="11" VerticalAlignment="Center" Foreground="#555555"/>
+                        <TextBlock Text="{Binding}" FontSize="10" Margin="2 0 0 0" VerticalAlignment="Center" Foreground="#555555"/>
+                    </StackPanel>
+                </Border>
+            </DataTemplate>
 
             <Style TargetType="TextBox" x:Key="TextBoxWithButtons">
                 <Setter Property="Template">
@@ -81,7 +93,7 @@
                         <Setter Property="Margin" Value="0"/>
                         <Setter Property="MinHeight" Value="24"/>
 
-                        <Setter Property="IsExpanded" Value="{Binding IsSelected, Mode=OneWay}"/>
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
                     </Style>
 
                     <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
@@ -89,23 +101,7 @@
                         <Setter Property="Padding" Value="2"/>
                     </Style>
 
-                    <!-- How many invisible characters a number has: "+2". Hidden when it has none. -->
-                    <Style TargetType="TextBlock" x:Key="InvisibleCharsMark">
-                        <Setter Property="Margin" Value="2 0 0 0"/>
-                        <Setter Property="Padding" Value="3 0"/>
-                        <Setter Property="VerticalAlignment" Value="Center"/>
-                        <Setter Property="FontSize" Value="10"/>
-                        <Setter Property="Foreground" Value="White"/>
-                        <Setter Property="Background" Value="{StaticResource BIMPlugins.PrimaryBrush}"/>
-                        <Setter Property="ToolTip" Value="Невидимых символов в конце номера"/>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding Text, RelativeSource={RelativeSource Self}}" Value="{x:Null}">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-
-                    <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Sheets}">
+                    <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Items}">
                         <StackPanel Orientation="Horizontal" Height="20" VerticalAlignment="Center">
                             <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="5 0"/>
                         </StackPanel>
@@ -119,7 +115,8 @@
                             <TextBlock Text="(" Padding="0" VerticalAlignment="Center" FontSize="10"/>
                             <Label Content="{Binding Number, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="0" FontSize="10"
                                    ToolTip="Исходный номер листа"/>
-                            <TextBlock Text="{Binding NumberMark}" Style="{StaticResource InvisibleCharsMark}"/>
+                            <ContentControl Content="{Binding NumberInvisibleCount}" ContentTemplate="{StaticResource InvisibleCharsMark}"
+                                            Visibility="{Binding HasNumberInvisibleChars, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <TextBlock Text=")" Padding="0" VerticalAlignment="Center" FontSize="10" Margin="0 0 5 0"/>
 
                             <TextBlock Text="(" Padding="0" VerticalAlignment="Center" FontSize="12"/>
@@ -130,7 +127,8 @@
 
                             <Label Content="{Binding NewNumber, Converter={StaticResource EscapeUnderscoreConverter}}"
                                    VerticalAlignment="Center" Padding="0" FontWeight="SemiBold"/>
-                            <TextBlock Text="{Binding NewNumberMark}" Style="{StaticResource InvisibleCharsMark}"/>
+                            <ContentControl Content="{Binding NewNumberInvisibleCount}" ContentTemplate="{StaticResource InvisibleCharsMark}"
+                                            Visibility="{Binding HasNewNumberInvisibleChars, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                             <Label Content="-" Margin="3 2" Padding="0" VerticalAlignment="Center" />
                             <Label Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" VerticalAlignment="Center" Padding="0"/>
                         </StackPanel>
@@ -148,7 +146,7 @@
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="5 5 0 0">
                         <RadioButton Content="Пользовательcкая настройка для группы " Padding="2 0" GroupName="NumberingType" IsChecked="{Binding UserSettings}" />
-                        <TextBlock Text="{Binding SelectedGroup.Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding SelectedGroup.Path}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserSettings, UpdateSourceTrigger=PropertyChanged}">
@@ -181,7 +179,7 @@
 
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <RadioButton Content="Увеличить/уменьшить на заданное значение номера листов в группе " Padding="2 0" GroupName="NumberingType" />
-                        <TextBlock Text="{Binding SelectedGroup.Name}" FontWeight="SemiBold" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding SelectedGroup.Path}" FontWeight="SemiBold" VerticalAlignment="Center" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" IsEnabled="{Binding UserSettings, Converter={StaticResource InvertBooleanConverter}}">
@@ -197,8 +195,6 @@
                     <CheckBox Content="Добавлять невидимые символы к повторяющимся номерам" Margin="5" Padding="2 0" IsChecked="{Binding AddInvisibleChars}"
                               ToolTip="Если номер уже занят, к «Номеру листа» добавляются невидимые символы: 1, затем 1 + символ, 1 + два символа и т. д. В параметр они не записываются."/>
 
-                    <Separator Background="{StaticResource BIMPlugins.PrimaryBrush}"/>
-
                     <StackPanel Orientation="Horizontal">
                         <CheckBox Content="Записать значение части номера в параметр" Margin="5" Padding="2 0" IsChecked="{Binding WriteNumberToParameter}"/>
                         <ComboBox IsEnabled="{Binding WriteNumberToParameter}"
@@ -211,6 +207,41 @@
 
             <Button Content="Выполнить" Command="{Binding RunCommand}"  Style="{StaticResource MaterialDesignPaperButton}"
                     Margin="0 10" VerticalAlignment="Bottom" IsEnabled="{Binding SelectedGroup, Converter={StaticResource NullableToBoolConverter}}" />
+
+            <GroupBox Padding="5">
+                <GroupBox.Header>
+                    <TextBlock Text="Обозначения" FontWeight="SemiBold" />
+                </GroupBox.Header>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="60"/>
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="22"/>
+                        <RowDefinition Height="22"/>
+                        <RowDefinition Height="22"/>
+                        <RowDefinition Height="22"/>
+                        <RowDefinition Height="22"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="(А-12)" FontSize="10" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1" Text="Исходный номер листа" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="1" Text="(12)" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Значение, записываемое в выбранный параметр" VerticalAlignment="Center"/>
+
+                    <TextBlock Grid.Row="2" Text="А-13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Новый номер листа" VerticalAlignment="Center"/>
+
+                    <ContentControl Grid.Row="3" Content="2" ContentTemplate="{StaticResource InvisibleCharsMark}" HorizontalAlignment="Left"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Сколько невидимых символов в конце номера" VerticalAlignment="Center"/>
+
+                    <materialDesign:PackIcon Grid.Row="4" Kind="AlertOctagonOutline" Width="18" Height="18" VerticalAlignment="Center" Foreground="Red"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Номер повторяется или занят листом другой группы" VerticalAlignment="Center"/>
+                </Grid>
+            </GroupBox>
         </StackPanel>
     </Grid>
 </Window>
