@@ -1,6 +1,5 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using BIMPlugins.Classes;
 using BIMPlugins.ClashViewer;
 using BIMPlugins.Common;
 using BIMPlugins.Common.WPF;
@@ -36,7 +35,6 @@ namespace BIMPlugins
 
         public Result OnShutdown(UIControlledApplication application)
         {
-            TemporaryGraphicsServer.Unregister();
             return Result.Succeeded;
         }
 
@@ -50,7 +48,6 @@ namespace BIMPlugins
             try
             {
                 ViewSettingWindow.Register(_uiControlApp);
-                TemporaryGraphicsServer.Register();
             }
             catch (Exception ex)
             {

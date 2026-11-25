@@ -14,8 +14,8 @@ namespace BIMPlugins.Views.WPF
             var vm = new CropBoxVM();
             DataContext = vm;
 
-            // The ranges are shown while the window is open.
-            Closed += (s, e) => vm.HideAll();
+            // The shapes are temporary: they go away with the window.
+            Closed += (s, e) => vm.DeleteShapesEvent.Raise();
         }
     }
 }

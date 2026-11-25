@@ -1,9 +1,10 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
-using BIMPlugins.Classes;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Comparers;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using BIMPlugins.ExtStorage.Methods;
 using BIMPlugins.Views.Classes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -16,28 +17,35 @@ using System.Windows.Data;
 namespace BIMPlugins.Views.WPF
 {
     /// <summary>
-    /// View ranges of plans and sections shown in a 3D view as temporary graphics: nothing is added to the model,
-    /// so there is nothing to delete and nothing in the undo list.
+    /// View ranges of plans and sections shown in a 3D view as DirectShapes. The shapes live only while the window is open:
+    /// they are deleted when it closes, and shapes left by a window that did not close (Revit failed) are deleted when the next one opens.
     /// </summary>
     public partial class CropBoxVM : ObservableObject
     {
+        // Every shape is marked so, to tell it from any other DirectShape of the model.
+        private const string ShapeApplicationId = "BIMPlugins";
+        private const string ShapeDataId = "CropBox";
+
         // The choice of the last window is kept for the next one.
         private static bool _lastShowSectionPlane = true;
 
         [ObservableProperty] private bool _showSectionPlane = _lastShowSectionPlane;
         [ObservableProperty] private string _filter;
 
-        // Everything that needs Revit runs in one external event, in the order it was asked for.
-        private readonly Queue<Action> _actions = new();
-        private readonly ExternalEvent _actionsEvent;
+        private readonly ExternalEvent _deletePlanesEvent;
 
         public CropBoxVM()
         {
             UIDoc = RevitAPI.UIDocument;
             Doc = UIDoc.Document;
-            View3D = ViewGraphics.GetUser3DView(Doc);
 
-            _actionsEvent = RevitAPI.CreateExtEvent(this, vm => vm.RunActions());
+            DeleteLeftShapes();
+
+            _deletePlanesEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeletePlanes());
+            DeleteShapesEvent = RevitAPI.CreateExtEvent(this, vm => vm.DeleteAllShapes());
+
+            View3D = ViewGraphics.GetUser3DView(Doc);
+            PatternId = ViewGraphics.GetSolidFillPatternId(Doc);
 
             var viewClasses = new ElementMulticlassFilter(new List<Type> { typeof(ViewPlan), typeof(ViewSection) });
             ViewCropBoxItems = Doc.ToElements<View>(viewClasses)
@@ -54,6 +62,10 @@ namespace BIMPlugins.Views.WPF
         internal UIDocument UIDoc { get; }
         internal Document Doc { get; }
         internal View3D View3D { get; }
+        internal ElementId PatternId { get; }
+
+        /// <summary>Deletes the shapes when the window closes.</summary>
+        public ExternalEvent DeleteShapesEvent { get; }
 
         public List<ViewCropBoxItem> ViewCropBoxItems { get; }
         public ICollectionView FilteredItems { get; }
@@ -63,63 +75,151 @@ namespace BIMPlugins.Views.WPF
         partial void OnShowSectionPlaneChanged(bool value)
         {
             _lastShowSectionPlane = value;
-            Run(UpdateShapes);
-        }
 
-        internal void Run(Action action)
-        {
-            _actions.Enqueue(action);
-            _actionsEvent.Raise();
-        }
-
-        private void RunActions()
-        {
-            while (_actions.Count > 0)
-                _actions.Dequeue()();
-        }
-
-        /// <summary>Shows the ranges of the ticked views and hides the others.</summary>
-        internal void UpdateShapes()
-        {
-            foreach (var item in ViewCropBoxItems)
+            if (value)
             {
-                if (item.IsSelected)
-                    TemporaryGraphics.Set(item, Doc, item.CreateShape(ShowSectionPlane));
-                else
-                    TemporaryGraphics.Remove(item);
+                foreach (var item in ViewCropBoxItems.Where(v => v.IsSelected))
+                    item.SectionPlaneEvent.Raise();
+            }
+            else
+            {
+                // One event deletes the planes of all the views.
+                _deletePlanesEvent.Raise();
+            }
+        }
+
+        /// <summary>A shape in the 3D view, marked as one of this window's.</summary>
+        internal ElementId CreateShape(Solid solid, Color color)
+        {
+            var shape = ExMethods.CreateDirectShape(Doc, [solid]);
+            shape.ApplicationId = ShapeApplicationId;
+            shape.ApplicationDataId = ShapeDataId;
+
+            View3D.SetElementOverrides(shape.Id, GetOverrides(color));
+            return shape.Id;
+        }
+
+        // Shapes of a window that never closed, when Revit failed: they must not stay in the model.
+        private void DeleteLeftShapes()
+        {
+            var leftShapeIds = Doc.ToElements<DirectShape>()
+                .Where(s => s.ApplicationId == ShapeApplicationId && s.ApplicationDataId == ShapeDataId)
+                .Select(s => s.Id)
+                .ToList();
+
+            if (leftShapeIds.Count == 0) return;
+
+            using (Transaction t = new Transaction(Doc, "Удаление оставшихся диапазонов видимости"))
+            {
+                t.Start();
+                Doc.Delete(leftShapeIds);
+                t.Commit();
+            }
+        }
+
+        private void DeletePlanes()
+        {
+            using (Transaction t = new Transaction(Doc, "Скрыть секущую плоскость диапазона видимости"))
+            {
+                t.Start();
+
+                foreach (var item in ViewCropBoxItems.Where(v => v.SectionPlaneId != null))
+                {
+                    DeleteIfExists(item.SectionPlaneId);
+                    item.SectionPlaneId = null;
+                }
+
+                t.Commit();
+            }
+        }
+
+        private void DeleteAllShapes()
+        {
+            using (Transaction t = new Transaction(Doc, "Удаление всех диапазонов видимости"))
+            {
+                t.Start();
+
+                foreach (var item in ViewCropBoxItems.Where(v => v.IsSelected))
+                {
+                    DeleteIfExists(item.DirectShapeId);
+                    DeleteIfExists(item.SectionPlaneId);
+                }
+
+                t.Commit();
+            }
+        }
+
+        // The user may have deleted a shape by hand; deleting it again would fail the whole transaction.
+        internal void DeleteIfExists(ElementId id)
+        {
+            if (id != null && id.ToElement(Doc) != null)
+                Doc.Delete(id);
+        }
+
+        private OverrideGraphicSettings GetOverrides(Color color)
+        {
+            var overrides = new OverrideGraphicSettings();
+            overrides.SetSurfaceTransparency(70);
+
+            // Without a solid fill in the project the shapes are coloured by their lines alone.
+            if (PatternId != null)
+            {
+                overrides.SetSurfaceForegroundPatternId(PatternId);
+                overrides.SetSurfaceForegroundPatternColor(color);
+                overrides.SetSurfaceBackgroundPatternId(PatternId);
+                overrides.SetSurfaceBackgroundPatternColor(color);
+                overrides.SetCutForegroundPatternId(PatternId);
+                overrides.SetCutForegroundPatternColor(color);
+                overrides.SetCutBackgroundPatternId(PatternId);
+                overrides.SetCutBackgroundPatternColor(color);
             }
 
-            if (ViewCropBoxItems.Any(v => v.IsSelected) && UIDoc.ActiveView.Id != View3D.Id)
-                UIDoc.ActiveView = View3D;
+            overrides.SetProjectionLineColor(color);
+            overrides.SetCutLineColor(color);
 
-            UIDoc.UpdateAllOpenViews();
+            return overrides;
         }
-
-        /// <summary>Hides all the ranges when the window closes.</summary>
-        public void HideAll() => Run(() =>
-        {
-            TemporaryGraphics.RemoveAll(ViewCropBoxItems);
-            UIDoc.UpdateAllOpenViews();
-        });
     }
 
-    public partial class ViewCropBoxItem(CropBoxVM owner, View view, Color color) : ObservableObject
+    public partial class ViewCropBoxItem : ObservableObject
     {
         [ObservableProperty] private bool _isSelected;
 
-        private readonly CropBoxVM _owner = owner;
+        private readonly CropBoxVM _owner;
+        private readonly ExternalEvent _createEvent;
+        private readonly ExternalEvent _deleteEvent;
+        private readonly ExternalEvent _sectionBoxEvent;
 
-        // The range of the view, read from Revit when it is first shown.
-        private bool _isRangeRead;
-        private XYZ _min;
-        private XYZ _max;
-        private double? _cutElevation;
+        public ViewCropBoxItem(CropBoxVM owner, View view, Color color)
+        {
+            _owner = owner;
+            View = view;
+            ViewName = view.Title;
+            Color = color;
 
-        public View View { get; } = view;
-        public string ViewName { get; } = view.Title;
-        public Color Color { get; } = color;
+            _createEvent = RevitAPI.CreateExtEvent(this, item => item.CreateShape());
+            _deleteEvent = RevitAPI.CreateExtEvent(this, item => item.DeleteShape());
+            _sectionBoxEvent = RevitAPI.CreateExtEvent(this, item => item.SetSectionBox());
+            SectionPlaneEvent = RevitAPI.CreateExtEvent(this, item => item.CreateSectionPlane());
+        }
 
-        partial void OnIsSelectedChanged(bool value) => _owner.Run(_owner.UpdateShapes);
+        public View View { get; }
+        public string ViewName { get; }
+        public Color Color { get; }
+
+        public ElementId DirectShapeId { get; set; }
+        public ElementId SectionPlaneId { get; set; }
+        public ExternalEvent SectionPlaneEvent { get; }
+
+        partial void OnIsSelectedChanged(bool value)
+        {
+            _owner.UIDoc.ActiveView = _owner.View3D;
+
+            if (value)
+                _createEvent.Raise();
+            else
+                _deleteEvent.Raise();
+        }
 
         [RelayCommand]
         private void OpenView()
@@ -129,66 +229,55 @@ namespace BIMPlugins.Views.WPF
         }
 
         [RelayCommand]
-        private void SectionBox() => _owner.Run(SetSectionBox);
+        private void SectionBox() => _sectionBoxEvent.Raise();
 
         [RelayCommand]
-        private void ShowRange() => _owner.Run(ZoomToRange);
+        private void Select() => _owner.UIDoc.Selection.SetElementIds([DirectShapeId]);
 
-        /// <summary>The range as a see-through box, with the cut plane of a plan if asked.</summary>
-        internal TemporaryShape CreateShape(bool withCutPlane)
+        private void CreateShape()
         {
-            ReadRange();
+            var doc = _owner.Doc;
 
-            var shape = new TemporaryShape(Color).AddBox(_min, _max);
-            if (withCutPlane && _cutElevation is double cutElevation)
-                shape.AddRectangle(_min, _max, cutElevation);
-
-            return shape;
-        }
-
-        private void SetSectionBox()
-        {
-            ReadRange();
-
-            var view3D = _owner.View3D;
-            using (Transaction t = new Transaction(_owner.Doc, "Обрезка вида по диапазону видимости"))
+            using (TransactionGroup tGroup = new TransactionGroup(doc, "Создание диапазона видимости"))
             {
-                t.Start();
-                view3D.SetSectionBox(new BoundingBoxXYZ { Min = _min, Max = _max });
-                t.Commit();
+                tGroup.Start();
+
+                using (Transaction t = new Transaction(doc, "Создание диапазона видимости"))
+                {
+                    t.Start();
+
+                    GetRange(out var min, out var max);
+                    DirectShapeId = _owner.CreateShape(CreateBox(min, max, max.Z - min.Z), Color);
+
+                    t.Commit();
+                }
+
+                if (_owner.ShowSectionPlane)
+                    CreateSectionPlane();
+
+                tGroup.Assimilate();
             }
-
-            _owner.UIDoc.ActiveView = view3D;
-            view3D.ToUIView()?.ZoomToFit();
-        }
-
-        private void ZoomToRange()
-        {
-            ReadRange();
-
-            var view3D = _owner.View3D;
-            _owner.UIDoc.ActiveView = view3D;
-            view3D.ToUIView()?.ZoomAndCenterRectangle(_min, _max);
         }
 
         // The corners of the view range of a plan, or of the crop box of a section, in model coordinates.
-        private void ReadRange()
+        private void GetRange(out XYZ min, out XYZ max)
         {
-            if (_isRangeRead) return;
-            _isRangeRead = true;
-
             XYZ a, b;
             if (View is ViewPlan viewPlan)
             {
                 var viewRange = viewPlan.GetViewRange();
                 var depthElevation = GetElevation(viewRange, PlanViewPlane.ViewDepthPlane);
-                _cutElevation = GetElevation(viewRange, PlanViewPlane.CutPlane);
 
-                var cropBox = ReadPlanCropBox(viewPlan);
+                // Showing the crop box for a moment makes Revit compute it; its visibility is then set back as the user had it.
+                var cropBoxVisible = viewPlan.CropBoxVisible;
+                viewPlan.CropBoxVisible = true;
+                viewPlan.CropBoxVisible = cropBoxVisible;
+
+                var cropBox = viewPlan.CropBox;
 
                 var (minElevation, maxElevation) = viewPlan.GetUnderlayOrientation() == UnderlayOrientation.LookingDown
                     ? (depthElevation ?? -1000, GetElevation(viewRange, PlanViewPlane.TopClipPlane) ?? 1000)
-                    : (_cutElevation ?? -1000, depthElevation ?? 1000);
+                    : (GetElevation(viewRange, PlanViewPlane.CutPlane) ?? -1000, depthElevation ?? 1000);
 
                 a = cropBox.Min.SetZ(minElevation);
                 b = cropBox.Max.SetZ(maxElevation);
@@ -201,30 +290,8 @@ namespace BIMPlugins.Views.WPF
             }
 
             // A section looking the other way gives its corners swapped on some axes.
-            _min = new XYZ(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
-            _max = new XYZ(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
-        }
-
-        // Showing the crop box for a moment makes Revit compute it. The change is rolled back, so the view stays
-        // as the user had it and nothing goes into the undo list.
-        private BoundingBoxXYZ ReadPlanCropBox(ViewPlan viewPlan)
-        {
-            using (TransactionGroup tGroup = new TransactionGroup(_owner.Doc, "Чтение рамки обрезки"))
-            {
-                tGroup.Start();
-
-                using (Transaction t = new Transaction(_owner.Doc, "Чтение рамки обрезки"))
-                {
-                    t.Start();
-                    viewPlan.CropBoxVisible = true;
-                    t.Commit();
-                }
-
-                var cropBox = viewPlan.CropBox;
-
-                tGroup.RollBack();
-                return cropBox;
-            }
+            min = new XYZ(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
+            max = new XYZ(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
         }
 
         // The elevation of a plane of the view range; null if the plane is not bound to a level.
@@ -232,6 +299,69 @@ namespace BIMPlugins.Views.WPF
         {
             var level = viewRange.GetLevelId(plane).ToElement<Level>(_owner.Doc);
             return level == null ? null : level.ProjectElevation + viewRange.GetOffset(plane);
+        }
+
+        private void DeleteShape()
+        {
+            using (Transaction t = new Transaction(_owner.Doc, "Удаление диапазона видимости"))
+            {
+                t.Start();
+
+                _owner.DeleteIfExists(DirectShapeId);
+                _owner.DeleteIfExists(SectionPlaneId);
+
+                DirectShapeId = null;
+                SectionPlaneId = null;
+
+                t.Commit();
+            }
+        }
+
+        private void SetSectionBox()
+        {
+            var view3D = _owner.View3D;
+            var bbox = DirectShapeId.ToElement(_owner.Doc).get_BoundingBox(view3D);
+
+            using (Transaction t = new Transaction(_owner.Doc, "Обрезка вида по диапазону видимости"))
+            {
+                t.Start();
+                view3D.SetSectionBox(bbox);
+                t.Commit();
+            }
+
+            _owner.UIDoc.ActiveView = view3D;
+            view3D.ToUIView()?.ZoomToFit();
+        }
+
+        private void CreateSectionPlane()
+        {
+            // Only a plan has a cut plane, and only a cut plane bound to a level can be shown.
+            if (View is not ViewPlan viewPlan || GetElevation(viewPlan.GetViewRange(), PlanViewPlane.CutPlane) is not double cutElevation)
+                return;
+
+            var cropBox = viewPlan.CropBox;
+
+            using (Transaction t = new Transaction(_owner.Doc, "Показать секущую плоскость диапазона видимости"))
+            {
+                t.Start();
+
+                var plane = CreateBox(cropBox.Min.SetZ(cutElevation), cropBox.Max.SetZ(cutElevation), 0.00001.FromMillimeters());
+                SectionPlaneId = _owner.CreateShape(plane, Color);
+
+                t.Commit();
+            }
+        }
+
+        // A box over the rectangle from min to max at the height of min, extruded up by the given height.
+        private static Solid CreateBox(XYZ min, XYZ max, double height)
+        {
+            var profile = new CurveLoop();
+            profile.Append(Line.CreateBound(new XYZ(min.X, min.Y, min.Z), new XYZ(max.X, min.Y, min.Z)));
+            profile.Append(Line.CreateBound(new XYZ(max.X, min.Y, min.Z), new XYZ(max.X, max.Y, min.Z)));
+            profile.Append(Line.CreateBound(new XYZ(max.X, max.Y, min.Z), new XYZ(min.X, max.Y, min.Z)));
+            profile.Append(Line.CreateBound(new XYZ(min.X, max.Y, min.Z), new XYZ(min.X, min.Y, min.Z)));
+
+            return GeometryCreationUtilities.CreateExtrusionGeometry([profile], XYZ.BasisZ, height);
         }
     }
 }
