@@ -1,38 +1,34 @@
 ﻿using Autodesk.Revit.DB;
 using Autodesk.Revit.UI;
+using BIMPlugins.Bars;
+using BIMPlugins.ExtStorage;
+using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using BIMPlugins.ExtStorage;
-using BIMPlugins.Bars;
 using System.Collections.Generic;
 using System.Linq;
-using BIMPlugins.ExtStorage.Extensions;
 
 namespace BIMPlugins.Parameters.WPF
 {
     public partial class NumerateVM : ObservableObject
     {
+        public const string Title = "Нумерация элементов";
+
         [ObservableProperty] private string _prefix;
-        [ObservableProperty] private double _number = 1;
-        [ObservableProperty] private bool _isNotNumbering = true;
+        [ObservableProperty] private int _number = 1;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private bool _isNotNumbering = true;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Parameter _selectedParameter;
 
         private readonly UIDocument _uiDoc;
-        private readonly Document _doc;
+        private readonly ExternalEvent _exEvent;
 
-        public List<Parameter> Parameters { get; set; } = [];
-        
-        private ExternalEvent ExEvent { get; }
+        public List<Parameter> Parameters { get; }
 
-        public NumerateVM()
+        public NumerateVM(UIDocument uiDoc, Element element)
         {
-            _uiDoc = RevitAPI.UIDocument;
-            _doc = _uiDoc.Document;
-
-            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.Numerate());
-
-            var element = _uiDoc.PickElement("Выберите элемент");
-            if (element == null) return;
+            _uiDoc = uiDoc;
+            _exEvent = RevitAPI.CreateExtEvent(this, vm => vm.Numerate());
 
             Parameters = element.Parameters
                 .Cast<Parameter>()
@@ -41,58 +37,63 @@ namespace BIMPlugins.Parameters.WPF
                 .ToList();
         }
 
-        [RelayCommand(CanExecute = nameof(IsEnabled))]
-        private void Run() => ExEvent.Raise();
+        // The bar is locked at once, so that a second click does not queue a second numbering.
+        [RelayCommand(CanExecute = nameof(CanRun))]
+        private void Run()
+        {
+            IsNotNumbering = false;
+            _exEvent.Raise();
+        }
+
+        private bool CanRun() => SelectedParameter != null && IsNotNumbering;
+
         private void Numerate()
         {
-            using (TransactionGroup tGroup = new TransactionGroup(_doc, "Нумеровать элементы"))
+            var doc = _uiDoc.Document;
+            var parameterName = SelectedParameter.Definition.Name;
+
+            try
             {
-                tGroup.Start();
-                
-                while (true)
+                using (TransactionGroup tGroup = new TransactionGroup(doc, Title))
                 {
-                    IsNotNumbering = false;
+                    tGroup.Start();
 
-                    using (Transaction t = new Transaction(_doc, "Нумерация элеметов"))
+                    while (true)
                     {
-                        t.Start();
+                        var element = _uiDoc.PickElement($"Выберите элемент с номером {Prefix}{Number}. Esc — завершить нумерацию");
+                        if (element == null)
+                            break;
 
-                        try
+                        var parameter = element.ToParameter(SelectedParameter.Id);
+                        if (parameter == null || parameter.IsReadOnly)
                         {
-                            var element = _uiDoc.PickElement($"Выберите {Number} элемент. Нажмите Esc для завершения нумерации!");
-                            if (element == null) break;
-
-                            var parameter = element.LookupParameter(SelectedParameter.Definition.Name);
-
-                            if (parameter != null)
-                            {
-                                string value = Prefix + Number.ToString();
-                                parameter.Set(value);
-
-                                Number++;
-                            }
-                            else
-                            {
-                                TaskDialog.Show("Ошибка", $"У элемента {element.Name} нет параметра {SelectedParameter}");
-                                break;
-                            }
+                            MessageDialog.Show($"У элемента «{element.Name}» нет параметра «{parameterName}» или его нельзя изменить. Выберите другой элемент.",
+                                Title, icon: MessageIcon.Warning);
+                            continue;
                         }
-                        catch { break; }
-                        finally { t.Commit(); }
+
+                        using (Transaction t = new Transaction(doc, Title))
+                        {
+                            t.Start();
+                            parameter.Set(Prefix + Number);
+                            t.Commit();
+                        }
+
+                        Number++;
                     }
+
+                    tGroup.Assimilate();
                 }
-
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException ex)
+            {
+                MessageDialog.Show($"Нумерация остановлена: {ex.Message}", Title, icon: MessageIcon.Error);
+            }
+            finally
+            {
                 IsNotNumbering = true;
-
-                tGroup.Assimilate();
             }
         }
-
-        private bool IsEnabled()
-        {
-            return SelectedParameter != null;
-        }
-
 
         [RelayCommand]
         private void Close() => RevitOptionsBar.Hide();

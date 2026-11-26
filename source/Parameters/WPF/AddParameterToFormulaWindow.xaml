@@ -19,8 +19,17 @@
     <Border Padding="3">
         <StackPanel>
             <TextBlock Text="Выберите параметр, который будет&#x0a;добавлен в формулу" Margin="0 2 0 2"/>
+            <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" Margin="0 5 0 0"
+                     Style="{StaticResource MaterialDesignOutlinedTextBox}" Padding="8 4"
+                     materialDesign:HintAssist.Hint="Поиск параметра" materialDesign:HintAssist.IsFloating="False"
+                     materialDesign:TextFieldAssist.HasLeadingIcon="True" materialDesign:TextFieldAssist.LeadingIcon="Magnify"
+                     materialDesign:TextFieldAssist.HasClearButton="True"/>
             <Border BorderThickness="1" BorderBrush="{StaticResource BIMPlugins.PrimaryBrush}" Margin="0 5">
-                <ListBox ItemsSource="{Binding Parameters}" SelectedItem="{Binding SelectedParameter}" SelectionMode="Single" Height="285" Padding="0" DisplayMemberPath="Definition.Name">
+                <!-- A double click adds the parameter, as the OK button does. -->
+                <ListBox ItemsSource="{Binding Parameters}" SelectedItem="{Binding SelectedParameter}" SelectionMode="Single" Height="245" Padding="0" DisplayMemberPath="Definition.Name">
+                    <ListBox.InputBindings>
+                        <MouseBinding MouseAction="LeftDoubleClick" Command="{Binding RunCommand}"/>
+                    </ListBox.InputBindings>
                     <ListBox.ItemContainerStyle>
                         <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
                             <Setter Property="Padding" Value="3" />

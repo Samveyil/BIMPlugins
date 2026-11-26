@@ -1,7 +1,7 @@
 ﻿using Autodesk.Revit.DB;
 using BIMPlugins.Bars;
-using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -13,221 +13,233 @@ using System.Windows.Data;
 
 namespace BIMPlugins.Parameters.WPF
 {
+    // Where the value written to the parameter comes from.
+    public enum ValueSource { UserValue, Parameter, Formula }
+
     public partial class SetParameterValueVM : ObservableObject
     {
-        [ObservableProperty] private bool _userValue = false;
-        [ObservableProperty] private bool _fromParameter = false;
-        [ObservableProperty] private bool _userFormula = false;
-        [ObservableProperty] private Parameter _sourceParameter;
+        private const string Title = "Заполнить параметры";
+
+        // A parameter in the formula: "[Ширина]".
+        private static readonly Regex FormulaParameter = new(@"\[(.*?)\]");
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UserValue), nameof(FromParameter), nameof(UserFormula))]
+        [NotifyCanExecuteChangedFor(nameof(RunCommand))]
+        private ValueSource _source = ValueSource.UserValue;
+
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Parameter _sourceParameter;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Parameter _targetParameter;
         [ObservableProperty] private string _userValueText;
         [ObservableProperty] private string _userFormulaText;
 
         private readonly ICollection<Element> _elements;
-        private bool _elementIdParamSelected;
 
-        public List<Parameter> Parameters { get; } = [];
+        public List<Parameter> Parameters { get; }
         public ICollectionView TargetParameters { get; }
 
-        partial void OnUserFormulaChanged(bool value)
+        // The radio buttons of the three sources.
+        public bool UserValue
         {
-            TargetParameters.Refresh();
+            get => Source == ValueSource.UserValue;
+            set { if (value) Source = ValueSource.UserValue; }
         }
-        partial void OnSourceParameterChanged(Parameter value)
+
+        public bool FromParameter
         {
-            _elementIdParamSelected = value.StorageType == StorageType.ElementId;
-            TargetParameters.Refresh();
+            get => Source == ValueSource.Parameter;
+            set { if (value) Source = ValueSource.Parameter; }
         }
+
+        public bool UserFormula
+        {
+            get => Source == ValueSource.Formula;
+            set { if (value) Source = ValueSource.Formula; }
+        }
+
+        partial void OnSourceChanged(ValueSource value) => TargetParameters.Refresh();
+        partial void OnSourceParameterChanged(Parameter value) => TargetParameters.Refresh();
 
         public SetParameterValueVM(ICollection<Element> elements)
         {
             _elements = elements;
 
-            var instParameters = elements.SelectMany(e => e.GetOrderedParameters()
-                .Where(p => p.StorageType != StorageType.None))
-                .GroupBy(p => p.Id.ToString())
-                .Select(g => new { Id = g.Key, Count = g.Count(), Parameter = g.First() })
-                .Where(x => x.Count == elements.Count)
-                .Select(x => x.Parameter);
-
-            var typeElements = elements
+            // Parameters every selected element has, and those every type of them has. Some elements, as rooms, have no type.
+            var instanceParameters = CommonParameters(elements);
+            var types = elements
                 .Select(e => e.ToElementType())
-                .GroupBy(t => t.Id.ToString())
+                .Where(t => t != null)
+                .GroupBy(t => t.Id)
                 .Select(g => g.First())
                 .ToList();
 
-            var typeParameters = typeElements.SelectMany(t => t.GetOrderedParameters())
-                .Where(p => p.StorageType != StorageType.None)
-                .GroupBy(p => p.Id.ToString())
-                .Select(g => new { Id = g.Key, Count = g.Count(), Parameter = g.First() })
-                .Where(x => x.Count == typeElements.Count)
-                .Select(x => x.Parameter);
-
-            Parameters = instParameters.Concat(typeParameters)
+            Parameters = instanceParameters
+                .Concat(CommonParameters(types))
                 .OrderBy(p => p.Definition.Name)
                 .ToList();
 
             TargetParameters = CollectionViewSource.GetDefaultView(Parameters.ToList());
-            TargetParameters.Filter = item =>
-            {
-                var parameter = (Parameter)item;
-                
-                var elementIdFilter = (!_elementIdParamSelected && parameter.StorageType != StorageType.ElementId) ||
-                                      (_elementIdParamSelected && (parameter.StorageType == StorageType.String || parameter.StorageType == StorageType.ElementId));
-                var formulaFilter = !UserFormula || parameter.StorageType == StorageType.String;
-
-                return elementIdFilter && formulaFilter;
-            };
+            TargetParameters.Filter = item => CanWrite((Parameter)item);
         }
+
+        private static IEnumerable<Parameter> CommonParameters<T>(ICollection<T> elements) where T : Element => elements
+            .SelectMany(e => e.GetOrderedParameters().Where(p => p.StorageType != StorageType.None))
+            .GroupBy(p => p.Id)
+            .Where(g => g.Count() == elements.Count)
+            .Select(g => g.First());
+
+        // A target parameter the chosen source can be written to.
+        private bool CanWrite(Parameter target) => Source switch
+        {
+            ValueSource.Formula => target.StorageType == StorageType.String,
+            ValueSource.Parameter when SourceParameter?.StorageType == StorageType.ElementId =>
+                target.StorageType is StorageType.String or StorageType.ElementId,
+            _ => target.StorageType != StorageType.ElementId
+        };
 
         [RelayCommand]
         private void AddParameterToFormula()
         {
             var vm = new AddParameterToFormulaVM(Parameters);
-            var window = new AddParameterToFormulaWindow(vm);
-            vm.CloseRequest += (s, e) => window.Close();
-
-            window.ShowDialog();
+            new AddParameterToFormulaWindow(vm).ShowDialog();
 
             if (vm.UserSelect)
-                UserFormulaText += ($"[{vm.SelectedParameter.Definition.Name}]");
+                UserFormulaText += $"[{vm.SelectedParameter.Definition.Name}]";
         }
 
-        [RelayCommand(CanExecute = nameof(IsEnabled))]
+        [RelayCommand(CanExecute = nameof(CanRun))]
         private void Run()
         {
             RaiseCloseRequest();
 
-            if (UserValue)
+            // Elements whose parameter could not take the value are told at the end.
+            var failed = new List<string>();
+
+            using (var t = new Transaction(_elements.First().Document, Title))
             {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Заполнить параметры"))
+                t.Start();
+
+                using (var revitProgressBar = new RevitProgressBar(true))
                 {
-                    t.Start();
-
-                    using (var revitProgressBar = new RevitProgressBar(true))
+                    revitProgressBar.Run("Обработка элементов...", _elements, element =>
                     {
-                        revitProgressBar.Run("Обработка элементов...", _elements, (element) =>
-                        {
-                            var parameter = element.ToParameter(TargetParameter.Id) ?? element.ToElementType().ToParameter(TargetParameter.Id);
-                            if (parameter == null || parameter.IsReadOnly) return;
-
-                            if (parameter.StorageType == StorageType.Integer || parameter.StorageType == StorageType.Double)
-                            {
-                                var value = Convert.ToDouble(UserValueText.Replace(",", "."));
-
-                                parameter.Set(parameter.StorageType == StorageType.Double
-                                    ? UnitUtils.ConvertToInternalUnits(value, parameter.GetUnitType())
-                                    : value);
-                            }
-                            else
-                                parameter.Set(UserValueText);
-                        });
-
-                        if (revitProgressBar.IsCancelling())
-                        {
-                            t.RollBack();
+                        var target = FindParameter(element, TargetParameter.Id);
+                        if (target == null || target.IsReadOnly)
                             return;
+
+                        bool isSet;
+                        try
+                        {
+                            isSet = SetValue(element, target);
                         }
-                    }
+                        catch (Autodesk.Revit.Exceptions.ApplicationException)
+                        {
+                            isSet = false;
+                        }
 
-                    t.Commit();
-                }
-            }
-            else if (FromParameter)
-            {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Заполнить параметры"))
-                {
-                    t.Start();
+                        if (!isSet)
+                            failed.Add($"{element.Name} (Id {element.Id})");
+                    });
 
-                    using (var revitProgressBar = new RevitProgressBar(true))
+                    if (revitProgressBar.IsCancelling())
                     {
-                        revitProgressBar.Run("Обработка элементов...", _elements, (element) =>
-                        {
-                            var sourceParameter = element.ToParameter(SourceParameter.Id) ?? element.ToElementType().ToParameter(SourceParameter.Id);
-                            if (sourceParameter == null) return;
-
-                            var targetParameter = element.ToParameter(TargetParameter.Id) ?? element.ToElementType().ToParameter(TargetParameter.Id);
-                            if (targetParameter == null || targetParameter.IsReadOnly) return;
-
-                            if (!sourceParameter.HasValue && !targetParameter.HasValue) return;
-
-                            if (sourceParameter.StorageType == targetParameter.StorageType)
-                                targetParameter.SetValue(sourceParameter.GetValue());
-                            else if (sourceParameter.StorageType == StorageType.String || targetParameter.StorageType == StorageType.String)
-                            {
-                                if (sourceParameter.StorageType == StorageType.String)
-                                {
-                                    var value = Convert.ToDouble(sourceParameter.AsString().Replace(",", "."));
-                                    targetParameter.Set(targetParameter.StorageType == StorageType.Double
-                                        ? UnitUtils.ConvertToInternalUnits(value, targetParameter.GetUnitType())
-                                        : value.Round(0)
-                                    );
-                                }
-                                else
-                                    targetParameter.Set(sourceParameter.AsValueString());
-                            }
-                            else
-                            {
-                                targetParameter.Set(targetParameter.StorageType == StorageType.Integer ? sourceParameter.AsDouble().Round(0) : sourceParameter.AsInteger());
-                            }
-                        });
-
-                        if (revitProgressBar.IsCancelling())
-                        {
-                            t.RollBack();
-                            return;
-                        }
+                        t.RollBack();
+                        return;
                     }
-
-                    t.Commit();
                 }
+
+                t.Commit();
             }
-            else
-            {
-                using (Transaction t = new Transaction(RevitAPI.Document, "Заполнить параметры"))
-                {
-                    t.Start();
 
-                    using (var revitProgressBar = new RevitProgressBar(true))
-                    {
-                        revitProgressBar.Run("Обработка элементов...", _elements, (element) =>
-                        {
-                            var targetParameter = element.ToParameter(TargetParameter.Id) ?? element.ToElementType().ToParameter(TargetParameter.Id);
-                            if (targetParameter == null || targetParameter.IsReadOnly) return;
-
-                            targetParameter.Set(ParseParameterFormula(element, UserFormulaText));
-                        });
-
-                        if (revitProgressBar.IsCancelling())
-                        {
-                            t.RollBack();
-                            return;
-                        }
-                    }
-
-                    t.Commit();
-                }
-            }
+            if (failed.Count != 0)
+                ReportDialog.Show(failed, $"Не удалось записать «{TargetParameter.Definition.Name}»");
         }
 
-        private string ParseParameterFormula(Element element, string template)
+        private bool CanRun() => TargetParameter != null && (Source != ValueSource.Parameter || SourceParameter != null);
+
+        private bool SetValue(Element element, Parameter target)
         {
-            string pattern = @"\[(.*?)\]";
-
-            return Regex.Replace(template, pattern, match =>
+            switch (Source)
             {
-                string paramName = match.Groups[1].Value;
-                Parameter param = element.ToParameter(paramName) ?? element.ToElementType().ToParameter(paramName);
+                case ValueSource.UserValue:
+                    return SetText(target, UserValueText);
 
-                if (param != null)
-                {
-                    return param.StorageType == StorageType.String ? param.AsString() : param.AsValueString();
-                }
+                case ValueSource.Parameter:
+                    var source = FindParameter(element, SourceParameter.Id);
+                    if (source == null)
+                        return false;
+                    if (!source.HasValue && !target.HasValue)
+                        return true;
 
-                return match.Value;
-            });
+                    return CopyValue(source, target);
+
+                default:
+                    return target.Set(ParseFormula(element, UserFormulaText ?? string.Empty));
+            }
         }
-        private bool IsEnabled() => TargetParameter != null;
+
+        // The parameter of the element or, failing that, of its type.
+        private static Parameter FindParameter(Element element, ElementId parameterId) =>
+            element.ToParameter(parameterId) ?? element.ToElementType()?.ToParameter(parameterId);
+
+        private static Parameter FindParameter(Element element, string parameterName) =>
+            element.ToParameter(parameterName) ?? element.ToElementType()?.ToParameter(parameterName);
+
+        private static bool CopyValue(Parameter source, Parameter target)
+        {
+            if (source.StorageType == target.StorageType)
+                return target.SetValue(source.GetValue());
+
+            // Between other kinds the value goes as the text the user sees: "1500" of a length in millimetres.
+            var text = source.StorageType == StorageType.String ? source.AsString() : source.AsValueString();
+            return SetText(target, text);
+        }
+
+        // Text into a parameter of any kind; a number is read in the project units, with a dot or a comma.
+        private static bool SetText(Parameter target, string text)
+        {
+            text ??= string.Empty;
+
+            switch (target.StorageType)
+            {
+                case StorageType.String:
+                    return target.Set(text);
+
+                case StorageType.Integer when target.SetValue(text):
+                    return true;
+
+                case StorageType.Integer:
+                case StorageType.Double:
+                    return TrySetValueString(target, text)
+                        || TrySetValueString(target, text.Contains(',') ? text.Replace(',', '.') : text.Replace('.', ','));
+
+                default:
+                    return false;
+            }
+        }
+
+        // Revit reads the text as the project units show numbers; text it cannot read is false, not an exception.
+        private static bool TrySetValueString(Parameter target, string text)
+        {
+            try
+            {
+                return target.SetValueString(text);
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return false;
+            }
+        }
+
+        // The formula with each "[Name]" replaced by the value of that parameter; an unknown name stays as it is.
+        private static string ParseFormula(Element element, string formula) => FormulaParameter.Replace(formula, match =>
+        {
+            var parameter = FindParameter(element, match.Groups[1].Value);
+            if (parameter == null)
+                return match.Value;
+
+            return (parameter.StorageType == StorageType.String ? parameter.AsString() : parameter.AsValueString()) ?? string.Empty;
+        });
 
         public event EventHandler CloseRequest;
         public void RaiseCloseRequest()
