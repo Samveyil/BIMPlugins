@@ -263,7 +263,7 @@
                         <CheckBox Content="Записать значение части номера в параметр" Margin="5" Padding="2 0" IsChecked="{Binding WriteNumberToParameter}"/>
                         <ComboBox IsEnabled="{Binding WriteNumberToParameter}" Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="8 4"
                                   ItemsSource="{Binding Parameters}" SelectedItem="{Binding SelectedParameter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  Margin="0 5 5 5" DisplayMemberPath="Definition.Name" materialDesign:HintAssist.Hint="Выберите параметр" Width="200"
+                                  Margin="0 5 5 5" DisplayMemberPath="Definition.Name" materialDesign:HintAssist.Hint="Выберите параметр" materialDesign:HintAssist.IsFloating="False" Width="200"
                                   IsEditable="True" IsTextSearchEnabled="True" PreviewTextInput="ComboBox_PreviewTextInput" />
                     </StackPanel>
                 </StackPanel>
