@@ -42,11 +42,30 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private Parameter _selectedParameter;
         [ObservableProperty] private List<GroupItem> _sheetSections;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private GroupItem _selectedGroup;
-        [ObservableProperty][NotifyPropertyChangedFor(nameof(UsesCheckedSheets))] private NumberingScope _selectedScope = NumberingScope.Group;
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(UsesCheckedSheets), nameof(CanCheckGroup))]
+        private NumberingScope _selectedScope = NumberingScope.Group;
 
         public bool UsesCheckedSheets => SelectedScope != NumberingScope.Group;
 
-        partial void OnSelectedScopeChanged(NumberingScope value) => ChangeNumber();
+        // From the checked sheet down there is one sheet to check, so the group has no check box then.
+        public bool CanCheckGroup => SelectedScope == NumberingScope.Checked;
+
+        // While the other sheets are unchecked, they do not renumber the group one by one.
+        private bool _isUncheckingOthers;
+
+        partial void OnSelectedScopeChanged(NumberingScope value)
+        {
+            // Only the first checked sheet stays checked.
+            if (value == NumberingScope.FromChecked && SelectedGroup != null)
+            {
+                var firstChecked = SelectedGroup.Sheets.FirstOrDefault(s => s.IsSelected == true);
+                if (firstChecked != null)
+                    UncheckOthers(firstChecked);
+            }
+
+            ChangeNumber();
+        }
 
         partial void OnNumberLengthChanged(int value) => ChangeNumber();
         partial void OnPrefixChanged(string value) => ChangeNumber();
@@ -57,7 +76,15 @@ namespace BIMPlugins.Sheets.WPF
         partial void OnAddInvisibleCharsChanged(bool value) => ChangeNumber();
 
         partial void OnUserSettingsChanged(bool value) => ResetSettings();
-        partial void OnSelectedGroupChanged(GroupItem value) => ResetSettings();
+        partial void OnSelectedGroupChanged(GroupItem oldValue, GroupItem newValue)
+        {
+            if (oldValue != null)
+                oldValue.IsNumbered = false;
+            if (newValue != null)
+                newValue.IsNumbered = true;
+
+            ResetSettings();
+        }
 
         partial void OnSelectedParameterChanged(Parameter value)
         {
@@ -115,14 +142,28 @@ namespace BIMPlugins.Sheets.WPF
                 // A sheet checked or unchecked changes which sheets are renumbered.
                 sheetItem.PropertyChanged += (_, e) =>
                 {
-                    if (e.PropertyName == nameof(SheetItem.IsSelected) && UsesCheckedSheets)
-                        ChangeNumber();
+                    if (e.PropertyName != nameof(SheetItem.IsSelected) || !UsesCheckedSheets || _isUncheckingOthers)
+                        return;
+
+                    // From the checked sheet down: checking a sheet unchecks the one checked before.
+                    if (SelectedScope == NumberingScope.FromChecked && sheetItem.IsSelected == true)
+                        UncheckOthers(sheetItem);
+
+                    ChangeNumber();
                 };
 
                 return sheetItem;
             }).ToList();
 
             SheetSections = Classes.SheetGroups.Create(_doc, _sheetItems);
+        }
+
+        private void UncheckOthers(SheetItem checkedSheet)
+        {
+            _isUncheckingOthers = true;
+            foreach (var sheetItem in checkedSheet.Parent.Sheets.Where(s => s != checkedSheet && s.IsSelected == true).ToList())
+                sheetItem.IsSelected = false;
+            _isUncheckingOthers = false;
         }
 
         private string GetParameterValue(ViewSheet sheet) =>

@@ -81,8 +81,9 @@
 
             <!-- The button lies over the top right corner of the tree, as in the Revit Server windows. -->
             <Grid>
-                <TreeView ItemsSource="{Binding SheetSections, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="720" VerticalAlignment="Top" Padding="0"
-                          VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling" Margin="0" MaxHeight="720">
+                <!-- No fixed height: the tree fills the group box, so its scroll bars stay inside the window. -->
+                <TreeView ItemsSource="{Binding SheetSections, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Padding="0" Margin="0"
+                          VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling">
                     <b:Interaction.Triggers>
                         <b:EventTrigger EventName="SelectedItemChanged">
                             <b:InvokeCommandAction Command="{Binding TreeItemClickedCommand}" 
@@ -107,7 +108,7 @@
 
                         <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Items}">
                             <StackPanel Orientation="Horizontal" Height="20" VerticalAlignment="Center">
-                                <!-- Only a folder of sheets is numbered, so only it gets a check box. -->
+                                <!-- Only the group being numbered checks all its sheets at once, and only when several may be checked. -->
                                 <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                                     <CheckBox.Style>
                                         <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
@@ -117,8 +118,8 @@
                                             <Style.Triggers>
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding HasSheets}" Value="True"/>
-                                                        <Condition Binding="{Binding DataContext.UsesCheckedSheets, RelativeSource={RelativeSource AncestorType=TreeView}}" Value="True"/>
+                                                        <Condition Binding="{Binding IsNumbered}" Value="True"/>
+                                                        <Condition Binding="{Binding DataContext.CanCheckGroup, RelativeSource={RelativeSource AncestorType=TreeView}}" Value="True"/>
                                                     </MultiDataTrigger.Conditions>
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </MultiDataTrigger>
@@ -132,8 +133,25 @@
 
                         <HierarchicalDataTemplate DataType="{x:Type classes:SheetNumberingItem}">
                             <StackPanel Orientation="Horizontal" Height="20" VerticalAlignment="Center">
-                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Margin="0 0 3 0"
-                                          Visibility="{Binding DataContext.UsesCheckedSheets, RelativeSource={RelativeSource AncestorType=TreeView}, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                <!-- Only the sheets of the group being numbered are checked. -->
+                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                    <CheckBox.Style>
+                                        <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                            <Setter Property="Margin" Value="0 0 3 0"/>
+                                            <Setter Property="Padding" Value="2"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <Condition Binding="{Binding Parent.IsNumbered}" Value="True"/>
+                                                        <Condition Binding="{Binding DataContext.UsesCheckedSheets, RelativeSource={RelativeSource AncestorType=TreeView}}" Value="True"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </CheckBox.Style>
+                                </CheckBox>
                                 <materialDesign:PackIcon Kind="AlertOctagonOutline" Width="18" Height="18" VerticalAlignment="Center"
                                                          Visibility="{Binding WarningImageVisibility, UpdateSourceTrigger=PropertyChanged}" Foreground="Red"/>
 
@@ -144,11 +162,15 @@
                                                 Visibility="{Binding HasNumberInvisibleChars, Converter={StaticResource BooleanToVisibilityConverter}}"/>
                                 <TextBlock Text=")" Padding="0" VerticalAlignment="Center" FontSize="10" Margin="0 0 5 0"/>
 
-                                <TextBlock Text="(" Padding="0" VerticalAlignment="Center" FontSize="12"/>
-                                <Label Content="{Binding NumberToParameter, Converter={StaticResource EscapeUnderscoreConverter}}"
-                                       VerticalAlignment="Center" Padding="0" FontSize="12"
-                                       ToolTip="Номер листа в выбранный параметр"/>
-                                <TextBlock Text=")" Padding="0" VerticalAlignment="Center" FontSize="12" Margin="0 0 5 0"/>
+                                <!-- The value for the parameter is shown only when it is written. -->
+                                <StackPanel Orientation="Horizontal"
+                                            Visibility="{Binding DataContext.WriteNumberToParameter, RelativeSource={RelativeSource AncestorType=TreeView}, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="(" Padding="0" VerticalAlignment="Center" FontSize="12"/>
+                                    <Label Content="{Binding NumberToParameter, Converter={StaticResource EscapeUnderscoreConverter}}"
+                                           VerticalAlignment="Center" Padding="0" FontSize="12"
+                                           ToolTip="Номер листа в выбранный параметр"/>
+                                    <TextBlock Text=")" Padding="0" VerticalAlignment="Center" FontSize="12" Margin="0 0 5 0"/>
+                                </StackPanel>
 
                                 <Label Content="{Binding NewNumber, Converter={StaticResource EscapeUnderscoreConverter}}"
                                        VerticalAlignment="Center" Padding="0" FontWeight="SemiBold"/>
@@ -239,9 +261,9 @@
 
                     <StackPanel Orientation="Horizontal">
                         <CheckBox Content="Записать значение части номера в параметр" Margin="5" Padding="2 0" IsChecked="{Binding WriteNumberToParameter}"/>
-                        <ComboBox IsEnabled="{Binding WriteNumberToParameter}"
+                        <ComboBox IsEnabled="{Binding WriteNumberToParameter}" Style="{StaticResource MaterialDesignOutlinedComboBox}" Padding="8 4"
                                   ItemsSource="{Binding Parameters}" SelectedItem="{Binding SelectedParameter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  Margin="0 5" DisplayMemberPath="Definition.Name" materialDesign:HintAssist.Hint="Выберите параметр" Width="200"
+                                  Margin="0 5 5 5" DisplayMemberPath="Definition.Name" materialDesign:HintAssist.Hint="Выберите параметр" Width="200"
                                   IsEditable="True" IsTextSearchEnabled="True" PreviewTextInput="ComboBox_PreviewTextInput" />
                     </StackPanel>
                 </StackPanel>
@@ -258,27 +280,36 @@
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="22"/>
-                        <RowDefinition Height="22"/>
-                        <RowDefinition Height="22"/>
-                        <RowDefinition Height="22"/>
-                        <RowDefinition Height="22"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
+                    <Grid.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Margin" Value="0 3"/>
+                        </Style>
+                    </Grid.Resources>
 
-                    <TextBlock Text="(А-12)" FontSize="10" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Column="1" Text="Исходный номер листа" VerticalAlignment="Center"/>
+                    <TextBlock Text="(А-12)" FontSize="10"/>
+                    <TextBlock Grid.Column="1" Text="Исходный номер листа"/>
 
-                    <TextBlock Grid.Row="1" Text="(12)" FontSize="12" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Значение, записываемое в выбранный параметр" VerticalAlignment="Center"/>
+                    <!-- Hidden with the values in the tree when the parameter is not written. -->
+                    <TextBlock Grid.Row="1" Text="(12)" FontSize="12"
+                               Visibility="{Binding WriteNumberToParameter, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Text="Значение, записываемое в выбранный параметр"
+                               Visibility="{Binding WriteNumberToParameter, Converter={StaticResource BooleanToVisibilityConverter}}"/>
 
-                    <TextBlock Grid.Row="2" Text="А-13" FontWeight="SemiBold" VerticalAlignment="Center"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Новый номер листа" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="2" Text="А-13" FontWeight="SemiBold"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Text="Новый номер листа"/>
 
                     <ContentControl Grid.Row="3" Content="2" ContentTemplate="{StaticResource InvisibleCharsMark}" HorizontalAlignment="Left"/>
-                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Сколько невидимых символов в конце номера" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="3" Grid.Column="1" Text="Сколько невидимых символов в конце номера"/>
 
                     <materialDesign:PackIcon Grid.Row="4" Kind="AlertOctagonOutline" Width="18" Height="18" VerticalAlignment="Center" Foreground="Red"/>
-                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Номер повторяется или занят листом другой группы" VerticalAlignment="Center"/>
+                    <TextBlock Grid.Row="4" Grid.Column="1" Text="Номер повторяется или занят"/>
                 </Grid>
             </GroupBox>
 

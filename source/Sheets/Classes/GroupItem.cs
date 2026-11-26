@@ -15,6 +15,9 @@ namespace BIMPlugins.Sheets.Classes
         [ObservableProperty] private bool? _isSelected = false;
         [ObservableProperty] private bool _isExpanded;
 
+        // The group the numbering window renumbers: only its sheets are checked.
+        [ObservableProperty] private bool _isNumbered;
+
         // While the folder gives its state to its items, they do not give theirs back one by one.
         private bool _isSelectingItems;
 
