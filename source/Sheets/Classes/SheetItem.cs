@@ -30,11 +30,5 @@ namespace BIMPlugins.Sheets.Classes
             Title = viewSheet.Title;
             Number = viewSheet.SheetNumber;
         }
-        public SheetItem(SheetItem other)
-        {
-            Element = other.Element;
-            Number = other.Number;
-            Title = other.Title;
-        }
     }
 }

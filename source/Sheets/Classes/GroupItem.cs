@@ -39,11 +39,17 @@ namespace BIMPlugins.Sheets.Classes
             .Cast<object>()
             .SelectMany(item => item is GroupItem group ? group.Sheets : new[] { (SheetItem)item });
 
+        /// <summary>
+        /// A folder of the last level: it holds sheets, not folders.
+        /// </summary>
+        public bool HasSheets { get; private set; }
+
         public void SetItems(IEnumerable<GroupItem> groups)
         {
             var list = groups.ToList();
             list.ForEach(g => g.Parent = this);
             Items = CollectionViewSource.GetDefaultView(list);
+            HasSheets = false;
         }
 
         public void SetItems(IEnumerable<SheetItem> sheets)
@@ -51,6 +57,7 @@ namespace BIMPlugins.Sheets.Classes
             var list = sheets.ToList();
             list.ForEach(s => s.Parent = this);
             Items = CollectionViewSource.GetDefaultView(list);
+            HasSheets = true;
         }
 
         partial void OnIsSelectedChanged(bool? value)
@@ -87,22 +94,6 @@ namespace BIMPlugins.Sheets.Classes
             IsSelected = states.All(s => s == true) ? true
                 : states.All(s => s == false) ? false
                 : null;
-        }
-
-        /// <summary>
-        /// The same folders with new sheet items, for a second tree of the same sheets.
-        /// </summary>
-        public GroupItem Clone()
-        {
-            var copy = new GroupItem { Name = Name };
-
-            var items = Items.SourceCollection.Cast<object>().ToList();
-            if (items.FirstOrDefault() is GroupItem)
-                copy.SetItems(items.Cast<GroupItem>().Select(g => g.Clone()));
-            else
-                copy.SetItems(items.Cast<SheetItem>().Select(s => new SheetItem(s)));
-
-            return copy;
         }
     }
 }

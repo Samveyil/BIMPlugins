@@ -88,7 +88,6 @@
 		<Resource Include="Resources\colorFilter.tiff" />
 		<Resource Include="Resources\copyProperties.tiff" />
 		<Resource Include="Resources\copySheets-32.png" />
-		<Resource Include="Resources\copyStamp-32.png" />
 		<Resource Include="Resources\cropBox-32.png" />
 		<Resource Include="Resources\fastSelect-32.png" />
 		<Resource Include="Resources\getSheetById.tiff" />

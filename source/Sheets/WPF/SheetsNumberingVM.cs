@@ -38,7 +38,7 @@ namespace BIMPlugins.Sheets.WPF
         [ObservableProperty] private NumberChange _selectedWayToChangeNumber = NumberChange.Increase;
         [ObservableProperty] private int _step = 0;
         [ObservableProperty] private bool _addInvisibleChars;
-        [ObservableProperty] private bool _writeNumberToParameter = true;
+        [ObservableProperty] private bool _writeNumberToParameter;
         [ObservableProperty] private Parameter _selectedParameter;
         [ObservableProperty] private List<GroupItem> _sheetSections;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private GroupItem _selectedGroup;
@@ -157,8 +157,10 @@ namespace BIMPlugins.Sheets.WPF
             if (group == null)
                 return;
 
-            SelectedGroup = group;
-            SelectedGroup.IsExpanded = true;
+            group.IsExpanded = true;
+
+            // Only a folder of the last level, the one that holds the sheets, is numbered: a folder above it is not.
+            SelectedGroup = group.HasSheets ? group : null;
         }
 
         [RelayCommand(CanExecute = nameof(CanRun))]

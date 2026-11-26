@@ -39,55 +39,57 @@
                     <TextBox Text="{Binding Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="300"
                              materialDesign:TextFieldAssist.HasClearButton="True" materialDesign:HintAssist.Hint="Поиск" />
                 </StackPanel>
-                <Button Panel.ZIndex="1" Width="25" Height="25" Padding="0" Margin="5 0 22 -35" HorizontalAlignment="Right"
-                        Command="{Binding CollapseAllCommand}" Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
-                    <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
-                </Button>
-                <TreeView ItemsSource="{Binding SheetGroups, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="705" Padding="0"
-                          VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling"
-                          Margin="0 10" MaxHeight="705" >
-                    <TreeView.Resources>
-                        <Style TargetType="TreeViewItem" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
-                            <Setter Property="Padding" Value="2"/>
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="MinHeight" Value="24"/>
+                <Grid>
+                    <TreeView ItemsSource="{Binding SheetGroups, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="705" Padding="0"
+                              VirtualizingStackPanel.IsVirtualizing="True" VirtualizingStackPanel.VirtualizationMode="Recycling"
+                              Margin="0 0 0 10" MaxHeight="705" >
+                        <TreeView.Resources>
+                            <Style TargetType="TreeViewItem" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                                <Setter Property="Padding" Value="2"/>
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="MinHeight" Value="24"/>
 
-                            <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
+                                <Setter Property="materialDesign:TreeViewAssist.ShowSelection" Value="False"/>
 
-                            <Setter Property="materialDesign:TreeViewAssist.ExpanderSize" Value="12"/>
+                                <Setter Property="materialDesign:TreeViewAssist.ExpanderSize" Value="12"/>
 
-                            <Setter Property="materialDesign:TreeViewAssist.HasNoItemsExpanderVisibility" Value="Collapsed"/>
+                                <Setter Property="materialDesign:TreeViewAssist.HasNoItemsExpanderVisibility" Value="Collapsed"/>
 
-                            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
-                        </Style>
+                                <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}"/>
+                            </Style>
 
-                        <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
-                            <Setter Property="Margin" Value="0"/>
-                            <Setter Property="Padding" Value="2"/>
-                        </Style>
+                            <Style TargetType="CheckBox" BasedOn="{StaticResource MaterialDesignCheckBox}">
+                                <Setter Property="Margin" Value="0"/>
+                                <Setter Property="Padding" Value="2"/>
+                            </Style>
 
-                        <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Items}">
-                            <CheckBox Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}"
-                                      IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                      Padding="2 0"/>
-                        </HierarchicalDataTemplate>
-
-                        <HierarchicalDataTemplate DataType="{x:Type classes:SheetScheduleItem}" ItemsSource="{Binding ScheduleItems}">
-                            <StackPanel Orientation="Horizontal">
-                                <CheckBox Content="{Binding Title, Converter={StaticResource EscapeUnderscoreConverter}}"
+                            <HierarchicalDataTemplate DataType="{x:Type classes:GroupItem}" ItemsSource="{Binding Items}">
+                                <CheckBox Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}"
                                           IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                           Padding="2 0"/>
-                            </StackPanel>
-                        </HierarchicalDataTemplate>
+                            </HierarchicalDataTemplate>
 
-                        <HierarchicalDataTemplate DataType="{x:Type classes:ScheduleItem}">
-                            <StackPanel Orientation="Horizontal">
-                                <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                          Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" Padding="2 0"/>
-                            </StackPanel>
-                        </HierarchicalDataTemplate>
-                    </TreeView.Resources>
-                </TreeView>
+                            <HierarchicalDataTemplate DataType="{x:Type classes:SheetScheduleItem}" ItemsSource="{Binding ScheduleItems}">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox Content="{Binding Title, Converter={StaticResource EscapeUnderscoreConverter}}"
+                                              IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Padding="2 0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+
+                            <HierarchicalDataTemplate DataType="{x:Type classes:ScheduleItem}">
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Content="{Binding Name, Converter={StaticResource EscapeUnderscoreConverter}}" Padding="2 0"/>
+                                </StackPanel>
+                            </HierarchicalDataTemplate>
+                        </TreeView.Resources>
+                    </TreeView>
+                    <Button Width="25" Height="25" Padding="0" Margin="0 0 22 0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                            Command="{Binding CollapseAllCommand}" Style="{StaticResource MaterialDesignFlatButton}" ToolTip="Свернуть все">
+                        <materialDesign:PackIcon Kind="ArrowCollapse" Width="25" Height="25" Foreground="Black"/>
+                    </Button>
+                </Grid>
             </StackPanel>
         </GroupBox>
 
