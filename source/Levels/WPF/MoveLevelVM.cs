@@ -59,8 +59,12 @@ namespace BIMPlugins.Levels.WPF
             if (Math.Abs(shift) < 1e-9)
                 return;
 
-            var bottomElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Bottom, withOwnLevel: true);
-            var topElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Top, withOwnLevel: false);
+            // A group follows its members bound to the level, whatever its own offset: so the members keep their place
+            // through their offsets, as other elements do, and the group itself is left as it is.
+            var bottomElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Bottom, withOwnLevel: true, withGroupMembers: true)
+                .Where(e => e is not Group)
+                .ToList();
+            var topElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Top, withOwnLevel: false, withGroupMembers: true);
 
             // Elements that keep their place only by their level: they stand on a copy of the level at the new elevation
             // while the level moves, and then go back to it.

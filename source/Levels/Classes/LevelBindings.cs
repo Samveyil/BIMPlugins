@@ -63,9 +63,10 @@ namespace BIMPlugins.Levels.Classes
 
         /// <summary>
         /// Elements bound to the level by one of the bindings, or by their own level if <paramref name="withOwnLevel"/>.
-        /// Members of groups are left out: a group is moved or changed as a whole.
+        /// Members of groups are left out unless <paramref name="withGroupMembers"/>.
         /// </summary>
-        public static List<Element> FindElements(Document doc, ElementId levelId, IEnumerable<LevelBinding> bindings, bool withOwnLevel)
+        public static List<Element> FindElements(Document doc, ElementId levelId, IEnumerable<LevelBinding> bindings, bool withOwnLevel,
+            bool withGroupMembers = false)
         {
             var filters = bindings
                 .Select(b => (ElementFilter)new ElementId(b.Level).CreateEqualsFilter(levelId))
@@ -83,7 +84,7 @@ namespace BIMPlugins.Levels.Classes
             return doc.ToModelElements(filter)
                 .Where(e => e is not Group)
                 .Concat(groups)
-                .Where(e => e.GroupId == ElementId.InvalidElementId)
+                .Where(e => withGroupMembers || e.GroupId == ElementId.InvalidElementId)
                 .ToList();
         }
 
