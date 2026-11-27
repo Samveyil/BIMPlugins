@@ -3,9 +3,10 @@ using Autodesk.Revit.UI;
 using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
+using BIMPlugins.Levels.Classes;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -13,141 +14,92 @@ namespace BIMPlugins.Levels.WPF
 {
     public partial class SetNewLevelVM : ObservableObject
     {
-        [ObservableProperty] private double _count = 0;
+        private const string Title = "Назначить уровень";
+
+        [ObservableProperty] private int _count;
         [ObservableProperty][NotifyCanExecuteChangedFor(nameof(SelectAllCommand))] private Level _oldLevel;
-        [ObservableProperty] private Level _newLevel;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Level _newLevel;
 
+        private readonly UIDocument _uiDoc;
         private readonly Document _doc;
-        private readonly List<Element> _elements = [];
+        private readonly ExternalEvent _exEvent;
 
-        private ExternalEvent ExEvent { get; }
+        // The elements to put on the new level. Groups and their members are left out: they are told when it is done.
+        private List<Element> _elements = [];
+        private List<Element> _groupElements = [];
 
         public List<Level> Levels { get; }
 
         public SetNewLevelVM()
         {
-            _doc = RevitAPI.Document;
-            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetNewLevel());
+            _uiDoc = RevitAPI.UIDocument;
+            _doc = _uiDoc.Document;
+            _exEvent = RevitAPI.CreateExtEvent(this, vm => vm.SetNewLevel());
 
             Levels = _doc.ToElements<Level>()
                 .OrderBy(l => l.Elevation)
                 .ToList();
         }
 
-
         [RelayCommand]
         private void SelectElems()
         {
-            var uiDoc = new UIDocument(_doc);
-
             RevitOptionsBar.Hide(true);
             try
             {
-                var selectedElems = uiDoc.ToSelectedElements().ToList();
+                var selectedElements = _uiDoc.ToSelectedElements();
+                var elements = selectedElements.Count != 0
+                    ? selectedElements
+                    : _uiDoc.PickElements("Выберите элементы");
 
-                var elems = selectedElems.Count != 0
-                    ? selectedElems
-                    : uiDoc.PickElements("Выберите элементы").ToList();
-                
-                Count = elems.Count;
-
-                var _uniqueIds = new HashSet<ElementId>();
-                foreach (var elem in elems)
-                {
-                    if (elem.GroupId != ElementId.InvalidElementId)
-                    {
-                        if (_uniqueIds.Add(elem.GroupId))
-                            _elements.Add(elem.GroupId.ToElement(_doc));
-                    }
-                    else if (_uniqueIds.Add(elem.Id))
-                        _elements.Add(elem);
-                }
+                if (elements != null)
+                    SetElements(elements);
             }
-            catch { }
             finally
             {
                 RevitOptionsBar.Show();
             }
         }
-        
-        [RelayCommand(CanExecute = nameof(IsSelectEnabled))]
-        private void SelectAll()
+
+        [RelayCommand(CanExecute = nameof(CanSelectAll))]
+        private void SelectAll() => SetElements(LevelBindings.FindElements(_doc, OldLevel.Id, LevelBindings.Bottom, withOwnLevel: true));
+
+        private bool CanSelectAll() => OldLevel != null;
+
+        // A new choice replaces the one before.
+        private void SetElements(IEnumerable<Element> elements)
         {
-            var levelFilter = new ElementLevelFilter(OldLevel.Id);
+            var isInGroup = elements.ToLookup(e => e is Group || e.GroupId != ElementId.InvalidElementId);
+            _elements = isInGroup[false].ToList();
+            _groupElements = isInGroup[true].ToList();
 
-            var scheduleLevelRule = new ElementId(BuiltInParameter.INSTANCE_SCHEDULE_ONLY_LEVEL_PARAM).CreateEqualsFilter(OldLevel.Id);
-            var levelRule = new ElementId(BuiltInParameter.FAMILY_LEVEL_PARAM).CreateEqualsFilter(OldLevel.Id);
-
-            var filtersList = new List<ElementFilter> { scheduleLevelRule, levelRule, levelFilter };
-            foreach (var baseLevelBIP in Enum.GetValues(typeof(BuiltInParameter)).Cast<BuiltInParameter>())
-            {
-                try
-                {
-                    if (LabelUtils.GetLabelFor(baseLevelBIP) == "Базовый уровень")
-                        filtersList.Add(new ElementId(baseLevelBIP).CreateEqualsFilter(OldLevel.Id));
-                }
-                catch { }
-            }
-
-            var levelsFilter = new LogicalOrFilter(filtersList);
-
-            var elems = _doc.ToModelElements(levelsFilter).ToList();
-            Count = elems.Count;
-
-            var _uniqueIds = new HashSet<ElementId>();
-            foreach (var elem in elems)
-            {
-                if (elem.GroupId != ElementId.InvalidElementId)
-                {
-                    if (_uniqueIds.Add(elem.GroupId))
-                        _elements.Add(elem.GroupId.ToElement(_doc));
-                }
-                else if (_uniqueIds.Add(elem.Id))
-                    _elements.Add(elem);
-            }
+            Count = _elements.Count;
+            RunCommand.NotifyCanExecuteChanged();
         }
 
-        [RelayCommand]
-        private void Run() => ExEvent.Raise();
+        [RelayCommand(CanExecute = nameof(CanRun))]
+        private void Run() => _exEvent.Raise();
+
+        private bool CanRun() => NewLevel != null && _elements.Count != 0;
+
         private void SetNewLevel()
         {
             RevitOptionsBar.Hide();
 
-            using (Transaction t = new Transaction(_doc, "Назначить уровень"))
+            var notChanged = _groupElements
+                .Select(e => LevelBindings.Describe(e) + ": в группе")
+                .ToList();
+
+            using (Transaction t = new Transaction(_doc, Title))
             {
                 t.Start();
 
                 using (var revitProgressBar = new RevitProgressBar(true))
                 {
-                    revitProgressBar.Run($"Назначение нового уровня...", _elements, (element) =>
+                    revitProgressBar.Run("Назначение нового уровня...", _elements, element =>
                     {
-                        if (element is Group group)
-                        {
-                            var groupType = group.GroupType;
-                            var groupName = groupType.Name;
-
-                            var memberIds = group.UngroupMembers();
-                            foreach (var memberId in memberIds)
-                                SetLevel(memberId.ToElement(_doc));
-
-                            _doc.Regenerate();
-
-                            var grpNew = _doc.Create.NewGroup(memberIds);
-                            var grpTypeNew = grpNew.GroupType;
-
-                            //foreach (var oldGroup in RevitAPI.Document.ToElements<Group>().Where(g => g.GroupType.Name == groupName))
-                            //    oldGroup.GroupType = grpTypeNew;
-
-                            //RevitAPI.Document.Delete(groupType.Id);
-
-                            grpTypeNew.Name = $"{groupName} - {grpTypeNew.Name}";
-
-                            //RevitAPI.Document.Regenerate();
-
-                            //grpNew.GroupType = groupId;
-                        }
-                        else
-                            SetLevel(element);
+                        if (!SetLevel(element))
+                            notChanged.Add(LevelBindings.Describe(element) + ": нет параметра уровня, который можно изменить");
                     });
 
                     if (revitProgressBar.IsCancelling())
@@ -159,67 +111,36 @@ namespace BIMPlugins.Levels.WPF
 
                 t.Commit();
             }
+
+            if (notChanged.Count != 0)
+                ReportDialog.Show(notChanged, "Уровень не назначен");
         }
-        private void SetLevel(Element element)
+
+        // The element goes to the new level and keeps its place: its offset changes by the height between the levels.
+        private bool SetLevel(Element element)
         {
-            Parameter levelParameter = null;
-            foreach (var param in element.Parameters.Cast<Parameter>().Where(p => !p.IsReadOnly && ((InternalDefinition)p.Definition).BuiltInParameter != BuiltInParameter.INVALID).OrderBy(p => p.Definition.Name))
-            {
-                if (param.Definition.Name.ToLower().Contains("уровень"))
-                {
-                    levelParameter = param;
-                    break;
-                }
-                else if (param.Definition.Name.Contains("Зависимость снизу"))
-                {
-                    levelParameter = param;
-                    break;
-                }
-                else if (param.Definition.Name.Contains("Базовая зависимость"))
-                {
-                    levelParameter = param;
-                    break;
-                }
-            }
+            var binding = LevelBindings.Bottom.FirstOrDefault(b => element.get_Parameter(b.Level) is { IsReadOnly: false });
+            if (binding == null)
+                return false;
 
-            if (levelParameter == null) return;
+            var levelParameter = element.get_Parameter(binding.Level);
+            var oldLevel = levelParameter.AsElementId().ToElement<Level>(_doc);
+            if (oldLevel != null && oldLevel.Id.Equals(NewLevel.Id))
+                return true;
 
-            if (element.LevelId == ElementId.InvalidElementId && ((InternalDefinition)levelParameter.Definition).BuiltInParameter != BuiltInParameter.STAIRS_BASE_LEVEL_PARAM)
-            {
-                levelParameter.Set(NewLevel.Id);
-            }
-            else
-            {
-                var offsetParameter = GetOffsetParameter(element);
-                if (offsetParameter == null) return;
+            // An element that keeps its place by itself needs only the new level.
+            var offset = binding.KeepsOffset(element) ? binding.GetOffset(element) : null;
+            var offsetValue = offset?.AsDouble();
 
-                var levelOffset = NewLevel.ProjectElevation - levelParameter.AsElementId().ToElement<Level>(_doc).ProjectElevation;
-                var offset = offsetParameter.AsDouble() - levelOffset;
+            levelParameter.Set(NewLevel.Id);
 
-                levelParameter.Set(NewLevel.Id);
-                if (!offsetParameter.IsReadOnly)
-                    offsetParameter.Set(offset);
-            }
-        }
-        private Parameter GetOffsetParameter(Element element)
-        {
-            string[] parameterNames = ["Смещение снизу", "Отметка от уровня", "Смещение от уровня", "Смещение от главной модели", "Высота нижнего бруса"];
+            if (offset != null && oldLevel != null)
+                offset.Set(offsetValue.Value - (NewLevel.ProjectElevation - oldLevel.ProjectElevation));
 
-            foreach (var paramName in parameterNames)
-            {
-                var parameter = element.LookupParameter(paramName);
-                if (parameter != null)
-                {
-                    return parameter;
-                }
-            }
-
-            return null;
+            return true;
         }
 
         [RelayCommand]
         private void Close() => RevitOptionsBar.Hide();
-
-        private bool IsSelectEnabled() => OldLevel != null;
     }
 }

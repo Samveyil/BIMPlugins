@@ -4,6 +4,8 @@ using BIMPlugins.Bars;
 using BIMPlugins.ExtStorage;
 using BIMPlugins.ExtStorage.Extensions;
 using BIMPlugins.ExtStorage.Extensions.UtilsExtensions;
+using BIMPlugins.Levels.Classes;
+using BIMPlugins.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System;
@@ -14,98 +16,96 @@ namespace BIMPlugins.Levels.WPF
 {
     public partial class MoveLevelVM : ObservableObject
     {
-        [ObservableProperty] private Level _selectedLevel;
-        [ObservableProperty] private double _elevation;
+        private const string Title = "Переместить уровень";
 
-        private readonly Document _doc;
+        [ObservableProperty][NotifyCanExecuteChangedFor(nameof(RunCommand))] private Level _selectedLevel;
+        [ObservableProperty] private double _elevation;
 
         partial void OnSelectedLevelChanged(Level value)
         {
-            Elevation = value.Elevation.ToMillimeters().Round(3);
+            if (value != null)
+                Elevation = value.Elevation.ToMillimeters().Round(3);
         }
 
-        private ExternalEvent ExEvent { get; }
+        private readonly Document _doc;
+        private readonly ExternalEvent _exEvent;
 
         public List<Level> Levels { get; }
 
         public MoveLevelVM()
         {
             _doc = RevitAPI.Document;
-            ExEvent = RevitAPI.CreateExtEvent(this, vm => vm.MoveLevel());
+            _exEvent = RevitAPI.CreateExtEvent(this, vm => vm.MoveLevel());
 
             Levels = _doc.ToElements<Level>()
                 .OrderBy(l => l.Elevation)
                 .ToList();
         }
 
-        [RelayCommand]
-        private void Run() => ExEvent.Raise();
+        [RelayCommand(CanExecute = nameof(CanRun))]
+        private void Run() => _exEvent.Raise();
+
+        private bool CanRun() => SelectedLevel != null;
+
+        // The level goes to the new elevation; the elements on it and under it keep their place: their offsets
+        // from the level change by as much as the level moves.
         private void MoveLevel()
         {
             RevitOptionsBar.Hide();
 
-            var levelFilter = new ElementLevelFilter(SelectedLevel.Id);
+            var level = SelectedLevel;
+            var newElevation = Elevation.FromMillimeters();
+            var shift = newElevation - level.Elevation;
+            if (Math.Abs(shift) < 1e-9)
+                return;
 
-            var scheduleLevelRule = new ElementId(BuiltInParameter.INSTANCE_SCHEDULE_ONLY_LEVEL_PARAM).CreateEqualsFilter(SelectedLevel.Id);
-            var levelRule = new ElementId(BuiltInParameter.FAMILY_LEVEL_PARAM).CreateEqualsFilter(SelectedLevel.Id);
+            var bottomElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Bottom, withOwnLevel: true);
+            var topElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Top, withOwnLevel: false);
 
-            var bottomFiltersList = new List<ElementFilter> { scheduleLevelRule, levelRule, levelFilter };
-            var topFiltersList = new List<ElementFilter> { new ElementId(BuiltInParameter.STAIRS_TOP_LEVEL_PARAM).CreateEqualsFilter(SelectedLevel.Id) };
-            foreach (var bip in Enum.GetValues(typeof(BuiltInParameter)).Cast<BuiltInParameter>())
-            {
-                try
-                {
-                    if (LabelUtils.GetLabelFor(bip) == "Базовый уровень")
-                        bottomFiltersList.Add(new ElementId(bip).CreateEqualsFilter(SelectedLevel.Id));
-                    else if (LabelUtils.GetLabelFor(bip) == "Зависимость сверху")
-                        topFiltersList.Add(new ElementId(bip).CreateEqualsFilter(SelectedLevel.Id));
-                }
-                catch { }
-            }
+            // Elements that keep their place only by their level: they stand on a copy of the level at the new elevation
+            // while the level moves, and then go back to it.
+            var reattached = new List<Parameter>();
+            Level levelCopy = null;
 
-            var bottomLevelsFilter = new LogicalOrFilter(bottomFiltersList);
-            var topLevelsFilter = new LogicalOrFilter(topFiltersList);
-            
-            var bottomElements = _doc.ToModelElements(bottomLevelsFilter);
-            var topElements = _doc.ToModelElements(topLevelsFilter);
+            // Elements whose place could not be kept: they move with the level.
+            var moved = new List<string>();
 
-            var projectElevationOffset = SelectedLevel.Elevation - SelectedLevel.ProjectElevation;
-
-            var elementsWithNewLevel = new List<Element>();
-
-            using (Transaction t = new Transaction(_doc, "Переместить уровень"))
+            using (Transaction t = new Transaction(_doc, Title))
             {
                 t.Start();
 
-                var newLevel = Level.Create(_doc, Elevation.FromMillimeters() - projectElevationOffset);
-                var levelOffset = newLevel.ProjectElevation - SelectedLevel.ProjectElevation;
-
                 using (var revitProgressBar = new RevitProgressBar(true))
                 {
-                    revitProgressBar.Run($"Перемещение уровня...", bottomElements, (element) =>
+                    revitProgressBar.Run("Перемещение уровня...", bottomElements, element =>
                     {
-                        if (element.LevelId != ElementId.InvalidElementId || element.get_Parameter(BuiltInParameter.STAIRS_BASE_LEVEL_PARAM) != null)
+                        var binding = LevelBindings.Find(element, LevelBindings.Bottom, level.Id);
+                        if (binding == null)
                         {
-                            var offsetParameter = GetBottomOffsetParameter(element);
-                            if (offsetParameter == null) return;
-
-                            var offset = offsetParameter.AsDouble() - levelOffset;
-
-                            if (!offsetParameter.IsReadOnly)
-                                offsetParameter.Set(offset);
+                            moved.Add(LevelBindings.Describe(element));
+                            return;
                         }
-                        else
+
+                        if (binding.KeepsOffset(element))
                         {
-                            var levelParameter = element.Parameters.Cast<Parameter>()
-                                .Where(p => !p.IsReadOnly && ((InternalDefinition)p.Definition).BuiltInParameter != BuiltInParameter.INVALID)
-                                .OrderBy(p => p.Definition.Name)
-                                .FirstOrDefault(p => p.Definition.Name.ToLower().Contains("уровень"));
+                            var offset = binding.GetOffset(element);
+                            if (offset != null)
+                                offset.Set(offset.AsDouble() - shift);
+                            else
+                                moved.Add(LevelBindings.Describe(element));
 
-                            if (levelParameter == null) return;
-
-                            levelParameter.Set(newLevel.Id);
-                            elementsWithNewLevel.Add(element);
+                            return;
                         }
+
+                        var levelParameter = element.get_Parameter(binding.Level);
+                        if (!levelParameter.IsReadOnly)
+                        {
+                            levelCopy ??= level.Copy(new XYZ(0, 0, shift)).First().ToElement<Level>(_doc);
+                            levelParameter.Set(levelCopy.Id);
+                            reattached.Add(levelParameter);
+                            return;
+                        }
+
+                        moved.Add(LevelBindings.Describe(element));
                     });
 
                     if (revitProgressBar.IsCancelling())
@@ -115,59 +115,35 @@ namespace BIMPlugins.Levels.WPF
                     }
                 }
 
-                SelectedLevel.Elevation = newLevel.Elevation;
-                foreach (var element in elementsWithNewLevel)
+                foreach (var element in topElements)
                 {
-                    var levelParameter = element.Parameters.Cast<Parameter>()
-                        .Where(p => !p.IsReadOnly && ((InternalDefinition)p.Definition).BuiltInParameter != BuiltInParameter.INVALID)
-                        .OrderBy(p => p.Definition.Name)
-                        .FirstOrDefault(p => p.Definition.Name.ToLower().Contains("уровень"));
-                    
-                    levelParameter.Set(SelectedLevel.Id);
+                    var offset = LevelBindings.Find(element, LevelBindings.Top, level.Id)?.GetOffset(element);
+                    if (offset != null)
+                        offset.Set(offset.AsDouble() - shift);
+                    else
+                        moved.Add(LevelBindings.Describe(element) + ", верх");
                 }
 
-                _doc.Delete(newLevel.Id);
+                level.Elevation = newElevation;
 
-                using (var revitProgressBar = new RevitProgressBar(true))
+                if (levelCopy != null)
                 {
-                    revitProgressBar.Run($"Перемещение уровня...", topElements, (element) =>
-                    {
-                        if (element.LevelId != ElementId.InvalidElementId || element.get_Parameter(BuiltInParameter.STAIRS_TOP_LEVEL_PARAM) != null)
-                        {
-                            var offsetParameter = element.ToParameter("Смещение сверху");
-                            if (offsetParameter == null) return;
+                    _doc.Regenerate();
 
-                            var offset = offsetParameter.AsDouble() - levelOffset;
+                    var leftOnCopy = reattached.Count(p => !p.Set(level.Id));
 
-                            if (!offsetParameter.IsReadOnly)
-                                offsetParameter.Set(offset);
-                        }
-                    });
-
-                    if (revitProgressBar.IsCancelling())
-                    {
-                        t.RollBack();
-                        return;
-                    }
+                    // The copy is deleted only when nothing stands on it, so that no element is deleted with it.
+                    if (leftOnCopy == 0)
+                        _doc.Delete(levelCopy.Id);
+                    else
+                        moved.Add($"Остались на уровне «{levelCopy.Name}»: {leftOnCopy}");
                 }
 
                 t.Commit();
             }
-        }
-        private Parameter GetBottomOffsetParameter(Element element)
-        {
-            string[] parameterNames = ["Смещение снизу", "Отметка от уровня", "Смещение от уровня", "Смещение от главной модели", "Высота нижнего бруса"];
 
-            foreach (var paramName in parameterNames)
-            {
-                var parameter = element.LookupParameter(paramName);
-                if (parameter != null)
-                {
-                    return parameter;
-                }
-            }
-
-            return null;
+            if (moved.Count != 0)
+                ReportDialog.Show(moved, "Переместились вместе с уровнем");
         }
 
         [RelayCommand]

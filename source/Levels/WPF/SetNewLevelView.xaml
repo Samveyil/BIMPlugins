@@ -30,7 +30,7 @@
     </Button>
     <Button Padding="10 2" VerticalAlignment="Center" Style="{StaticResource MaterialDesignPaperButton}" Height="22"
             Command="{Binding SelectAllCommand}" Margin="10 0 0 0">
-        <TextBlock Text="Выбрать Все" FontSize="12" FontWeight="DemiBold"/>
+        <TextBlock Text="Выбрать все" FontSize="12" FontWeight="DemiBold"/>
     </Button>
     <Border Width="4" BorderThickness="1 0" Background="Gray" Margin="10 0" />
 
