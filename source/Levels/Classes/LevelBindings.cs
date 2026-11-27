@@ -89,6 +89,23 @@ namespace BIMPlugins.Levels.Classes
         }
 
         /// <summary>
+        /// Family instances on the work plane of the level: their host is the level and their height is the offset from it,
+        /// "Смещение от главной модели", not a level parameter.
+        /// </summary>
+        public static List<FamilyInstance> FindHosted(Document doc, ElementId levelId, bool withGroupMembers) => new FilteredElementCollector(doc)
+            .OfClass(typeof(FamilyInstance))
+            .Cast<FamilyInstance>()
+            .Where(fi => fi.Host?.Id.Equals(levelId) == true)
+            .Where(fi => withGroupMembers || fi.GroupId == ElementId.InvalidElementId)
+            .ToList();
+
+        /// <summary>
+        /// The offset of a family instance from its host.
+        /// </summary>
+        public static Parameter GetHostOffset(Element element) =>
+            element.get_Parameter(BuiltInParameter.INSTANCE_FREE_HOST_OFFSET_PARAM) is { IsReadOnly: false } offset ? offset : null;
+
+        /// <summary>
         /// The binding whose level parameter holds the level; null if none does.
         /// </summary>
         public static LevelBinding Find(Element element, IEnumerable<LevelBinding> bindings, ElementId levelId) =>

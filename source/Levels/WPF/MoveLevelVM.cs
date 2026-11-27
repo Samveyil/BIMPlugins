@@ -61,8 +61,13 @@ namespace BIMPlugins.Levels.WPF
 
             // A group follows its members bound to the level, whatever its own offset: so the members keep their place
             // through their offsets, as other elements do, and the group itself is left as it is.
+            // Instances on the work plane of the level are kept by their offset from it, whatever level parameters they have.
+            var hosted = LevelBindings.FindHosted(_doc, level.Id, withGroupMembers: true);
+            var hostedIds = hosted.Select(fi => fi.Id).ToHashSet();
+
             var bottomElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Bottom, withOwnLevel: true, withGroupMembers: true)
-                .Where(e => e is not Group)
+                .Where(e => e is not Group && !hostedIds.Contains(e.Id))
+                .Concat(hosted)
                 .ToList();
             var topElements = LevelBindings.FindElements(_doc, level.Id, LevelBindings.Top, withOwnLevel: false, withGroupMembers: true);
 
@@ -82,6 +87,17 @@ namespace BIMPlugins.Levels.WPF
                 {
                     revitProgressBar.Run("Перемещение уровня...", bottomElements, element =>
                     {
+                        if (hostedIds.Contains(element.Id))
+                        {
+                            var hostOffset = LevelBindings.GetHostOffset(element);
+                            if (hostOffset != null)
+                                hostOffset.Set(hostOffset.AsDouble() - shift);
+                            else
+                                moved.Add(LevelBindings.Describe(element));
+
+                            return;
+                        }
+
                         var binding = LevelBindings.Find(element, LevelBindings.Bottom, level.Id);
                         if (binding == null)
                         {
