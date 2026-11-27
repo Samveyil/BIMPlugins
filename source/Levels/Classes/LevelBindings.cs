@@ -100,10 +100,37 @@ namespace BIMPlugins.Levels.Classes
             .ToList();
 
         /// <summary>
-        /// The offset of a family instance from its host.
+        /// The offsets of a family instance from the level it stands on: the two ends of a beam,
+        /// or "Смещение от главной модели" of other instances. Empty if none can be changed.
         /// </summary>
-        public static Parameter GetHostOffset(Element element) =>
-            element.get_Parameter(BuiltInParameter.INSTANCE_FREE_HOST_OFFSET_PARAM) is { IsReadOnly: false } offset ? offset : null;
+        public static List<Parameter> GetHostOffsets(Element element)
+        {
+            var beamEnds = new[] { BuiltInParameter.STRUCTURAL_BEAM_END0_ELEVATION, BuiltInParameter.STRUCTURAL_BEAM_END1_ELEVATION }
+                .Select(element.get_Parameter)
+                .Where(p => p is { IsReadOnly: false })
+                .ToList();
+            if (beamEnds.Count != 0)
+                return beamEnds;
+
+            return element.get_Parameter(BuiltInParameter.INSTANCE_FREE_HOST_OFFSET_PARAM) is { IsReadOnly: false } offset
+                ? [offset]
+                : [];
+        }
+
+        /// <summary>
+        /// Lowers the offset by the shift of the level; false if Revit does not take the new value.
+        /// </summary>
+        public static bool Shift(Parameter offset, double shift)
+        {
+            try
+            {
+                return offset.Set(offset.AsDouble() - shift);
+            }
+            catch (Autodesk.Revit.Exceptions.ApplicationException)
+            {
+                return false;
+            }
+        }
 
         /// <summary>
         /// The binding whose level parameter holds the level; null if none does.

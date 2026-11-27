@@ -89,10 +89,10 @@ namespace BIMPlugins.Levels.WPF
                     {
                         if (hostedIds.Contains(element.Id))
                         {
-                            var hostOffset = LevelBindings.GetHostOffset(element);
-                            if (hostOffset != null)
-                                hostOffset.Set(hostOffset.AsDouble() - shift);
-                            else
+                            var hostOffsets = LevelBindings.GetHostOffsets(element);
+                            // Both ends of a beam are shifted even if one fails.
+                            var shifted = hostOffsets.Select(p => LevelBindings.Shift(p, shift)).ToList();
+                            if (shifted.Count == 0 || shifted.Contains(false))
                                 moved.Add(LevelBindings.Describe(element));
 
                             return;
@@ -108,9 +108,7 @@ namespace BIMPlugins.Levels.WPF
                         if (binding.KeepsOffset(element))
                         {
                             var offset = binding.GetOffset(element);
-                            if (offset != null)
-                                offset.Set(offset.AsDouble() - shift);
-                            else
+                            if (offset == null || !LevelBindings.Shift(offset, shift))
                                 moved.Add(LevelBindings.Describe(element));
 
                             return;
@@ -138,9 +136,7 @@ namespace BIMPlugins.Levels.WPF
                 foreach (var element in topElements)
                 {
                     var offset = LevelBindings.Find(element, LevelBindings.Top, level.Id)?.GetOffset(element);
-                    if (offset != null)
-                        offset.Set(offset.AsDouble() - shift);
-                    else
+                    if (offset == null || !LevelBindings.Shift(offset, shift))
                         moved.Add(LevelBindings.Describe(element) + ", верх");
                 }
 
